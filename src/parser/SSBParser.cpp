@@ -14,14 +14,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 
 #include "SSBParser.hpp"
 #include "config.h"
-#include <sstream>
-
-// Converts string to number
-template<typename T>
-inline bool string_to_number(std::string src, T& dst){
-	std::istringstream s(src);
-	return !(s >> std::noskipws >> dst) || !s.eof() ? false : true;
-}
+#include "utils.hpp"
 
 // Parses SSB time and converts to milliseconds
 template<typename T>
@@ -131,6 +124,113 @@ inline bool parse_time(std::string& s, T& t){
 }
 
 // Parser implementations
+void SSB::Parser::parse_geometry(std::string& geometry, SSB::Geometry::Type geometry_type, SSB::Event& event) throw(std::string){
+	switch(geometry_type){
+		case SSB::Geometry::Type::POINTS:{
+				// Points buffer
+				std::vector<SSB::Point> points;
+				// Iterate through numbers
+				std::istringstream points_stream(geometry);
+				Point point;
+				while(points_stream >> point.x)
+					if(points_stream >> point.y)
+						points.push_back(point);
+					else if(this->level == SSB::Parser::Level::ALL)
+						throw std::string("Points must have 2 numbers");
+				// Check for successfull streaming end
+				if((points_stream >> std::ws).eof())
+					event.objects.push_back(std::shared_ptr<SSB::Object>(new SSB::Points(points)));
+				else if(this->level == SSB::Parser::Level::ALL)
+					throw std::string("Points are invalid");
+			}
+			break;
+		case SSB::Geometry::Type::PATH:{
+				// Path segments buffer
+				std::vector<SSB::Path::Segment> path;
+				// Iterate through words
+				std::istringstream segments_stream(geometry);
+				std::string path_token;
+				SSB::Path::Segment segments[3];
+				segments[0].type = SSB::Path::SegmentType::MOVE_TO;
+				while(segments_stream >> path_token)
+					// Save next segment type
+					if(path_token == "m")
+						segments[0].type = SSB::Path::SegmentType::MOVE_TO;
+					else if(path_token == "l")
+						segments[0].type = SSB::Path::SegmentType::LINE_TO;
+					else if(path_token == "b")
+						segments[0].type = segments[1].type = segments[2].type = SSB::Path::SegmentType::CURVE_TO;
+					else if(path_token == "a")
+						segments[0].type = segments[1].type = SSB::Path::SegmentType::ARC_TO;
+					else if(path_token == "c"){
+						segments[0].type = SSB::Path::SegmentType::CLOSE;
+						path.push_back({SSB::Path::SegmentType::CLOSE, 0, 0});
+					// Complete next segment
+					}else{
+						// Put token back in stream for rereading
+						segments_stream.seekg(-static_cast<long>(path_token.length()), std::istringstream::cur);
+						// Parse segment data
+						switch(segments[0].type){
+							case SSB::Path::SegmentType::MOVE_TO:
+							case SSB::Path::SegmentType::LINE_TO:
+								if(segments_stream >> segments[0].point.x &&
+									segments_stream >> segments[0].point.y)
+									path.push_back(segments[0]);
+								else if(this->level == SSB::Parser::Level::ALL)
+									throw std::string(segments[0].type == SSB::Path::SegmentType::MOVE_TO ? "Path (move) is invalid" : "Path (line) is invalid");
+								break;
+							case SSB::Path::SegmentType::CURVE_TO:
+								if(segments_stream >> segments[0].point.x &&
+									segments_stream >> segments[0].point.y &&
+									segments_stream >> segments[1].point.x &&
+									segments_stream >> segments[1].point.y &&
+									segments_stream >> segments[2].point.x &&
+									segments_stream >> segments[2].point.y){
+									path.push_back(segments[0]);
+									path.push_back(segments[1]);
+									path.push_back(segments[2]);
+								}else if(this->level == SSB::Parser::Level::ALL)
+									throw std::string("Path (curve) is invalid");
+								break;
+							case SSB::Path::SegmentType::ARC_TO:
+								if(segments_stream >> segments[0].point.x &&
+									segments_stream >> segments[0].point.y &&
+									segments_stream >> segments[1].angle){
+									path.push_back(segments[0]);
+									path.push_back(segments[1]);
+								}else if(this->level == SSB::Parser::Level::ALL)
+									throw std::string("Path (arc) is invalid");
+								break;
+							case SSB::Path::SegmentType::CLOSE:
+								if(this->level == SSB::Parser::Level::ALL)
+									throw std::string("Path (close) is invalid");
+								break;
+						}
+					}
+				// Successful collection of segments
+				event.objects.push_back(std::shared_ptr<SSB::Object>(new SSB::Path(path)));
+			}
+			break;
+		case SSB::Geometry::Type::TEXT:{
+				// Replace in string \t to 4 spaces
+				string_replace(geometry, "\t", "    ");
+				// Replace in string \n to real line breaks
+				string_replace(geometry, "\\n", "\n");
+				// Replace in string \{ to single {
+				string_replace(geometry, "\\{", "{");
+				// Insert SSBText as SSBObject to SSBEvent
+				event.objects.push_back(std::shared_ptr<SSB::Object>(new SSB::Text(geometry)));
+			}
+			break;
+	}
+}
+
+void SSB::Parser::parse_tags(std::string& tags, SSB::Geometry::Type& geometry_type, SSB::Event& event) throw(std::string){
+
+	// TODO
+
+}
+
 void SSB::Parser::parse_script(SSB::Data& data, std::istream& script) throw(std::string){
 	// Skip UTF-8 byte-order-mask
 	unsigned char BOM[3];
@@ -276,9 +376,38 @@ void SSB::Parser::parse_line(SSB::Data& data, std::string& line) throw(std::stri
 								pos_start = pos_end + 2;
 						}
 						// Evaluate text tokens
-
-						// TODO
-
+						SSB::Geometry::Type geometry_type = SSB::Geometry::Type::TEXT;
+						bool in_tags = false;
+						pos_start = 0;
+						do{
+							// Evaluate tags
+							if(in_tags){
+								// Search tags end at closing bracket or cause error
+								pos_end = text.find('}', pos_start);
+								if(pos_end == std::string::npos){
+									if(this->level == SSB::Parser::Level::ALL)
+										throw std::string("Tags closing brace not found");
+									break;
+								}
+								// Parse single tags
+								std::string tags = text.substr(pos_start, pos_end - pos_start);
+								if(!tags.empty())
+									this->parse_tags(tags, geometry_type, event);
+							// Evaluate geometries
+							}else{
+								// Search geometry end at tags bracket (unescaped) or text end
+								pos_end = find_non_escaped_character(text, '{', pos_start);
+								if(pos_end == std::string::npos)
+									pos_end = text.length();
+								// Parse geometry by type
+								std::string geometry = text.substr(pos_start, pos_end - pos_start);
+								if(!geometry.empty())
+									this->parse_geometry(geometry, geometry_type, event);
+							}
+							// Update for next token
+							pos_start = pos_end + 1;
+							in_tags = !in_tags;
+						}while(pos_start < text.length());
 						// Event complete -> commit to data
 						data.events.push_back(event);
 					}

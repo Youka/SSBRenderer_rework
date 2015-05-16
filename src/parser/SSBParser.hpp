@@ -21,11 +21,13 @@ namespace SSB{
 	class Parser{
 		private:
 			// Level of error detection (0=OFF, 1=SYNTAX, 3=+VALUES)
-			enum class Level{OFF, SYNTAX, ALL} const level = Level::ALL;
+			enum class Level{OFF, SYNTAX, ALL} const level;
+			// Parse core elements
+			void parse_geometry(std::string& geometry, Geometry::Type geometry_type, Event& event) throw(std::string);
+			void parse_tags(std::string& tags, Geometry::Type& geometry_type, Event& event) throw(std::string);
 		public:
-			// Constructors
-			Parser() = default;
-			Parser(Level level) : level(level){};
+			// Constructor
+			Parser(Level level = Level::ALL) : level(level){};
 			// Parse one text line
 			void parse_line(Data& data, std::string& line) throw(std::string);
 			// Parse a whole script
