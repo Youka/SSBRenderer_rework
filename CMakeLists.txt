@@ -11,6 +11,9 @@ set(PROJECT_VERSION_MINOR 0)
 set(PROJECT_VERSION_PATCH 1)
 message(STATUS "Project header: '${PROJECT_NAME}' by ${PROJECT_AUTHOR}, v${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}")
 
+# Enable tests (must be here for target generation)
+enable_testing()
+
 # Process source
 add_subdirectory(src)
 message(STATUS "Finished source")

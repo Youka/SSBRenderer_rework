@@ -61,11 +61,6 @@ else()
 	message(STATUS "Standard libraries link type: dynamic")
 endif()
 
-# Enable tests
-if(${BUILD_TESTS})
-	enable_testing()
-endif()
-
 # Process parser
 add_subdirectory(parser)
 message(STATUS "Processed parser")
