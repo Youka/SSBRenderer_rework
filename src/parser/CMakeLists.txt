@@ -1,5 +1,17 @@
+# Request user options
+set(BUILD_MAX_INLINE_STYLES 64 CACHE STRING "Maximal number of insertions of a style into a line" FORCE)
+
+# Generate configuration header
+configure_file(
+	${CMAKE_CURRENT_SOURCE_DIR}/config.h.in
+	${CMAKE_CURRENT_BINARY_DIR}/config.h
+)
+
 # Compile static library
 add_library(ssbparser STATIC SSBParser.cpp)
+
+# Add library include directories
+target_include_directories(ssbparser PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
 # Add functionality test
 if(${BUILD_TESTS})
