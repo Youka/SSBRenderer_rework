@@ -20,15 +20,15 @@ namespace SSB{
 	// Subtilte parser to fill data containers
 	class Parser{
 		private:
-			// Level of error detection (0=OFF, 1=SECTIONS, 2=+ELEMENTS, 3=+VALUES)
-			enum class Level{OFF, SECTIONS, ELEMENTS, ALL} const level = Level::ALL;
+			// Level of error detection (0=OFF, 1=SYNTAX, 3=+VALUES)
+			enum class Level{OFF, SYNTAX, ALL} const level = Level::ALL;
 		public:
 			// Constructors
 			Parser() = default;
 			Parser(Level level) : level(level){};
 			// Parse one text line
-			bool parse_line(Data& data, std::string& line) throw(std::string);
+			void parse_line(Data& data, std::string& line) throw(std::string);
 			// Parse a whole script
-			bool parse_script(Data& data, std::istream& script) throw(std::string);
+			void parse_script(Data& data, std::istream& script) throw(std::string);
 	};
 }	// namespace SSB

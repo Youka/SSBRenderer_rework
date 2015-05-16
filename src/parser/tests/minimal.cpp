@@ -20,6 +20,7 @@ int main(){
 	SSB::Data data;
 	SSB::Parser parser;
 	std::string line("#META");
-	std::cout << parser.parse_line(data, line) << std::endl;
+	parser.parse_line(data, line);
+	std::cout << ":)" << std::endl;
 	return 0;
 }
