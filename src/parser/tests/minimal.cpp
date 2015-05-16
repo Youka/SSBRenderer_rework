@@ -16,11 +16,14 @@ Permission is granted to anyone to use this software for any purpose, including 
 #include "../SSBParser.hpp"
 
 int main(){
-	// TODO
 	SSB::Data data;
 	SSB::Parser parser;
-	std::string line("#META");
-	parser.parse_line(data, line);
-	std::cout << ":)" << std::endl;
+	std::string line("#MET");
+	try{
+		parser.parse_line(data, line);
+		std::cout << "SUCCESS!!!" << std::endl;
+	}catch(std::string msg){
+		std::cout << "ERROR: " << msg << std::endl;
+	}
 	return 0;
 }

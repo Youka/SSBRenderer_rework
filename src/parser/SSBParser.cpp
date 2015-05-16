@@ -174,7 +174,7 @@ void SSB::Parser::parse_line(SSB::Data& data, std::string& line) throw(std::stri
 			else if(section == "EVENTS")
 				data.current_section = SSB::Data::Section::EVENTS;
 			else if(this->level != SSB::Parser::Level::OFF)
-				throw "Invalid section name";
+				throw std::string("Invalid section name");
 		}else	// Section content line
 			switch(data.current_section){
 				case SSB::Data::Section::META:
@@ -187,7 +187,7 @@ void SSB::Parser::parse_line(SSB::Data& data, std::string& line) throw(std::stri
 					else if(line.compare(0, 9, "Version: ") == 0)
 						data.meta.version = line.substr(9);
 					else if(this->level != SSB::Parser::Level::OFF)
-						throw "Invalid meta field";
+						throw std::string("Invalid meta field");
 					break;
 				case SSB::Data::Section::FRAME:
 					if(line.compare(0, 7, "Width: ") == 0){
@@ -195,22 +195,22 @@ void SSB::Parser::parse_line(SSB::Data& data, std::string& line) throw(std::stri
 						if(string_to_number(line.substr(7), width))
 							data.frame.width = width;
 						else if(this->level == SSB::Parser::Level::ALL)
-							throw "Invalid frame width";
+							throw std::string("Invalid frame width");
 					}else if(line.compare(0,8, "Heigth: ") == 0){
 						decltype(data.frame.height) height;
 						if(string_to_number(line.substr(8), height))
 							data.frame.height = height;
 						else if(this->level == SSB::Parser::Level::ALL)
-							throw "Invalid frame height";
+							throw std::string("Invalid frame height");
 					}else if(this->level != SSB::Parser::Level::OFF)
-						throw "Invalid frame field";
+						throw std::string("Invalid frame field");
 					break;
 				case SSB::Data::Section::STYLES:{
 						auto split_pos = line.find(": ");
 						if(split_pos != std::string::npos)
 							data.styles[line.substr(0, split_pos)] = line.substr(split_pos+2);
 						else if(this->level != SSB::Parser::Level::OFF)
-							throw "Invalid styles field";
+							throw std::string("Invalid styles field");
 					}
 					break;
 				case SSB::Data::Section::EVENTS:{
@@ -222,45 +222,45 @@ void SSB::Parser::parse_line(SSB::Data& data, std::string& line) throw(std::stri
 						// Extract start time
 						if(!std::getline(line_stream, line_token, '-') || !parse_time(line_token, event.start_ms)){
 							if(this->level != SSB::Parser::Level::OFF)
-								throw "Couldn't find start time";
+								throw std::string("Couldn't find start time");
 							break;
 						}
 						// Extract end time
 						if(!std::getline(line_stream, line_token, '|') || !parse_time(line_token, event.end_ms)){
 							if(this->level != SSB::Parser::Level::OFF)
-								throw "Couldn't find end time";
+								throw std::string("Couldn't find end time");
 							break;
 						}
 						// Check valid times
 						if(event.start_ms < event.end_ms){
 							if(this->level == SSB::Parser::Level::ALL)
-								throw "Start time mustn't be after end time";
+								throw std::string("Start time mustn't be after end time");
 							break;
 						}
 						// Extract style name
 						if(!std::getline(line_stream, line_token, '|')){
 							if(this->level != SSB::Parser::Level::OFF)
-								throw "Couldn't find style";
+								throw std::string("Couldn't find style");
 							break;
 						}
 						// Get style content for later insertion
 						std::string style_content;
 						if(!line_token.empty() && !data.styles.count(line_token)){
 							if(this->level == SSB::Parser::Level::ALL)
-								throw "Couldn't find style";
+								throw std::string("Couldn't find style");
 							break;
 						}else
 							style_content = data.styles[line_token];
 						// Skip note
 						if(!std::getline(line_stream, line_token, '|')){
 							if(this->level != SSB::Parser::Level::OFF)
-								throw "Couldn't find note";
+								throw std::string("Couldn't find note");
 							break;
 						}
 						// Extract text
 						if(!line_stream.unget() || line_stream.get() != '|'){
 							if(this->level != SSB::Parser::Level::OFF)
-								throw "Couldn't find text";
+								throw std::string("Couldn't find text");
 							break;
 						}
 						std::string text = std::getline(line_stream, line_token) ? style_content + line_token : style_content;
@@ -285,7 +285,7 @@ void SSB::Parser::parse_line(SSB::Data& data, std::string& line) throw(std::stri
 					break;
 				case SSB::Data::Section::NONE:
 					if(this->level != SSB::Parser::Level::OFF)
-						throw "No section set";
+						throw std::string("No section set");
 					break;
 			}
 	}
