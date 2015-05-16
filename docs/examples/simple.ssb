@@ -1,0 +1,21 @@
+#META
+Title: Simple
+Author: Youka
+Description: Some informations for the beginning
+Version: 1.0 (27th November 2013, 04:37 GMT+1)
+
+#FRAME
+Width: 1280
+Height: 720
+
+#STYLES
+Default: {an=5;fs=40;fst=b;fad=250}
+Header: \\Default\\************************************\n
+Footer: \n************************************
+
+#EVENTS
+// Greet the user
+500-3.0|Default||Hi there!
+// Some instructions
+3.0-6.0|Header|RTFM|First you should read documentations in folder "docs"\n to learn instead of going try & error\n\{real men read manuals}\\Footer\\
+6.0-10.0|Default||Then you can try more examples.\nThese are just a few here, more will come!

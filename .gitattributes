@@ -1,0 +1,33 @@
+# Auto detect text files and perform LF normalization
+*		text eol=lf
+
+# Git files
+.gitattributes	text
+.gitignore	text
+.gitmodules	text
+
+# Documentations
+*.md		text
+*.txt		text
+*.html		diff=html
+*.css		diff=css
+*.js		diff=js
+
+# Images
+*.bmp		binary
+*.png		binary
+
+# Source code
+*.hpp		diff=cpp
+*.cpp		diff=cpp
+*.h		diff=c
+*.c		diff=c
+*.rc		diff=c
+
+# CMake files
+CMakeFiles.txt	diff=cmake
+*.cmake		diff=cmake
+*.h.in		diff=c
+
+# Subtitles
+*.ssb		text

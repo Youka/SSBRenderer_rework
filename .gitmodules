@@ -1,0 +1,9 @@
+[submodule "deps/cairo"]
+	path = deps/cairo
+	url = http://anongit.freedesktop.org/git/cairo
+[submodule "deps/muparser"]
+	path = deps/muparser
+	url = https://github.com/justkeepcoding/muparser
+[submodule "deps/pango"]
+	path = deps/pango
+	url = https://github.com/GNOME/pango

@@ -1,0 +1,5 @@
+# Output files
+build/
+
+# Private tests environment
+private/
