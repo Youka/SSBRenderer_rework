@@ -18,7 +18,8 @@ Permission is granted to anyone to use this software for any purpose, including 
 int main(){
 	// TODO
 	SSB::Data data;
+	SSB::Parser parser;
 	std::string line("#META");
-	std::cout << SSB::parse_line(data, line) << std::endl;
+	std::cout << parser.parse_line(data, line) << std::endl;
 	return 0;
 }

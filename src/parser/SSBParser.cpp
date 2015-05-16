@@ -14,7 +14,16 @@ Permission is granted to anyone to use this software for any purpose, including 
 
 #include "SSBParser.hpp"
 
-bool SSB::parse_line(SSB::Data& data, std::string& line){
+bool SSB::Parser::parse_line(SSB::Data& data, std::string& line) throw(std::string){
+
 	// TODO
+
+	return true;
+}
+
+bool SSB::Parser::parse_script(SSB::Data& data, std::istream& script) throw(std::string){
+
+	// TODO
+
 	return true;
 }
