@@ -32,6 +32,33 @@ inline bool string_to_number(std::string src, T& dst1, T& dst2){
 			string_to_number(src.substr(pos+1), dst2);
 }
 
+// Converts hex string to number
+template<typename T>
+inline bool hex_string_to_number(std::string src, T& dst){
+	std::istringstream s(src);
+	return !(s >> std::noskipws >> std::hex >> dst) || !s.eof() ? false : true;
+}
+// Converts hex string to number pair
+template<typename T>
+inline bool hex_string_to_number(std::string src, T& dst1, T& dst2){
+	std::string::size_type pos;
+	return (pos = src.find(',')) != std::string::npos &&
+			hex_string_to_number(src.substr(0, pos), dst1) &&
+			hex_string_to_number(src.substr(pos+1), dst2);
+}
+// Converts hex string to four numbers
+template<typename T>
+inline bool hex_string_to_number(std::string src, T& dst1, T& dst2, T& dst3, T& dst4){
+	std::string::size_type pos1, pos2;
+	return (pos1 = src.find(',')) != std::string::npos &&
+			hex_string_to_number(src.substr(0, pos1), dst1) &&
+			(pos2 = src.find(',', pos1+1)) != std::string::npos &&
+			hex_string_to_number(src.substr(pos1+1, pos2-(pos1+1)), dst2) &&
+			(pos1 = src.find(',', pos2+1)) != std::string::npos &&
+			hex_string_to_number(src.substr(pos2+1, pos1-(pos2+1)), dst3) &&
+			hex_string_to_number(src.substr(pos1+1), dst4);
+}
+
 // Find character in string which isn't escaped by character '\'
 inline std::string::size_type find_non_escaped_character(std::string& s, const char c, const std::string::size_type pos_start = 0){
 	std::string::size_type pos_end;

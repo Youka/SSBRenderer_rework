@@ -480,10 +480,191 @@ void SSB::Parser::parse_tags(std::string& tags, SSB::Geometry::Type& geometry_ty
 					std::getline(matrix_stream, matrix_token, ',') && string_to_number(matrix_token, x0) &&
 					std::getline(matrix_stream, matrix_token, ',') && string_to_number(matrix_token, y0) &&
 					matrix_stream.eof()
-			  )
+				)
 				event.objects.push_back(std::shared_ptr<SSB::Object>(new SSB::Transform(xx, yx, xy, yy, x0, y0)));
 			else if(this->level == SSB::Parser::Level::ALL)
 				throw std::string("Invalid transform");
+		}else if(tags_token.compare(0, 3, "cl=") == 0){
+			std::string tag_value = tags_token.substr(3);
+			unsigned long rgb[4];
+			if(hex_string_to_number(tag_value, rgb[0]) &&
+				rgb[0] <= 0xffffff)
+				event.objects.push_back(std::shared_ptr<SSB::Object>(new SSB::Color(
+											static_cast<decltype(RGB::r)>(rgb[0] >> 16) / 0xff,
+											static_cast<decltype(RGB::g)>(rgb[0] >> 8 & 0xff) / 0xff,
+											static_cast<decltype(RGB::b)>(rgb[0] & 0xff) / 0xff
+											)));
+			else if(hex_string_to_number(tag_value, rgb[0], rgb[1]) &&
+					rgb[0] <= 0xffffff && rgb[1] <= 0xffffff)
+				event.objects.push_back(std::shared_ptr<SSB::Object>(new SSB::Color(
+											static_cast<decltype(RGB::r)>(rgb[0] >> 16) / 0xff,
+											static_cast<decltype(RGB::g)>(rgb[0] >> 8 & 0xff) / 0xff,
+											static_cast<decltype(RGB::b)>(rgb[0] & 0xff) / 0xff,
+											static_cast<decltype(RGB::r)>(rgb[1] >> 16) / 0xff,
+											static_cast<decltype(RGB::g)>(rgb[1] >> 8 & 0xff) / 0xff,
+											static_cast<decltype(RGB::b)>(rgb[1] & 0xff) / 0xff
+											)));
+			else if(hex_string_to_number(tag_value, rgb[0], rgb[1], rgb[2], rgb[3]) &&
+					rgb[0] <= 0xffffff && rgb[1] <= 0xffffff && rgb[2] <= 0xffffff && rgb[3] <= 0xffffff)
+				event.objects.push_back(std::shared_ptr<SSB::Object>(new SSB::Color(
+											static_cast<decltype(RGB::r)>(rgb[0] >> 16) / 0xff,
+											static_cast<decltype(RGB::g)>(rgb[0] >> 8 & 0xff) / 0xff,
+											static_cast<decltype(RGB::b)>(rgb[0] & 0xff) / 0xff,
+											static_cast<decltype(RGB::r)>(rgb[1] >> 16) / 0xff,
+											static_cast<decltype(RGB::g)>(rgb[1] >> 8 & 0xff) / 0xff,
+											static_cast<decltype(RGB::b)>(rgb[1] & 0xff) / 0xff,
+											static_cast<decltype(RGB::r)>(rgb[2] >> 16) / 0xff,
+											static_cast<decltype(RGB::g)>(rgb[2] >> 8 & 0xff) / 0xff,
+											static_cast<decltype(RGB::b)>(rgb[2] & 0xff) / 0xff,
+											static_cast<decltype(RGB::r)>(rgb[3] >> 16) / 0xff,
+											static_cast<decltype(RGB::g)>(rgb[3] >> 8 & 0xff) / 0xff,
+											static_cast<decltype(RGB::b)>(rgb[3] & 0xff) / 0xff
+											)));
+			else if(this->level == SSB::Parser::Level::ALL)
+				throw std::string("Invalid color");
+		}else if(tags_token.compare(0, 4, "lcl=") == 0){
+			unsigned long rgb;
+			if(hex_string_to_number(tags_token.substr(4), rgb) &&
+					rgb <= 0xffffff)
+				event.objects.push_back(std::shared_ptr<SSB::Object>(new SSB::LineColor(
+											static_cast<decltype(RGB::r)>(rgb >> 16) / 0xff,
+											static_cast<decltype(RGB::g)>(rgb >> 8 & 0xff) / 0xff,
+											static_cast<decltype(RGB::b)>(rgb & 0xff) / 0xff
+											)));
+			else if(this->level == SSB::Parser::Level::ALL)
+				throw std::string("Invalid line color");
+		}else if(tags_token.compare(0, 3, "al=") == 0){
+			std::string tag_value = tags_token.substr(3);
+			unsigned short a[4];
+			if(hex_string_to_number(tag_value, a[0]) &&
+					a[0] <= 0xff)
+				event.objects.push_back(std::shared_ptr<SSB::Object>(new SSB::Alpha(static_cast<decltype(RGB::r)>(a[0]) / 0xff)));
+			else if(hex_string_to_number(tag_value, a[0], a[1]) &&
+					a[0] <= 0xff && a[1] <= 0xff)
+				event.objects.push_back(std::shared_ptr<SSB::Object>(new SSB::Alpha(
+											static_cast<decltype(RGB::r)>(a[0]) / 0xff,
+											static_cast<decltype(RGB::r)>(a[1]) / 0xff
+											)));
+			else if(hex_string_to_number(tag_value, a[0], a[1], a[2], a[3]) &&
+					a[0] <= 0xff && a[1] <= 0xff && a[2] <= 0xff && a[3] <= 0xff)
+				event.objects.push_back(std::shared_ptr<SSB::Object>(new SSB::Alpha(
+											static_cast<decltype(RGB::r)>(a[0]) / 0xff,
+											static_cast<decltype(RGB::r)>(a[1]) / 0xff,
+											static_cast<decltype(RGB::r)>(a[2]) / 0xff,
+											static_cast<decltype(RGB::r)>(a[3]) / 0xff
+											)));
+			else if(this->level == SSB::Parser::Level::ALL)
+				throw std::string("Invalid alpha");
+		}else if(tags_token.compare(0, 4, "lal=") == 0){
+			unsigned short a;
+			if(hex_string_to_number(tags_token.substr(4), a) &&
+					a <= 0xff)
+				event.objects.push_back(std::shared_ptr<SSB::Object>(new SSB::LineAlpha(static_cast<decltype(RGB::r)>(a) / 0xff)));
+			else if(this->level == SSB::Parser::Level::ALL)
+				throw std::string("Invalid line alpha");
+		}else if(tags_token.compare(0, 4, "tex=") == 0){
+			event.objects.push_back(std::shared_ptr<SSB::Object>(new SSB::Texture(tags_token.substr(4))));
+		}else if(tags_token.compare(0, 5, "texf=") == 0){
+			std::string tag_value = tags_token.substr(5);
+			decltype(SSB::TexFill::x) x, y;
+			std::string::size_type pos1, pos2;
+			if((pos1 = tag_value.find(',')) != std::string::npos &&
+					string_to_number(tag_value.substr(0, pos1), x) &&
+					(pos2 = tag_value.find(',', pos1+1)) != std::string::npos &&
+					string_to_number(tag_value.substr(pos1+1, pos2-(pos1+1)), y)){
+				std::string wrap = tag_value.substr(pos2+1);
+				if(wrap == "c")
+					event.objects.push_back(std::shared_ptr<SSB::Object>(new SSB::TexFill(x, y, SSB::TexFill::WrapStyle::CLAMP)));
+				else if(wrap == "r")
+					event.objects.push_back(std::shared_ptr<SSB::Object>(new SSB::TexFill(x, y, SSB::TexFill::WrapStyle::REPEAT)));
+				else if(wrap == "m")
+					event.objects.push_back(std::shared_ptr<SSB::Object>(new SSB::TexFill(x, y, SSB::TexFill::WrapStyle::MIRROR)));
+				else if(wrap == "f")
+					event.objects.push_back(std::shared_ptr<SSB::Object>(new SSB::TexFill(x, y, SSB::TexFill::WrapStyle::FLOW)));
+				else if(this->level == SSB::Parser::Level::ALL)
+					throw std::string("Invalid texture filling wrap style");
+			}else if(this->level == SSB::Parser::Level::ALL)
+				throw std::string("Invalid texture filling");
+		}else if(tags_token.compare(0, 4, "bld=") == 0){
+			std::string tag_value = tags_token.substr(4);
+			if(tag_value == "over")
+				event.objects.push_back(std::shared_ptr<SSB::Object>(new SSB::Blend(SSB::Blend::Mode::OVER)));
+			else if(tag_value == "add")
+				event.objects.push_back(std::shared_ptr<SSB::Object>(new SSB::Blend(SSB::Blend::Mode::ADDITION)));
+			else if(tag_value == "sub")
+				event.objects.push_back(std::shared_ptr<SSB::Object>(new SSB::Blend(SSB::Blend::Mode::SUBTRACT)));
+			else if(tag_value == "mult")
+				event.objects.push_back(std::shared_ptr<SSB::Object>(new SSB::Blend(SSB::Blend::Mode::MULTIPLY)));
+			else if(tag_value == "scr")
+				event.objects.push_back(std::shared_ptr<SSB::Object>(new SSB::Blend(SSB::Blend::Mode::SCREEN)));
+			else if(tag_value == "diff")
+				event.objects.push_back(std::shared_ptr<SSB::Object>(new SSB::Blend(SSB::Blend::Mode::DIFFERENCES)));
+			else if(this->level == SSB::Parser::Level::ALL)
+				throw std::string("Invalid blending");
+		}else if(tags_token.compare(0, 3, "bl=") == 0){
+			std::string tag_value = tags_token.substr(3);
+			decltype(SSB::Blur::x) x, y;
+			if(string_to_number(tag_value, x) && x >= 0)
+				event.objects.push_back(std::shared_ptr<SSB::Object>(new SSB::Blur(SSB::Blur::Type::BOTH, x)));
+			else if(string_to_number(tag_value, x, y) && x >= 0 && y >= 0)
+				event.objects.push_back(std::shared_ptr<SSB::Object>(new SSB::Blur(x, y)));
+			else if(this->level == SSB::Parser::Level::ALL)
+				throw std::string("Invalid blur");
+		}else if(tags_token.compare(0, 4, "blh=") == 0){
+			decltype(SSB::Blur::x) x;
+			if(string_to_number(tags_token.substr(4), x) && x >= 0)
+				event.objects.push_back(std::shared_ptr<SSB::Object>(new SSB::Blur(SSB::Blur::Type::HORIZONTAL, x)));
+			else if(this->level == SSB::Parser::Level::ALL)
+				throw std::string("Invalid horizontal blur");
+		}else if(tags_token.compare(0, 4, "blv=") == 0){
+			decltype(SSB::Blur::y) y;
+			if(string_to_number(tags_token.substr(4), y) && y >= 0)
+				event.objects.push_back(std::shared_ptr<SSB::Object>(new SSB::Blur(SSB::Blur::Type::VERTICAL, y)));
+			else if(this->level == SSB::Parser::Level::ALL)
+				throw std::string("Invalid vertical blur");
+		}else if(tags_token.compare(0, 4, "stc=") == 0){
+			std::string tag_value = tags_token.substr(4);
+			if(tag_value == "off")
+				event.objects.push_back(std::shared_ptr<SSB::Object>(new SSB::Stencil(SSB::Stencil::Mode::OFF)));
+			else if(tag_value == "set")
+				event.objects.push_back(std::shared_ptr<SSB::Object>(new SSB::Stencil(SSB::Stencil::Mode::SET)));
+			else if(tag_value == "uset")
+				event.objects.push_back(std::shared_ptr<SSB::Object>(new SSB::Stencil(SSB::Stencil::Mode::UNSET)));
+			else if(tag_value == "in")
+				event.objects.push_back(std::shared_ptr<SSB::Object>(new SSB::Stencil(SSB::Stencil::Mode::INSIDE)));
+			else if(tag_value == "out")
+				event.objects.push_back(std::shared_ptr<SSB::Object>(new SSB::Stencil(SSB::Stencil::Mode::OUTSIDE)));
+			else if(this->level == SSB::Parser::Level::ALL)
+				throw std::string("Invalid stencil mode");
+		}else if(tags_token.compare(0, 3, "aa=") == 0){
+			std::string tag_value = tags_token.substr(3);
+			if(tag_value == "on")
+				event.objects.push_back(std::shared_ptr<SSB::Object>(new SSB::AntiAliasing(true)));
+			else if(tag_value == "off")
+				event.objects.push_back(std::shared_ptr<SSB::Object>(new SSB::AntiAliasing(false)));
+			else if(this->level == SSB::Parser::Level::ALL)
+				throw std::string("Invalid anti-aliasing mode");
+		}else if(tags_token.compare(0, 4, "fad=") == 0){
+			std::string tag_value = tags_token.substr(4);
+			decltype(SSB::Fade::in) in, out;
+			if(string_to_number(tag_value, in))
+				event.objects.push_back(std::shared_ptr<SSB::Object>(new SSB::Fade(SSB::Fade::Type::BOTH, in)));
+			else if(string_to_number(tag_value, in, out))
+				event.objects.push_back(std::shared_ptr<SSB::Object>(new SSB::Fade(in, out)));
+			else if(this->level == SSB::Parser::Level::ALL)
+				throw std::string("Invalid fade");
+		}else if(tags_token.compare(0, 5, "fadi=") == 0){
+			decltype(SSB::Fade::in) in;
+			if(string_to_number(tags_token.substr(5), in))
+				event.objects.push_back(std::shared_ptr<SSB::Object>(new SSB::Fade(SSB::Fade::Type::INFADE, in)));
+			else if(this->level == SSB::Parser::Level::ALL)
+				throw std::string("Invalid infade");
+		}else if(tags_token.compare(0, 5, "fado=") == 0){
+			decltype(SSB::Fade::out) out;
+			if(string_to_number(tags_token.substr(5), out))
+				event.objects.push_back(std::shared_ptr<SSB::Object>(new SSB::Fade(SSB::Fade::Type::OUTFADE, out)));
+			else if(this->level == SSB::Parser::Level::ALL)
+				throw std::string("Invalid outfade");
 		}
 
 
