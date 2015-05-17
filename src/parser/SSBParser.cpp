@@ -786,7 +786,7 @@ void SSB::Parser::parse_script(SSB::Data& data, std::istream& script) throw(std:
 		}
 	}catch(std::string error_message){
 		// Rethrow error message with additional line number
-                throw line_number + ": " + error_message;
+                throw std::to_string(line_number) + ": " + error_message;
 	}
 }
 
