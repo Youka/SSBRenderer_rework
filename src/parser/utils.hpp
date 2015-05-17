@@ -23,6 +23,15 @@ inline bool string_to_number(std::string src, T& dst){
 	return !(s >> std::noskipws >> dst) || !s.eof() ? false : true;
 }
 
+// Converts string to number pair
+template<typename T>
+inline bool string_to_number(std::string src, T& dst1, T& dst2){
+	std::string::size_type pos;
+	return (pos = src.find(',')) != std::string::npos &&
+			string_to_number(src.substr(0, pos), dst1) &&
+			string_to_number(src.substr(pos+1), dst2);
+}
+
 // Find character in string which isn't escaped by character '\'
 inline std::string::size_type find_non_escaped_character(std::string& s, const char c, const std::string::size_type pos_start = 0){
 	std::string::size_type pos_end;
