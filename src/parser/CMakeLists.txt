@@ -19,4 +19,8 @@ if(${BUILD_TESTS})
 	add_executable(ssbparser_minimal tests/minimal.cpp)
 	target_link_libraries(ssbparser_minimal ssbparser)
 	add_test(ssbparser_minimal_test ssbparser_minimal)
+	# Create simple test
+	add_executable(ssbparser_simple tests/simple.cpp)
+	target_link_libraries(ssbparser_simple ssbparser)
+	add_test(ssbparser_simple_test ssbparser_simple "#META" "Width: 100")
 endif()

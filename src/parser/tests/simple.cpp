@@ -13,15 +13,24 @@ Permission is granted to anyone to use this software for any purpose, including 
 */
 
 #include <iostream>
+#include <sstream>
+#include <algorithm>
 #include "../SSBParser.hpp"
 
-int main(){
+int main(int argc, char** argv){
 	SSB::Data data;
 	SSB::Parser parser;
-	std::string line("");
+	std::stringstream stream;
+	for(int i=1; i < argc; ++i)
+		stream << argv[i] << '\n';
 	try{
-		parser.parse_line(data, line);
-		std::cout << "SUCCESS!!!" << std::endl;
+		parser.parse_script(data, stream);
+		std::cout << "#META\nTitle: " << data.meta.title << "\nDescription: " << data.meta.description << "\nAuthor: " << data.meta.author << "\nVersion: " << data.meta.version
+				<< "\n\n#FRAME\nWidth: " << data.frame.width << "\nHeight: " << data.frame.height
+				<< "\n\n#STYLES";
+		std::for_each(data.styles.begin(), data.styles.end(), [](std::pair<std::string,std::string> style){std::cout << "\n" << style.first << ": " << style.second;});
+		std::cout << "\n\n#EVENTS";
+		std::for_each(data.events.begin(), data.events.end(), [](SSB::Event& event){std::cout << "\n" << event.start_ms << " - " << event.end_ms << " | " << event.objects.size() << " objects " << (event.static_tags ? "(static)" : "(dynamic)");});
 	}catch(std::string msg){
 		std::cout << "ERROR: " << msg << std::endl;
 	}
