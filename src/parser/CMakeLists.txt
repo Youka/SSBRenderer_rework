@@ -8,7 +8,7 @@ configure_file(
 )
 
 # Compile static library
-add_library(ssbparser STATIC SSBParser.cpp)
+add_library(ssbparser STATIC *.cpp)
 
 # Add library include directories
 target_include_directories(ssbparser PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
