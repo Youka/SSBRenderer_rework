@@ -766,6 +766,8 @@ void SSB::Parser::parse_script(SSB::Data& data, std::istream& script) throw(std:
 	// Skip UTF-8 byte-order-mask
 	unsigned char BOM[3];
 	script.read(reinterpret_cast<char*>(BOM), 3);
+	if(!script.good())	// Reading behind EOF shouldn't cause error flag
+		script.clear();
 	if(!(script.gcount() == 3 && BOM[0] == 0xef && BOM[1] == 0xbb && BOM[2] == 0xbf))
 		script.seekg(0);
 	// Line number for advanced error message
