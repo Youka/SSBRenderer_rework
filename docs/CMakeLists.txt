@@ -1,3 +1,10 @@
 # Setup documents installation
-install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} DESTINATION .)
+file(GLOB DOCUMENTS *)
+foreach(document ${DOCUMENTS})
+	if(IS_DIRECTORY ${document})
+		install(DIRECTORY ${document} DESTINATION docs)
+	elseif(NOT(${document} MATCHES "CMakeLists.txt$"))
+		install(FILES ${document} DESTINATION docs)
+	endif()
+endforeach()
 message(STATUS "Documents installation path: ${CMAKE_INSTALL_PREFIX}/docs")
