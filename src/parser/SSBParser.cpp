@@ -135,7 +135,7 @@ void SSB::Parser::parse_geometry(std::string& geometry, SSB::Geometry::Type geom
 				std::vector<SSB::Point> points;
 				// Iterate through numbers
 				std::istringstream points_stream(geometry);
-				Point point;
+				SSB::Point point;
 				while(points_stream >> point.x)
 					if(points_stream >> point.y)
 						points.push_back(point);
@@ -221,7 +221,7 @@ void SSB::Parser::parse_geometry(std::string& geometry, SSB::Geometry::Type geom
 				string_replace(geometry, "\\n", "\n");
 				// Replace in string \{ to single {
 				string_replace(geometry, "\\{", "{");
-				// Insert SSBText as SSBObject to SSBEvent
+				// Insert Text as Object to event
 				ADD_OBJECT(SSB::Text(geometry));
 			}
 			break;
@@ -314,7 +314,7 @@ void SSB::Parser::parse_tags(std::string& tags, SSB::Geometry::Type& geometry_ty
 						dashes.push_back(dash);
 					else
 						THROW_WEAK_ERROR("Invalid line dash");
-				if(static_cast<size_t>(std::count(dashes.begin(), dashes.end(), 0)) != dashes.size())
+				if(static_cast<size_t>(std::count(dashes.begin(), dashes.end(), 0)) != dashes.size())	// Not all dashes should be zero
 					ADD_OBJECT(SSB::LineDash(offset, dashes));
 				else
 					THROW_WEAK_ERROR("Dashes must not be only 0");
@@ -492,35 +492,35 @@ void SSB::Parser::parse_tags(std::string& tags, SSB::Geometry::Type& geometry_ty
 			if(hex_string_to_number(tag_value, rgb[0]) &&
 				rgb[0] <= 0xffffff)
 				ADD_OBJECT(SSB::Color(
-								static_cast<decltype(RGB::r)>(rgb[0] >> 16) / 0xff,
-								static_cast<decltype(RGB::g)>(rgb[0] >> 8 & 0xff) / 0xff,
-								static_cast<decltype(RGB::b)>(rgb[0] & 0xff) / 0xff
+								static_cast<decltype(SSB::RGB::r)>(rgb[0] >> 16) / 0xff,
+								static_cast<decltype(SSB::RGB::g)>(rgb[0] >> 8 & 0xff) / 0xff,
+								static_cast<decltype(SSB::RGB::b)>(rgb[0] & 0xff) / 0xff
 							));
 			else if(hex_string_to_number(tag_value, rgb[0], rgb[1]) &&
 					rgb[0] <= 0xffffff && rgb[1] <= 0xffffff)
 				ADD_OBJECT(SSB::Color(
-								static_cast<decltype(RGB::r)>(rgb[0] >> 16) / 0xff,
-								static_cast<decltype(RGB::g)>(rgb[0] >> 8 & 0xff) / 0xff,
-								static_cast<decltype(RGB::b)>(rgb[0] & 0xff) / 0xff,
-								static_cast<decltype(RGB::r)>(rgb[1] >> 16) / 0xff,
-								static_cast<decltype(RGB::g)>(rgb[1] >> 8 & 0xff) / 0xff,
-								static_cast<decltype(RGB::b)>(rgb[1] & 0xff) / 0xff
+								static_cast<decltype(SSB::RGB::r)>(rgb[0] >> 16) / 0xff,
+								static_cast<decltype(SSB::RGB::g)>(rgb[0] >> 8 & 0xff) / 0xff,
+								static_cast<decltype(SSB::RGB::b)>(rgb[0] & 0xff) / 0xff,
+								static_cast<decltype(SSB::RGB::r)>(rgb[1] >> 16) / 0xff,
+								static_cast<decltype(SSB::RGB::g)>(rgb[1] >> 8 & 0xff) / 0xff,
+								static_cast<decltype(SSB::RGB::b)>(rgb[1] & 0xff) / 0xff
 							));
 			else if(hex_string_to_number(tag_value, rgb[0], rgb[1], rgb[2], rgb[3]) &&
 					rgb[0] <= 0xffffff && rgb[1] <= 0xffffff && rgb[2] <= 0xffffff && rgb[3] <= 0xffffff)
 				ADD_OBJECT(SSB::Color(
-								static_cast<decltype(RGB::r)>(rgb[0] >> 16) / 0xff,
-								static_cast<decltype(RGB::g)>(rgb[0] >> 8 & 0xff) / 0xff,
-								static_cast<decltype(RGB::b)>(rgb[0] & 0xff) / 0xff,
-								static_cast<decltype(RGB::r)>(rgb[1] >> 16) / 0xff,
-								static_cast<decltype(RGB::g)>(rgb[1] >> 8 & 0xff) / 0xff,
-								static_cast<decltype(RGB::b)>(rgb[1] & 0xff) / 0xff,
-								static_cast<decltype(RGB::r)>(rgb[2] >> 16) / 0xff,
-								static_cast<decltype(RGB::g)>(rgb[2] >> 8 & 0xff) / 0xff,
-								static_cast<decltype(RGB::b)>(rgb[2] & 0xff) / 0xff,
-								static_cast<decltype(RGB::r)>(rgb[3] >> 16) / 0xff,
-								static_cast<decltype(RGB::g)>(rgb[3] >> 8 & 0xff) / 0xff,
-								static_cast<decltype(RGB::b)>(rgb[3] & 0xff) / 0xff
+								static_cast<decltype(SSB::RGB::r)>(rgb[0] >> 16) / 0xff,
+								static_cast<decltype(SSB::RGB::g)>(rgb[0] >> 8 & 0xff) / 0xff,
+								static_cast<decltype(SSB::RGB::b)>(rgb[0] & 0xff) / 0xff,
+								static_cast<decltype(SSB::RGB::r)>(rgb[1] >> 16) / 0xff,
+								static_cast<decltype(SSB::RGB::g)>(rgb[1] >> 8 & 0xff) / 0xff,
+								static_cast<decltype(SSB::RGB::b)>(rgb[1] & 0xff) / 0xff,
+								static_cast<decltype(SSB::RGB::r)>(rgb[2] >> 16) / 0xff,
+								static_cast<decltype(SSB::RGB::g)>(rgb[2] >> 8 & 0xff) / 0xff,
+								static_cast<decltype(SSB::RGB::b)>(rgb[2] & 0xff) / 0xff,
+								static_cast<decltype(SSB::RGB::r)>(rgb[3] >> 16) / 0xff,
+								static_cast<decltype(SSB::RGB::g)>(rgb[3] >> 8 & 0xff) / 0xff,
+								static_cast<decltype(SSB::RGB::b)>(rgb[3] & 0xff) / 0xff
 							));
 			else
 				THROW_WEAK_ERROR("Invalid color");
@@ -529,9 +529,9 @@ void SSB::Parser::parse_tags(std::string& tags, SSB::Geometry::Type& geometry_ty
 			if(hex_string_to_number(tags_token.substr(4), rgb) &&
 					rgb <= 0xffffff)
 				ADD_OBJECT(SSB::LineColor(
-								static_cast<decltype(RGB::r)>(rgb >> 16) / 0xff,
-								static_cast<decltype(RGB::g)>(rgb >> 8 & 0xff) / 0xff,
-								static_cast<decltype(RGB::b)>(rgb & 0xff) / 0xff
+								static_cast<decltype(SSB::RGB::r)>(rgb >> 16) / 0xff,
+								static_cast<decltype(SSB::RGB::g)>(rgb >> 8 & 0xff) / 0xff,
+								static_cast<decltype(SSB::RGB::b)>(rgb & 0xff) / 0xff
 							));
 			else
 				THROW_WEAK_ERROR("Invalid line color");
@@ -540,20 +540,20 @@ void SSB::Parser::parse_tags(std::string& tags, SSB::Geometry::Type& geometry_ty
 			unsigned short a[4];
 			if(hex_string_to_number(tag_value, a[0]) &&
 					a[0] <= 0xff)
-				ADD_OBJECT(SSB::Alpha(static_cast<decltype(RGB::r)>(a[0]) / 0xff));
+				ADD_OBJECT(SSB::Alpha(static_cast<decltype(SSB::RGB::r)>(a[0]) / 0xff));
 			else if(hex_string_to_number(tag_value, a[0], a[1]) &&
 					a[0] <= 0xff && a[1] <= 0xff)
 				ADD_OBJECT(SSB::Alpha(
-								static_cast<decltype(RGB::r)>(a[0]) / 0xff,
-								static_cast<decltype(RGB::r)>(a[1]) / 0xff
+								static_cast<decltype(SSB::RGB::r)>(a[0]) / 0xff,
+								static_cast<decltype(SSB::RGB::r)>(a[1]) / 0xff
 							));
 			else if(hex_string_to_number(tag_value, a[0], a[1], a[2], a[3]) &&
 					a[0] <= 0xff && a[1] <= 0xff && a[2] <= 0xff && a[3] <= 0xff)
 				ADD_OBJECT(SSB::Alpha(
-								static_cast<decltype(RGB::r)>(a[0]) / 0xff,
-								static_cast<decltype(RGB::r)>(a[1]) / 0xff,
-								static_cast<decltype(RGB::r)>(a[2]) / 0xff,
-								static_cast<decltype(RGB::r)>(a[3]) / 0xff
+								static_cast<decltype(SSB::RGB::r)>(a[0]) / 0xff,
+								static_cast<decltype(SSB::RGB::r)>(a[1]) / 0xff,
+								static_cast<decltype(SSB::RGB::r)>(a[2]) / 0xff,
+								static_cast<decltype(SSB::RGB::r)>(a[3]) / 0xff
 							));
 			else
 				THROW_WEAK_ERROR("Invalid alpha");
@@ -561,7 +561,7 @@ void SSB::Parser::parse_tags(std::string& tags, SSB::Geometry::Type& geometry_ty
 			unsigned short a;
 			if(hex_string_to_number(tags_token.substr(4), a) &&
 					a <= 0xff)
-				ADD_OBJECT(SSB::LineAlpha(static_cast<decltype(RGB::r)>(a) / 0xff));
+				ADD_OBJECT(SSB::LineAlpha(static_cast<decltype(SSB::RGB::r)>(a) / 0xff));
 			else
 				THROW_WEAK_ERROR("Invalid line alpha");
 		}else if(tags_token.compare(0, 4, "tex=") == 0){
@@ -742,9 +742,9 @@ void SSB::Parser::parse_tags(std::string& tags, SSB::Geometry::Type& geometry_ty
 				unsigned long int rgb;
 				if(hex_string_to_number(tags_token.substr(3), rgb) && rgb <= 0xffffff)
 					ADD_OBJECT(SSB::KaraokeColor(
-									static_cast<decltype(RGB::r)>(rgb >> 16) / 0xff,
-									static_cast<decltype(RGB::g)>(rgb >> 8 & 0xff) / 0xff,
-									static_cast<decltype(RGB::b)>(rgb & 0xff) / 0xff
+									static_cast<decltype(SSB::RGB::r)>(rgb >> 16) / 0xff,
+									static_cast<decltype(SSB::RGB::g)>(rgb >> 8 & 0xff) / 0xff,
+									static_cast<decltype(SSB::RGB::b)>(rgb & 0xff) / 0xff
 								));
 				else
 					THROW_WEAK_ERROR("Invalid karaoke color");
@@ -766,7 +766,7 @@ void SSB::Parser::parse_script(SSB::Data& data, std::istream& script) throw(std:
 	// Skip UTF-8 byte-order-mask
 	unsigned char BOM[3];
 	script.read(reinterpret_cast<char*>(BOM), 3);
-	if(!script.good())	// Reading behind EOF shouldn't cause error flag
+	if(!script.good())	// Reading BOM behind EOF shouldn't cause error flag
 		script.clear();
 	if(!(script.gcount() == 3 && BOM[0] == 0xef && BOM[1] == 0xbb && BOM[2] == 0xbf))
 		script.seekg(0);

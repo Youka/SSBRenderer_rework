@@ -391,7 +391,7 @@ namespace SSB{
 			Stencil(Mode mode) : Tag(Tag::Type::STENCIL), mode(mode){}
 	};
 
-	// Antialiasing state
+	// Anti-aliasing state
 	class AntiAliasing : public Tag{
 		public:
 			bool status;
