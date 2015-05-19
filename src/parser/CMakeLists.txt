@@ -1,4 +1,4 @@
-# Request user options
+# Request build options from user
 set(BUILD_MAX_INLINE_STYLES 64 CACHE STRING "Maximal number of insertions of a style into a line" FORCE)
 
 # Generate configuration header
@@ -8,7 +8,8 @@ configure_file(
 )
 
 # Compile static library
-add_library(ssbparser STATIC *.cpp)
+file(GLOB PARSER_SOURCES *.cpp)
+add_library(ssbparser STATIC ${PARSER_SOURCES})
 
 # Add library include directories
 target_include_directories(ssbparser PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
