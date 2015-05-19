@@ -1,6 +1,6 @@
 /*
 Project: SSBRenderer
-File: utils.hpp
+File: string_utils.hpp
 
 Copyright (c) 2015, Christoph "Youka" Spanknebel
 
