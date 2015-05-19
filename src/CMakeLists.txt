@@ -4,14 +4,13 @@ if(NOT(CMAKE_COMPILER_IS_GNUCC OR MSVC_VERSION GREATER 1600))
 endif()
 message(STATUS "Generator: ${CMAKE_GENERATOR}")
 
-# Request user options
+# Request build options from user
 if(MINGW)
 	set(BUILD_STD_STATIC_VALUE ON)
 else()
 	set(BUILD_STD_STATIC_VALUE OFF)
 endif()
 option(BUILD_STD_STATIC "Link standard libraries statically?" ${BUILD_STD_STATIC_VALUE})
-option(BUILD_TESTS "Build tests?" OFF)
 if(CMAKE_BUILD_TYPE STREQUAL "")
 	set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build, options are: Debug Release RelWithDebInfo MinSizeRel." FORCE)
 endif()
