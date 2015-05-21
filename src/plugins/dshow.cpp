@@ -1,6 +1,6 @@
 /*
 Project: SSBRenderer
-File: FilterBase.hpp
+File: dshow.cpp
 
 Copyright (c) 2015, Christoph "Youka" Spanknebel
 
@@ -12,32 +12,6 @@ Permission is granted to anyone to use this software for any purpose, including 
     3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <vector>
-
-// Cross interface filter functions
-namespace FilterBase{
-	// Meta informations
-	const char* get_name();
-	const char* get_description();
-	enum class ArgType{BOOL, BOOL_OPT, INTEGER, INTEGER_OPT, FLOAT, FLOAT_OPT, STRING, STRING_OPT};
-	std::vector<ArgType> get_opt_args();
-	// Process
-	struct VideoInfo{
-		int width, height;
-		bool has_alpha;
-		double fps;
-		long frames;
-	};
-	struct Variant{
-		ArgType type;
-		union{
-			bool b;
-			int i;
-			float f;
-			const char* s;
-		};
-	};
-	void init(VideoInfo, std::vector<Variant>, void**) throw (const char*);
-        void deinit(void*);
-        void filter_frame(unsigned char*, int, unsigned long, void**);
-}
+#ifdef _MSC_VER
+#include "FilterBase.hpp"
+#endif

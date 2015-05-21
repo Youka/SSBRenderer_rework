@@ -27,6 +27,23 @@ namespace AVS{
 	// Avisynth library handle (defined in plugin initialization)
 	AVS_Library* avs_library = nullptr;
 
+	// Filter finished
+	void AVSC_CC free_filter(AVS_FilterInfo* filter_info){
+		FilterBase::deinit(filter_info->user_data);
+	}
+
+	// Frame filtering
+	AVS_VideoFrame* AVSC_CC get_frame(AVS_FilterInfo* filter_info, int n){
+		// Get current frame
+		AVS_VideoFrame* frame = avs_library->avs_get_frame(filter_info->child, n);
+		// Make frame writable
+		avs_library->avs_make_writable(filter_info->env, &frame);
+		// Render on frame
+		FilterBase::filter_frame(avs_get_write_ptr(frame), avs_get_pitch(frame), n * (filter_info->vi.fps_denominator * 1000.0 / filter_info->vi.fps_numerator), &filter_info->user_data);
+		// Pass frame further in processing chain
+		return frame;
+	}
+
 	// Filter call
 	AVS_Value AVSC_CC apply_filter(AVS_ScriptEnvironment* env, AVS_Value args, void*){
 		// Extract clip
@@ -66,9 +83,9 @@ namespace AVS{
 		}catch(const char* err){
 			return avs_new_value_error(err);
 		}
-
-		// TODO
-
+		// Set further callbacks
+		filter_info->free_filter = free_filter;
+		filter_info->get_frame = get_frame;
 		// Return filtered clip
 		avs_library->avs_set_to_clip(&val, clip.get());
 		return val;
