@@ -103,17 +103,13 @@ AVSC_EXPORT const char* avisynth_c_plugin_init(AVS_ScriptEnvironment* env){
 	AVS::avs_library->avs_check_version(env, AVISYNTH_INTERFACE_VERSION);
 	// Get optional filter parameters (beside clip)
 	std::string args_def("c");
-	std::vector<FilterBase::ArgType> opt_args = FilterBase::get_opt_args();
+	std::vector<std::pair<std::string, FilterBase::ArgType>> opt_args = FilterBase::get_opt_args();
 	for(auto arg : opt_args)
-		switch(arg){
-			case FilterBase::ArgType::BOOL_OPT: args_def += "[]";
-			case FilterBase::ArgType::BOOL: args_def += 'b'; break;
-			case FilterBase::ArgType::INTEGER_OPT: args_def += "[]";
-			case FilterBase::ArgType::INTEGER: args_def += 'i'; break;
-			case FilterBase::ArgType::FLOAT_OPT: args_def += "[]";
-			case FilterBase::ArgType::FLOAT: args_def += 'f'; break;
-			case FilterBase::ArgType::STRING_OPT: args_def += "[]";
-			case FilterBase::ArgType::STRING: args_def += 's'; break;
+		switch(arg.second){
+			case FilterBase::ArgType::BOOL: args_def += '[' + arg.first + "]b"; break;
+			case FilterBase::ArgType::INTEGER: args_def += '[' + arg.first + "]i"; break;
+			case FilterBase::ArgType::FLOAT: args_def += '[' + arg.first + "]f"; break;
+			case FilterBase::ArgType::STRING: args_def += '[' + arg.first + "]s"; break;
 		}
 	// Register function to Avisynth scripting environment
 	AVS::avs_library->avs_add_function(env, FilterBase::get_name(), args_def.c_str(), AVS::apply_filter, nullptr);

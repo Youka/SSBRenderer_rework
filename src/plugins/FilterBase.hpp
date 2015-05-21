@@ -13,14 +13,17 @@ Permission is granted to anyone to use this software for any purpose, including 
 */
 
 #include <vector>
+#include <string>
 
 // Cross interface filter functions
 namespace FilterBase{
 	// Meta informations
+	const char* get_id();
+	const char* get_namespace();
 	const char* get_name();
 	const char* get_description();
-	enum class ArgType{BOOL, BOOL_OPT, INTEGER, INTEGER_OPT, FLOAT, FLOAT_OPT, STRING, STRING_OPT};
-	std::vector<ArgType> get_opt_args();
+	enum class ArgType{BOOL, INTEGER, FLOAT, STRING};
+	std::vector<std::pair<std::string, ArgType>> get_opt_args();
 	// Process
 	struct VideoInfo{
 		int width, height;
@@ -37,7 +40,7 @@ namespace FilterBase{
 			const char* s;
 		};
 	};
-	void init(VideoInfo, std::vector<Variant>, void**) throw (const char*);
-        void deinit(void*);
-        void filter_frame(unsigned char*, int, unsigned long, void**);
+	void init(VideoInfo vinfo, std::vector<Variant> args, void** userdata) throw (const char*);
+        void deinit(void* userdata);
+        void filter_frame(unsigned char* image_data, int pitch, unsigned long ms, void** userdata);
 }
