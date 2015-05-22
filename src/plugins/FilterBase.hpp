@@ -14,20 +14,23 @@ Permission is granted to anyone to use this software for any purpose, including 
 
 #include <vector>
 #include <string>
+#include <windef.h>
 
 // Cross interface filter functions
 namespace FilterBase{
 	// Meta informations
-	const char* get_id();
-	const char* get_namespace();
+	const char* get_id();	// Vapoursynth only
+	const char* get_namespace();	// Vapoursynth only
 	const char* get_name();
 	const char* get_description();
+	const char* get_author();
 	enum class ArgType{BOOL, INTEGER, FLOAT, STRING, NONE};
-	std::vector<std::pair<std::string, ArgType>> get_opt_args();
+	std::vector<std::pair<std::string, ArgType>> get_opt_args();	// Avisynth & Vapoursynth only
 	// Process
+	enum class ColorType{BGR, BGRX, BGRA};
 	struct VideoInfo{
 		int width, height;
-		bool has_alpha;
+		ColorType format;
 		double fps;
 		long frames;
 	};
@@ -42,5 +45,7 @@ namespace FilterBase{
 	};
 	void init(VideoInfo vinfo, std::vector<Variant> args, void** userdata) throw (const char*);
         void deinit(void* userdata);
-        void filter_frame(unsigned char* image_data, int pitch, unsigned long ms, void** userdata);
+        std::string gen_args_description(void* userdata);	// VirtualDub only
+        int request_config(HWND wnd, void** userdata);	// VirtualDub only
+        void filter_frame(unsigned char* image_data, int stride, unsigned long ms, void** userdata);
 }

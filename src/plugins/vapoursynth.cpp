@@ -60,7 +60,7 @@ namespace VS{
 			vsapi->setError(out, "Video colorspace must be RGB24 or RGB32!");
 		else{
 			// Pack video informations for filter base
-			FilterBase::VideoInfo vinfo = {vinfo_native->width, vinfo_native->height, vinfo_native->format->id == pfCompatBGR32, static_cast<double>(vinfo_native->fpsNum)/vinfo_native->fpsDen, vinfo_native->numFrames};
+			FilterBase::VideoInfo vinfo = {vinfo_native->width, vinfo_native->height, vinfo_native->format->id == pfCompatBGR32 ? FilterBase::ColorType::BGRA : FilterBase::ColorType::BGR, static_cast<double>(vinfo_native->fpsNum)/vinfo_native->fpsDen, vinfo_native->numFrames};
 			// Pack arguments for filter base
 			std::vector<FilterBase::Variant> packed_args;
 			std::vector<std::pair<std::string, FilterBase::ArgType>> opt_args = FilterBase::get_opt_args();
