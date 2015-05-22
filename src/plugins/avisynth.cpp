@@ -59,10 +59,12 @@ namespace AVS{
 		FilterBase::VideoInfo vinfo = {vinfo_native->width, vinfo_native->height, static_cast<bool>(avs_is_rgb32(vinfo_native)), static_cast<double>(vinfo_native->fps_numerator)/vinfo_native->fps_denominator, vinfo_native->num_frames};
 		// Pack arguments for filter base
 		std::vector<FilterBase::Variant> packed_args;
-		AVS_Value val;
-		for(int i = 1, args_n = avs_array_size(args); i < args_n && avs_defined(val = avs_array_elt(args, i)); ++i){
+		for(int i = 1, args_n = avs_array_size(args); i < args_n; ++i){
+			AVS_Value val = avs_array_elt(args, i);
 			FilterBase::Variant var;
-			if(avs_is_bool(val)){
+			if(!avs_defined(val))
+				var.type = FilterBase::ArgType::NONE;
+			else if(avs_is_bool(val)){
 				var.type = FilterBase::ArgType::BOOL;
 				var.b = avs_as_bool(val);
 			}else if(avs_is_int(val)){
@@ -87,6 +89,7 @@ namespace AVS{
 		filter_info->free_filter = free_filter;
 		filter_info->get_frame = get_frame;
 		// Return filtered clip
+		AVS_Value val;
 		avs_library->avs_set_to_clip(&val, clip.get());
 		return val;
 	}
@@ -110,6 +113,7 @@ AVSC_EXPORT const char* avisynth_c_plugin_init(AVS_ScriptEnvironment* env){
 			case FilterBase::ArgType::INTEGER: args_def += '[' + arg.first + "]i"; break;
 			case FilterBase::ArgType::FLOAT: args_def += '[' + arg.first + "]f"; break;
 			case FilterBase::ArgType::STRING: args_def += '[' + arg.first + "]s"; break;
+			case FilterBase::ArgType::NONE: /* ignored */ break;
 		}
 	// Register function to Avisynth scripting environment
 	AVS::avs_library->avs_add_function(env, FilterBase::get_name(), args_def.c_str(), AVS::apply_filter, nullptr);

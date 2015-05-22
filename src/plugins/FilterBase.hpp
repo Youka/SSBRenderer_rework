@@ -22,7 +22,7 @@ namespace FilterBase{
 	const char* get_namespace();
 	const char* get_name();
 	const char* get_description();
-	enum class ArgType{BOOL, INTEGER, FLOAT, STRING};
+	enum class ArgType{BOOL, INTEGER, FLOAT, STRING, NONE};
 	std::vector<std::pair<std::string, ArgType>> get_opt_args();
 	// Process
 	struct VideoInfo{
