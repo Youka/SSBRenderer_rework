@@ -55,8 +55,6 @@ namespace AVS{
 			return avs_new_value_error("Video required!");
 		else if(!avs_is_rgb(vinfo_native))	// Video must store colors in RGB24 or RGBA32 format
 			return avs_new_value_error("Video colorspace must be RGB!");
-		// Pack video informations for filter base
-		FilterBase::VideoInfo vinfo = {vinfo_native->width, vinfo_native->height, avs_is_rgb32(vinfo_native) ? FilterBase::ColorType::BGRA : FilterBase::ColorType::BGR, static_cast<double>(vinfo_native->fps_numerator)/vinfo_native->fps_denominator, vinfo_native->num_frames};
 		// Pack arguments for filter base
 		std::vector<FilterBase::Variant> packed_args;
 		for(int i = 1, args_n = avs_array_size(args); i < args_n; ++i){
@@ -81,7 +79,7 @@ namespace AVS{
 		}
 		// Initialize filter base
 		try{
-			FilterBase::init(vinfo, packed_args, &filter_info->user_data);
+			FilterBase::init({vinfo_native->width, vinfo_native->height, avs_is_rgb32(vinfo_native) ? FilterBase::ColorType::BGRA : FilterBase::ColorType::BGR, static_cast<double>(vinfo_native->fps_numerator)/vinfo_native->fps_denominator, vinfo_native->num_frames}, packed_args, &filter_info->user_data);
 		}catch(const char* err){
 			return avs_new_value_error(err);
 		}

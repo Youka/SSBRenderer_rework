@@ -55,7 +55,7 @@ CSRIAPI void csri_close(csri_inst* inst){
 
 // Offer supported format and save him
 CSRIAPI int csri_request_fmt(csri_inst* inst, const struct csri_fmt* fmt){
-	if(!inst || !*inst || fmt->width == 0 || fmt->height == 0)
+	if(!inst || fmt->width == 0 || fmt->height == 0)
 		return -1;
 	FilterBase::ColorType colorspace;
 	switch(fmt->pixfmt){
@@ -77,10 +77,7 @@ CSRIAPI int csri_request_fmt(csri_inst* inst, const struct csri_fmt* fmt){
 		case CSRI_F_YV12:
 		default: return -1;
 	}
-
-	// TODO
-
-	//inst->renderer->set_target(fmt->width, fmt->height, colorspace);
+	FilterBase::init({static_cast<decltype(FilterBase::VideoInfo::width)>(fmt->width), /* top-down */-static_cast<decltype(FilterBase::VideoInfo::height)>(fmt->height), colorspace, -1, -1}, inst);
 	return 0;
 }
 

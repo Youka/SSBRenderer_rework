@@ -68,11 +68,9 @@ namespace VDub{
 			// All video informations available?
 			if(fdata->pfsi == nullptr)
 				ffuncs->Except("Video informations are missing!");
-			// Pack video informations for filter base
-			FilterBase::VideoInfo vinfo = {fdata->src.w, fdata->src.h, FilterBase::ColorType::BGRX, static_cast<double>(fdata->src.mFrameRateHi)/fdata->src.mFrameRateLo, fdata->src.mFrameCount};
 			// Allocate renderer (and free previous renderer in case of buggy twice start)
 			try{
-				FilterBase::init(vinfo, std::vector<FilterBase::Variant>(), &fdata->filter_data);
+				FilterBase::init({fdata->src.w, fdata->src.h, FilterBase::ColorType::BGRX, static_cast<double>(fdata->src.mFrameRateHi)/fdata->src.mFrameRateLo, static_cast<decltype(FilterBase::VideoInfo::frames)>(fdata->src.mFrameCount)}, &fdata->filter_data);
 			}catch(const char* err){
 				ffuncs->Except(err);
 				return 1;

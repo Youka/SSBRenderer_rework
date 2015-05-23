@@ -14,7 +14,11 @@ Permission is granted to anyone to use this software for any purpose, including 
 
 #include <vector>
 #include <string>
+#ifdef _WIN32
 #include <windef.h>
+#else
+#define HWND void*
+#endif	// _WIN32
 
 // Cross interface filter functions
 namespace FilterBase{
@@ -29,7 +33,7 @@ namespace FilterBase{
 	enum class ArgType{BOOL, INTEGER, FLOAT, STRING, NONE};
 	std::vector<std::pair<std::string, ArgType>> get_opt_args();	// Avisynth & Vapoursynth only
 	// Process
-	enum class ColorType{BGR, BGRX, BGRA};
+	enum class ColorType{BGR, BGRX, BGRA, UNKNOWN};
 	struct VideoInfo{
 		int width, height;
 		ColorType format;
@@ -45,8 +49,8 @@ namespace FilterBase{
 			const char* s;
 		};
 	};
-	void init(VideoInfo vinfo, std::vector<Variant> args, void** userdata) throw (const char*);
-	void reinit(VideoInfo vinfo, void** userdata);	// CSRI only
+	void init(VideoInfo vinfo, std::vector<Variant> args, void** userdata) throw (const char*);	// Avisynth & Vapoursynth only
+	void init(VideoInfo vinfo, void** userdata) throw (const char*);	// VirtualDub & CSRI only
         void deinit(void* userdata);
         std::string gen_args_description(void* userdata);	// VirtualDub only
         int request_config(HWND wnd, void** userdata);	// VirtualDub only
