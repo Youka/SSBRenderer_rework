@@ -1,5 +1,5 @@
 # Compile static library
-set(PLUGINS_SOURCES aegisub.cpp vapoursynth.cpp)
+set(PLUGINS_SOURCES csri.cpp vapoursynth.cpp)
 if(WIN32)
 	set(PLUGINS_SOURCES ${PLUGINS_SOURCES} avisynth.cpp virtualdub.cpp)
 endif()

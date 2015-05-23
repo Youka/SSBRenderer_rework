@@ -23,7 +23,9 @@ namespace FilterBase{
 	const char* get_namespace();	// Vapoursynth only
 	const char* get_name();
 	const char* get_description();
+	const char* get_version();
 	const char* get_author();
+	const char* get_copyright();
 	enum class ArgType{BOOL, INTEGER, FLOAT, STRING, NONE};
 	std::vector<std::pair<std::string, ArgType>> get_opt_args();	// Avisynth & Vapoursynth only
 	// Process
@@ -44,6 +46,7 @@ namespace FilterBase{
 		};
 	};
 	void init(VideoInfo vinfo, std::vector<Variant> args, void** userdata) throw (const char*);
+	void reinit(VideoInfo vinfo, void** userdata);	// CSRI only
         void deinit(void* userdata);
         std::string gen_args_description(void* userdata);	// VirtualDub only
         int request_config(HWND wnd, void** userdata);	// VirtualDub only
