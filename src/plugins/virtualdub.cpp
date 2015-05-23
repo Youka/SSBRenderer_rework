@@ -41,7 +41,9 @@ namespace VDub{
 			return 0;
 		},
 		// deinitProc (Filter deinitialization)
-		[](VDXFilterActivation*, const VDXFilterFunctions*) -> void{},
+		[](VDXFilterActivation* fdata, const VDXFilterFunctions*) -> void{
+			fdata->filter_data = nullptr;
+		},
 		// runProc (Filter run/frame processing)
 		[](const VDXFilterActivation* fdata, const VDXFilterFunctions*) -> int{
 			FilterBase::filter_frame(reinterpret_cast<unsigned char*>(fdata->src.data), fdata->src.pitch, fdata->src.mFrameTimestampStart / 10000, const_cast<void**>(&fdata->filter_data));
@@ -81,6 +83,7 @@ namespace VDub{
 		// endProc (Filter end running)
 		[](VDXFilterActivation* fdata, const VDXFilterFunctions*) -> int{
 			FilterBase::deinit(fdata->filter_data);
+			fdata->filter_data = nullptr;
 			// Success
 			return 0;
 		},
