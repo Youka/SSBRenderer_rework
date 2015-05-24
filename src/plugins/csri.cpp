@@ -24,25 +24,30 @@ using csri_inst = void*;
 
 #include "FilterBase.hpp"
 
-#include <string.h>
+#include <sstream>
 
 // Only renderer
 csri_rend csri_user_renderer = FilterBase::get_name();
 
 // Open interface with file content
 CSRIAPI csri_inst* csri_open_file(csri_rend*, const char* filename, struct csri_openflag*){
-
-	// TODO
-
-	return nullptr;
+	void** userdata = new void*(nullptr);
+	if(!FilterBase::init(filename, userdata)){
+		delete userdata;
+		return nullptr;
+	}
+	return userdata;
 }
 
 // Open interface with memory content
 CSRIAPI csri_inst* csri_open_mem(csri_rend*, const void* data, size_t length, struct csri_openflag*){
-
-	// TODO
-
-	return nullptr;
+	std::istringstream stream(std::string(reinterpret_cast<char*>(const_cast<void*>(data)), length));
+	void** userdata = new void*(nullptr);
+	if(!FilterBase::init(stream, userdata)){
+		delete userdata;
+		return nullptr;
+	}
+	return userdata;
 }
 
 // Close interface
@@ -77,7 +82,7 @@ CSRIAPI int csri_request_fmt(csri_inst* inst, const struct csri_fmt* fmt){
 		case CSRI_F_YV12:
 		default: return -1;
 	}
-	FilterBase::init({static_cast<decltype(FilterBase::VideoInfo::width)>(fmt->width), /* top-down */-static_cast<decltype(FilterBase::VideoInfo::height)>(fmt->height), colorspace, -1, -1}, inst);
+	FilterBase::setup(static_cast<decltype(FilterBase::VideoInfo::width)>(fmt->width), /* top-down */-static_cast<decltype(FilterBase::VideoInfo::height)>(fmt->height), colorspace, inst);
 	return 0;
 }
 

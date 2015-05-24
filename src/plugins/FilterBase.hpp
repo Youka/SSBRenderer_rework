@@ -50,7 +50,10 @@ namespace FilterBase{
 		};
 	};
 	void init(VideoInfo vinfo, std::vector<Variant> args, void** userdata) throw (const char*);	// Avisynth & Vapoursynth only
-	void init(VideoInfo vinfo, void** userdata) throw (const char*);	// VirtualDub & CSRI only
+	void init(VideoInfo vinfo, void** userdata) throw (const char*);	// VirtualDub only
+	bool init(const char* filename, void** userdata);	// CSRI only
+	bool init(std::istream& stream, void** userdata);	// CSRI only
+	void setup(decltype(VideoInfo::width) width, decltype(VideoInfo::height) height, decltype(VideoInfo::format) format, void** userdata);	// CSRI only
         void deinit(void* userdata);
         std::string gen_args_description(void* userdata);	// VirtualDub only
         int request_config(HWND wnd, void** userdata);	// VirtualDub only
