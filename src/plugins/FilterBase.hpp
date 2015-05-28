@@ -19,6 +19,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 #else
 #define HWND void*
 #endif	// _WIN32
+struct CLSID;
 
 // Cross interface filter functions
 namespace FilterBase{
@@ -43,8 +44,8 @@ namespace FilterBase{
 	// Meta informations
 	const char* get_id();	// Vapoursynth only
 	const char* get_namespace();	// Vapoursynth only
-	const void* get_filter_guid();	// DirectShow only
-	const void* get_filter_config_guid();	// DirectShow only
+	const CLSID* get_filter_guid();	// DirectShow only
+	const CLSID* get_filter_config_guid();	// DirectShow only
 	const char* get_name();
 	const wchar_t* get_namew();	// DirectShow only
 	const char* get_description();

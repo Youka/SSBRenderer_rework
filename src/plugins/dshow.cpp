@@ -29,16 +29,206 @@ interface IFilterConfig : public IUnknown{
 
 // Video filter
 class MyFilter : public CVideoTransformFilter, public IFilterConfig{
+	private:
+		// Critical section for save configuration access from other interfaces
+		CCritSec crit_section;
+		// Configuration data
+		void* userdata = nullptr;
+		// Filter instance constructor
+		MyFilter(IUnknown* unknown) : CVideoTransformFilter(FilterBase::get_namew, unknown, *FilterBase::get_filter_guid()){
+
+			// TODO: init
+
+		}
 	public:
 		// Create class instance
 		static CUnknown* CALLBACK CreateInstance(LPUNKNOWN unknown, HRESULT* result){
+			MyFilter* filter = new MyFilter(unknown);
+			if(!filter)
+				*result = E_OUTOFMEMORY;
+			return filter;
+		}
+		// Filter instance destruction
+		~MyFilter(){
+			FilterBase::deinit(userdata);
+		}
+		// Check validation of input media stream
+		HRESULT CheckInputType(const CMediaType* In){
+			// Valid pointer?
+			CheckPointer(In, E_POINTER);
+			// Valid stream type?
+			if(In->majortype != MEDIATYPE_Video || (In->subtype != MEDIASUBTYPE_RGB24 && In->subtype != MEDIASUBTYPE_RGB32) ||
+				In->formattype != FORMAT_VideoInfo || In->cbFormat < sizeof(VIDEOINFOHEADER))
+				return VFW_E_TYPE_NOT_ACCEPTED;
+			// Valid bitmap?
+			BITMAPINFOHEADER* bmp = &reinterpret_cast<VIDEOINFOHEADER*>(In->pbFormat)->bmiHeader;
+			if((bmp->biBitCount != 24 && bmp->biBitCount != 32) || bmp->biCompression != BI_RGB)
+				return VFW_E_TYPE_NOT_ACCEPTED;
+			// Media type accepted
+			return S_OK;
+		}
+		// Prefered output media stream type
+		HRESULT GetMediaType(int position, CMediaType* Out){
+			// Valid pointer?
+			CheckPointer(Out, E_POINTER);
+			// Input pin isn't connected
+			if(!this->m_pInput->IsConnected())
+				return VFW_E_NOT_CONNECTED;
+			// Item pick error
+			if(position < 0)
+				return E_ACCESSDENIED;
+			// No further items
+			if(position > 0)
+				return VFW_S_NO_MORE_ITEMS;
+			// Output type = input type
+			HRESULT hr = this->m_pInput->ConnectionMediaType(Out);
+			if(FAILED(hr))
+				return hr;
+			// Output accepted
+			return S_OK;
+		}
+		// Checks compatibility of input & output pin
+		HRESULT CheckTransform(const CMediaType* In, const CMediaType* Out){
+			// Valid pointers?
+			CheckPointer(In, E_POINTER);
+			CheckPointer(Out, E_POINTER);
+			// In- & output the same?
+			return this->CheckInputType(In) == S_OK && *In == *Out ? S_OK : VFW_E_INVALIDMEDIATYPE;
+		}
+		// Allocate buffers for in- & output
+		HRESULT DecideBufferSize(IMemAllocator* alloc, ALLOCATOR_PROPERTIES* props){
+			// Valid pointers?
+			CheckPointer(alloc, E_POINTER);
+			CheckPointer(props, E_POINTER);
+			// Input pin isn't connected
+			if(!this->m_pInput->IsConnected())
+				return VFW_E_NOT_CONNECTED;
+			// Set buffer size
+			props->cBuffers = 1;
+			props->cbBuffer = this->m_pInput->CurrentMediaType().GetSampleSize();
+			// Allocate buffer memory
+			ALLOCATOR_PROPERTIES actual;
+			HRESULT hr = alloc->SetProperties(props,&actual);
+			if (FAILED(hr))
+				return hr;
+			// Enough memory allocated?
+			if (actual.cBuffers < props->cBuffers ||
+				actual.cbBuffer < props->cbBuffer)
+				return E_OUTOFMEMORY;
+			// Got memory
+			return S_OK;
+		}
+		// Frame processing
+		HRESULT Transform(IMediaSample* In, IMediaSample* Out){
+			// Valid pointers?
+			CheckPointer(In, E_POINTER);
+			CheckPointer(Out, E_POINTER);
+			// Get bitmap info
+			BITMAPINFOHEADER *bmp_in = &reinterpret_cast<VIDEOINFOHEADER*>(this->m_pInput->CurrentMediaType().pbFormat)->bmiHeader;
+			BITMAPINFOHEADER *bmp_out = &reinterpret_cast<VIDEOINFOHEADER*>(this->m_pOutput->CurrentMediaType().pbFormat)->bmiHeader;
+			// Calculate pitches (from BITMAPINFOHEADER remarks)
+			int pitch_src = (((bmp_in->biWidth * bmp_in->biBitCount) + 31) & ~31) >> 3;
+			int pitch_dst = (((bmp_out->biWidth * bmp_in->biBitCount) + 31) & ~31) >> 3;
+			// Get absolute frame height
+			int abs_height = ::abs(bmp_in->biHeight);
+			// Set output size
+			Out->SetActualDataLength(abs_height * pitch_dst);
+			// Get frame pointers
+			BYTE *src, *dst;
+			HRESULT hr;
+			hr = In->GetPointer(&src);
+			if(FAILED(hr))
+				return hr;
+			hr = Out->GetPointer(&dst);
+			if(FAILED(hr))
+				return hr;
+			// Copy image to output
+			if(pitch_src == pitch_dst)
+				std::copy(src, src+In->GetActualDataLength(), dst);
+			else{
+				unsigned char* psrc = src, *pdst = dst;
+				for(int y = 0; y < abs_height; ++y){
+					std::copy(psrc, psrc+pitch_src, pdst);
+					psrc += pitch_src;
+					pdst += pitch_dst;
+				}
+			}
+			// Get time
+			LONGLONG start, end;
+			hr = In->GetTime(&start, &end);
+			if(FAILED(hr))
+				return hr;
 
 			// TODO
 
-			return nullptr;
+			// Frame successfully filtered
+			return S_OK;
 		}
+		// Start frame streaming
+		HRESULT StartStreaming(){
+
+			// TODO
+
+			// Continue with default behaviour
+			return CVideoTransformFilter::StartStreaming();
+		}
+		// Stop frame streaming
+		HRESULT StopStreaming(){
+
+			// TODO
+
+			// Continue with default behaviour
+			return CVideoTransformFilter::StopStreaming();
+		}
+		// Number of filter pins
+		int GetPinCount(){
+			return 2;
+		}
+		// Get filter pins
+		CBasePin* GetPin(int n){
+			// Pick pin by index
+			switch(n){
+				case 0:
+					// Input pin
+					if (!this->m_pInput){
+						// Create new one
+						HRESULT hr = S_OK;
+						this->m_pInput = new CTransformInputPin(L"Video input", this, &hr, L"Video input");
+						if (FAILED(hr))
+							return nullptr;
+					}
+					return this->m_pInput;
+				case 1:
+					// Output pin
+					if (!this->m_pOutput){
+						// Create new one
+						HRESULT hr = S_OK;
+						this->m_pOutput = new CTransformOutputPin(L"Video output", this, &hr, L"Video output");
+						if (FAILED(hr))
+							return nullptr;
+					}
+					return this->m_pOutput;
+				default:
+					// Not expected pin
+					return nullptr;
+			}
+		}
+		// Answer to interface requests from outside
+		HRESULT CALLBACK NonDelegatingQueryInterface(REFIID riid, __deref_out void**ppv){
+			// Valid pointer?
+			CheckPointer(ppv, E_POINTER);
+			// Return filter configuration interface
+			if(riid == *FilterBase::get_filter_config_guid())
+				return GetInterface(reinterpret_cast<IFilterConfig*>(this), ppv);
+			// Return default interfaces
+			return CVideoTransformFilter::NonDelegatingQueryInterface(riid, ppv);
+		}
+		// Define COM object base methods
+		DECLARE_IUNKNOWN;
 		// Filter configuration
 		void* Configure(void* conf){
+			// Lock critical section for thread-safety
+			CAutoLock lock(&this->crit_section);
 
 			// TODO
 
@@ -87,7 +277,7 @@ const AMOVIESETUP_PIN sudpPins[] = {
 
 // Filter setup
 const AMOVIESETUP_FILTER sudFilter = {
-	reinterpret_cast<const CLSID*>(FilterBase::get_filter_guid()),         // Filter CLSID
+	FilterBase::get_filter_guid(),         // Filter CLSID
 	FilterBase::get_namew(),       // Filter name
 	MERIT_DO_NOT_USE,       // Filter merit
 	2,                      // Number of pins
@@ -98,7 +288,7 @@ const AMOVIESETUP_FILTER sudFilter = {
 CFactoryTemplate g_Templates[] = {
 	{
 		FilterBase::get_namew(),	// Filter name
-		reinterpret_cast<const CLSID*>(FilterBase::get_filter_guid()),		// Filter CLSID
+		FilterBase::get_filter_guid(),		// Filter CLSID
 		MyFilter::CreateInstance,	// Filter instance creation
 		nullptr,		// Init routine
 		&sudFilter		// Filter setup
