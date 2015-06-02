@@ -35,14 +35,20 @@ namespace VDub{
 		0,				// inst_data_size
 
 		// initProc (Filter initialization)
-		[](VDXFilterActivation* fdata, const VDXFilterFunctions*) -> int{
+		[](VDXFilterActivation* fdata, const VDXFilterFunctions* ffuncs) -> int{
 			fdata->filter_data = nullptr;
+			try{
+				FilterBase::init(&fdata->filter_data);
+			}catch(const char* err){
+				ffuncs->Except(err);
+				return 1;
+			}
 			// Success
 			return 0;
 		},
 		// deinitProc (Filter deinitialization)
 		[](VDXFilterActivation* fdata, const VDXFilterFunctions*) -> void{
-			fdata->filter_data = nullptr;
+			FilterBase::deinit(fdata->filter_data);
 		},
 		// runProc (Filter run/frame processing)
 		[](const VDXFilterActivation* fdata, const VDXFilterFunctions*) -> int{
@@ -70,7 +76,7 @@ namespace VDub{
 				ffuncs->Except("Video informations are missing!");
 			// Allocate renderer (and free previous renderer in case of buggy twice start)
 			try{
-				FilterBase::init({fdata->src.w, fdata->src.h, FilterBase::ColorType::BGRX, static_cast<double>(fdata->src.mFrameRateHi)/fdata->src.mFrameRateLo, static_cast<decltype(FilterBase::VideoInfo::frames)>(fdata->src.mFrameCount)}, &fdata->filter_data);
+				FilterBase::start({fdata->src.w, fdata->src.h, FilterBase::ColorType::BGRX, static_cast<double>(fdata->src.mFrameRateHi)/fdata->src.mFrameRateLo, static_cast<decltype(FilterBase::VideoInfo::frames)>(fdata->src.mFrameCount)}, &fdata->filter_data);
 			}catch(const char* err){
 				ffuncs->Except(err);
 				return 1;
@@ -80,8 +86,7 @@ namespace VDub{
 		},
 		// endProc (Filter end running)
 		[](VDXFilterActivation* fdata, const VDXFilterFunctions*) -> int{
-			FilterBase::deinit(fdata->filter_data);
-			fdata->filter_data = nullptr;
+			FilterBase::end(&fdata->filter_data);
 			// Success
 			return 0;
 		},

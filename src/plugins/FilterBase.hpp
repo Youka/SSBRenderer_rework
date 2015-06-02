@@ -19,7 +19,9 @@ Permission is granted to anyone to use this software for any purpose, including 
 #else
 #define HWND void*
 #endif	// _WIN32
+#ifndef CLSID_DEFINED
 struct CLSID;
+#endif	// CLSID_DEFINED
 
 // Cross interface filter functions
 namespace FilterBase{
@@ -52,15 +54,20 @@ namespace FilterBase{
 	const char* get_version();
 	const char* get_author();
 	const char* get_copyright();
-	std::vector<std::pair<std::string, ArgType>> get_opt_args();	// Avisynth & Vapoursynth only
-	// Process
-	void init(VideoInfo vinfo, std::vector<Variant> args, void** userdata) throw (const char*);	// Avisynth & Vapoursynth only
-	void init(VideoInfo vinfo, void** userdata) throw (const char*);	// VirtualDub only
-	bool init(const char* filename, void** userdata);	// CSRI only
-	bool init(std::istream& stream, void** userdata);	// CSRI only
-	void setup(decltype(VideoInfo::width) width, decltype(VideoInfo::height) height, decltype(VideoInfo::format) format, void** userdata);	// CSRI only
-	void deinit(void* userdata);
-	std::string gen_args_description(void* userdata);	// VirtualDub only
-	int request_config(HWND wnd, void** userdata);	// VirtualDub only
+	// Avisynth & Vapoursynth processes
+	std::vector<std::pair<std::string, ArgType>> get_opt_args();
+	void init(VideoInfo vinfo, std::vector<Variant> args, void** userdata) throw (const char*);
+	// VirtualDub processes
+	void init(void** userdata) throw (const char*);
+	std::string gen_args_description(void* userdata);
+	int request_config(HWND wnd, void** userdata);
+	void start(VideoInfo vinfo, void** userdata) throw (const char*);
+	void end(void** userdata);
+	// CSRI processes
+	bool init(const char* filename, void** userdata);
+	bool init(std::istream& stream, void** userdata);
+	void setup(decltype(VideoInfo::width) width, decltype(VideoInfo::height) height, decltype(VideoInfo::format) format, void** userdata);
+	// Overall processes
 	void filter_frame(unsigned char* image_data, int stride, unsigned long ms, void** userdata);
+	void deinit(void* userdata);
 }
