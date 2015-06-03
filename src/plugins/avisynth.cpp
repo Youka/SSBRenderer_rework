@@ -80,7 +80,7 @@ namespace AVS{
 		// Initialize filter base
 		filter_info->user_data = nullptr;
 		try{
-			FilterBase::init({vinfo_native->width, vinfo_native->height, avs_is_rgb32(vinfo_native) ? FilterBase::ColorType::BGRA : FilterBase::ColorType::BGR, static_cast<double>(vinfo_native->fps_numerator)/vinfo_native->fps_denominator, vinfo_native->num_frames}, packed_args, &filter_info->user_data);
+			FilterBase::avs_init({vinfo_native->width, vinfo_native->height, avs_is_rgb32(vinfo_native) ? FilterBase::ColorType::BGRA : FilterBase::ColorType::BGR, static_cast<double>(vinfo_native->fps_numerator)/vinfo_native->fps_denominator, vinfo_native->num_frames}, packed_args, &filter_info->user_data);
 		}catch(const char* err){
 			return avs_new_value_error(err);
 		}
@@ -105,7 +105,7 @@ AVSC_EXPORT const char* avisynth_c_plugin_init(AVS_ScriptEnvironment* env){
 	AVS::avs_library->avs_check_version(env, AVISYNTH_INTERFACE_VERSION);
 	// Get optional filter parameters (beside clip)
 	std::string args_def("c");
-	std::vector<std::pair<std::string, FilterBase::ArgType>> opt_args = FilterBase::get_opt_args();
+	std::vector<std::pair<std::string, FilterBase::ArgType>> opt_args = FilterBase::avs_get_args();
 	for(auto arg : opt_args)
 		switch(arg.second){
 			case FilterBase::ArgType::BOOL: args_def += '[' + arg.first + "]b"; break;

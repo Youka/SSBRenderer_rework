@@ -22,7 +22,8 @@ Permission is granted to anyone to use this software for any purpose, including 
 
 // Filter configuration interface
 interface IFilterConfig : public IUnknown{
-	virtual void* Configure(void*) = 0;
+	virtual void** LockData() = 0;
+	virtual void UnlockData() = 0;
 };
 
 // TODO
@@ -35,17 +36,21 @@ class MyFilter : public CVideoTransformFilter, public IFilterConfig{
 		// Configuration data
 		void* userdata = nullptr;
 		// Filter instance constructor
-		MyFilter(IUnknown* unknown) : CVideoTransformFilter(FilterBase::get_namew, unknown, *FilterBase::get_filter_guid()){
-
-			// TODO: init
-
+		MyFilter(IUnknown* unknown) : CVideoTransformFilter(FilterBase::get_namew, unknown, *FilterBase::get_filter_guid()) throw (const char*){
+			FilterBase::dshow_init(&this->userdata);
 		}
 	public:
 		// Create class instance
 		static CUnknown* CALLBACK CreateInstance(LPUNKNOWN unknown, HRESULT* result){
-			MyFilter* filter = new MyFilter(unknown);
-			if(!filter)
-				*result = E_OUTOFMEMORY;
+			MyFilter* filter = nullptr;
+			try{
+				if(!(filter = new MyFilter(unknown)))
+					*result = E_OUTOFMEMORY;
+			}catch(const char* err){
+                                delete filter;
+                                *result = E_FAIL;
+                                ::MessageBoxA(NULL, err, FilterBase::get_name(), MB_OK | MB_ICONERROR);
+			}
 			return filter;
 		}
 		// Filter instance destruction
@@ -145,38 +150,42 @@ class MyFilter : public CVideoTransformFilter, public IFilterConfig{
 			// Copy image to output
 			if(pitch_src == pitch_dst)
 				std::copy(src, src+In->GetActualDataLength(), dst);
-			else{
+			else if(pitch_dst > pitch_src){
 				unsigned char* psrc = src, *pdst = dst;
 				for(int y = 0; y < abs_height; ++y){
 					std::copy(psrc, psrc+pitch_src, pdst);
 					psrc += pitch_src;
 					pdst += pitch_dst;
 				}
-			}
+			}else	// pitch_dst < pitch_src
+				// How can the target memory be smaller than the source???
+				return E_UNEXPECTED;
 			// Get time
 			LONGLONG start, end;
 			hr = In->GetTime(&start, &end);
 			if(FAILED(hr))
 				return hr;
-
-			// TODO
-
+			// Filter frame and invert vertically if required
+			FilterBase::filter_frame(dst, pitch_dst, start / 10000, &this->userdata);
 			// Frame successfully filtered
 			return S_OK;
 		}
 		// Start frame streaming
 		HRESULT StartStreaming(){
-
-			// TODO
-
+			// Get video infos
+			BITMAPINFOHEADER *bmp = &reinterpret_cast<VIDEOINFOHEADER*>(this->m_pInput->CurrentMediaType().pbFormat)->bmiHeader;
+			try{
+				FilterBase::dshow_start(bmp->biWidth, bmp->biHeight, bmp->biBitCount == 32 ? FilterBase::ColorType::BGRA : FilterBase::ColorType::BGR, &this->userdata);
+			}catch(const char* err){
+				::MessageBoxA(NULL, err, FilterBase::get_name(), MB_OK | MB_ICONSTOP);
+				return VFW_E_WRONG_STATE;
+			}
 			// Continue with default behaviour
 			return CVideoTransformFilter::StartStreaming();
 		}
 		// Stop frame streaming
 		HRESULT StopStreaming(){
-
-			// TODO
-
+			FilterBase::dshow_end();
 			// Continue with default behaviour
 			return CVideoTransformFilter::StopStreaming();
 		}
@@ -226,13 +235,14 @@ class MyFilter : public CVideoTransformFilter, public IFilterConfig{
 		// Define COM object base methods
 		DECLARE_IUNKNOWN;
 		// Filter configuration
-		void* Configure(void* conf){
+		void** LockData(){
 			// Lock critical section for thread-safety
-			CAutoLock lock(&this->crit_section);
-
-			// TODO
-
-			return nullptr;
+			this->crit_section.Lock();
+			// Return now thread safe memory
+			return &this->userdata;
+		}
+		void UnlockData(){
+			this->crit_section.Unlock();
 		}
 };
 

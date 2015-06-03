@@ -61,7 +61,7 @@ namespace VS{
 		else{
 			// Pack arguments for filter base
 			std::vector<FilterBase::Variant> packed_args;
-			std::vector<std::pair<std::string, FilterBase::ArgType>> opt_args = FilterBase::get_opt_args();
+			std::vector<std::pair<std::string, FilterBase::ArgType>> opt_args = FilterBase::avs_get_args();
 			for(auto arg : opt_args){
 				FilterBase::Variant var;
 				switch(vsapi->propGetType(in, arg.first.c_str())){
@@ -88,7 +88,7 @@ namespace VS{
 			*inst_data = new InstanceData{std::unique_ptr<VSNodeRef, decltype(clip_deleter)>(vsapi->cloneNodeRef(clip.get()), clip_deleter), nullptr};
 			// Initialize filter base & set output video informations
 			try{
-				FilterBase::init({vinfo_native->width, vinfo_native->height, vinfo_native->format->id == pfCompatBGR32 ? FilterBase::ColorType::BGRA : FilterBase::ColorType::BGR, static_cast<double>(vinfo_native->fpsNum)/vinfo_native->fpsDen, vinfo_native->numFrames}, packed_args, &reinterpret_cast<InstanceData*>(*inst_data)->userdata);
+				FilterBase::avs_init({vinfo_native->width, vinfo_native->height, vinfo_native->format->id == pfCompatBGR32 ? FilterBase::ColorType::BGRA : FilterBase::ColorType::BGR, static_cast<double>(vinfo_native->fpsNum)/vinfo_native->fpsDen, vinfo_native->numFrames}, packed_args, &reinterpret_cast<InstanceData*>(*inst_data)->userdata);
 				vsapi->setVideoInfo(vinfo_native, 1, node);
 			}catch(const char* err){
 				delete reinterpret_cast<InstanceData*>(*inst_data);
@@ -116,7 +116,7 @@ VS_EXTERNAL_API(void) VapourSynthPluginInit(VSConfigPlugin config_func, VSRegist
 	config_func(FilterBase::get_id(), FilterBase::get_namespace(), FilterBase::get_description(), VAPOURSYNTH_API_VERSION, 1, plugin);
 	// Get optional filter parameters (beside clip)
 	std::string args_def("clip:clip");
-	std::vector<std::pair<std::string, FilterBase::ArgType>> opt_args = FilterBase::get_opt_args();
+	std::vector<std::pair<std::string, FilterBase::ArgType>> opt_args = FilterBase::avs_get_args();
 	for(auto arg : opt_args)
 		switch(arg.second){
 			case FilterBase::ArgType::BOOL:

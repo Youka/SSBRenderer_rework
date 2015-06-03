@@ -55,18 +55,22 @@ namespace FilterBase{
 	const char* get_author();
 	const char* get_copyright();
 	// Avisynth & Vapoursynth processes
-	std::vector<std::pair<std::string, ArgType>> get_opt_args();
-	void init(VideoInfo vinfo, std::vector<Variant> args, void** userdata) throw (const char*);
-	// VirtualDub processes
-	void init(void** userdata) throw (const char*);
-	std::string gen_args_description(void* userdata);
-	int request_config(HWND wnd, void** userdata);
-	void start(VideoInfo vinfo, void** userdata) throw (const char*);
-	void end(void** userdata);
+	std::vector<std::pair<std::string, ArgType>> avs_get_args();
+	void avs_init(VideoInfo vinfo, std::vector<Variant> args, void** userdata) throw (const char*);
 	// CSRI processes
-	bool init(const char* filename, void** userdata);
-	bool init(std::istream& stream, void** userdata);
-	void setup(decltype(VideoInfo::width) width, decltype(VideoInfo::height) height, decltype(VideoInfo::format) format, void** userdata);
+	bool csri_init(const char* filename, void** userdata);
+	bool csri_init(std::istream& stream, void** userdata);
+	void csri_setup(decltype(VideoInfo::width) width, decltype(VideoInfo::height) height, decltype(VideoInfo::format) format, void** userdata);
+	// VirtualDub processes
+	void vdub_init(void** userdata) throw (const char*);
+	std::string vdub_gen_args_desc(void* userdata);
+	int vdub_req_conf(HWND wnd, void** userdata);
+	void vdub_start(VideoInfo vinfo, void** userdata) throw (const char*);
+	void vdub_end(void** userdata);
+	// DirectShow processes
+	void dshow_init(void** userdata) throw (const char*);
+	void dshow_start(decltype(VideoInfo::width) width, decltype(VideoInfo::height) height, decltype(VideoInfo::format) format, void** userdata) throw (const char*);
+	void dshow_end(void** userdata);
 	// Overall processes
 	void filter_frame(unsigned char* image_data, int stride, unsigned long ms, void** userdata);
 	void deinit(void* userdata);
