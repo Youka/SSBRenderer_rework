@@ -1,5 +1,6 @@
 # Request build options from user
 set(BUILD_MAX_INLINE_STYLES 64 CACHE STRING "Maximal number of insertions of a style into a line" FORCE)
+option(TEST_PARSER "Build parser tests?" OFF)
 
 # Generate configuration header
 configure_file(
@@ -7,15 +8,15 @@ configure_file(
 	${CMAKE_CURRENT_BINARY_DIR}/config.h
 )
 
-# Compile static library
+# Plan static library compiling
 file(GLOB PARSER_SOURCES *.cpp)
 add_library(ssbparser STATIC ${PARSER_SOURCES})
 
 # Add library include directories
 target_include_directories(ssbparser PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
-# Add functionality test
-if(${BUILD_TESTS})
+# Add functionality tests
+if(${TEST_PARSER})
 	# Create minimal test
 	add_executable(ssbparser_minimal tests/minimal.cpp)
 	target_link_libraries(ssbparser_minimal ssbparser)

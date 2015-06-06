@@ -1,10 +1,13 @@
+# Request build options from user
+option(TEST_PLUGINS "Build plugins tests?" OFF)
+
 # Request dependencies locations
 if(MSVC)
 	set(DEPEND_BASECLASSES_INCLUDE "" CACHE STRING "Header files directory of DirectShow BaseClasses")
 	set(DEPEND_BASECLASSES_LIB "strmbase" CACHE STRING "Static library of DirectShow BaseClasses")
 endif()
 
-# Compile static library
+# Plan static library compiling
 set(PLUGINS_SOURCES csri.cpp vapoursynth.cpp)
 if(WIN32)
 	set(PLUGINS_SOURCES ${PLUGINS_SOURCES} avisynth.cpp virtualdub.cpp)
@@ -18,6 +21,6 @@ if(MSVC)
 	target_link_libraries(ssbplugins ${LIBRARY_BASECLASSES_LIB})
 endif()
 
-# Add functionality test
-if(${BUILD_TESTS})
+# Add functionality tests
+if(${TEST_PLUGINS})
 endif()
