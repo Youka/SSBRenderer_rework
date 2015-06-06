@@ -40,7 +40,7 @@ namespace VS{
 			vsapi->freeFrame(src);
 			// Render on frame
 			const VSVideoInfo* vinfo = vsapi->getVideoInfo(data->clip.get());
-			FilterBase::filter_frame(vsapi->getWritePtr(dst, 0), vsapi->getStride(dst, 0), n * (vinfo->fpsDen * 1000.0 / vinfo->fpsNum), &data->userdata);
+			FilterBase::AVS::filter_frame(vsapi->getWritePtr(dst, 0), vsapi->getStride(dst, 0), n * (vinfo->fpsDen * 1000.0 / vinfo->fpsNum), &data->userdata);
 			// Return new frame
 			return dst;
 		}
@@ -60,25 +60,25 @@ namespace VS{
 			vsapi->setError(out, "Video colorspace must be RGB24 or RGB32!");
 		else{
 			// Pack arguments for filter base
-			std::vector<FilterBase::Variant> packed_args;
-			std::vector<std::pair<std::string, FilterBase::ArgType>> opt_args = FilterBase::avs_get_args();
+			std::vector<FilterBase::AVS::Variant> packed_args;
+			std::vector<std::pair<std::string, FilterBase::AVS::ArgType>> opt_args = FilterBase::AVS::get_args();
 			for(auto arg : opt_args){
-				FilterBase::Variant var;
+				FilterBase::AVS::Variant var;
 				switch(vsapi->propGetType(in, arg.first.c_str())){
 					case ptUnset:
-						var.type = FilterBase::ArgType::NONE;
+						var.type = FilterBase::AVS::ArgType::NONE;
 						break;
 					//case ptBool:
 					case ptInt:
-						var.type = FilterBase::ArgType::INTEGER;
+						var.type = FilterBase::AVS::ArgType::INTEGER;
 						var.i = vsapi->propGetInt(in, arg.first.c_str(), 0, nullptr);
 						break;
 					case ptFloat:
-						var.type = FilterBase::ArgType::FLOAT;
+						var.type = FilterBase::AVS::ArgType::FLOAT;
 						var.f = vsapi->propGetFloat(in, arg.first.c_str(), 0, nullptr);
 						break;
 					case ptData:
-						var.type = FilterBase::ArgType::STRING;
+						var.type = FilterBase::AVS::ArgType::STRING;
 						var.s = vsapi->propGetData(in, arg.first.c_str(), 0, nullptr);
 						break;
 				}
@@ -88,7 +88,7 @@ namespace VS{
 			*inst_data = new InstanceData{std::unique_ptr<VSNodeRef, decltype(clip_deleter)>(vsapi->cloneNodeRef(clip.get()), clip_deleter), nullptr};
 			// Initialize filter base & set output video informations
 			try{
-				FilterBase::avs_init({vinfo_native->width, vinfo_native->height, vinfo_native->format->id == pfCompatBGR32 ? FilterBase::ColorType::BGRA : FilterBase::ColorType::BGR, static_cast<double>(vinfo_native->fpsNum)/vinfo_native->fpsDen, vinfo_native->numFrames}, packed_args, &reinterpret_cast<InstanceData*>(*inst_data)->userdata);
+				FilterBase::AVS::init({vinfo_native->width, vinfo_native->height, vinfo_native->format->id == pfCompatBGR32 ? FilterBase::ColorType::BGRA : FilterBase::ColorType::BGR, static_cast<double>(vinfo_native->fpsNum)/vinfo_native->fpsDen, vinfo_native->numFrames}, packed_args, &reinterpret_cast<InstanceData*>(*inst_data)->userdata);
 				vsapi->setVideoInfo(vinfo_native, 1, node);
 			}catch(const char* err){
 				delete reinterpret_cast<InstanceData*>(*inst_data);
@@ -100,7 +100,7 @@ namespace VS{
 	// Filter destruction
 	void VS_CC free_filter(void* inst_data, VSCore*, const VSAPI*){
 		InstanceData* data = reinterpret_cast<InstanceData*>(inst_data);
-		FilterBase::deinit(data->userdata);
+		FilterBase::AVS::deinit(data->userdata);
 		delete data;
 	}
 
@@ -116,14 +116,14 @@ VS_EXTERNAL_API(void) VapourSynthPluginInit(VSConfigPlugin config_func, VSRegist
 	config_func(FilterBase::get_id(), FilterBase::get_namespace(), FilterBase::get_description(), VAPOURSYNTH_API_VERSION, 1, plugin);
 	// Get optional filter parameters (beside clip)
 	std::string args_def("clip:clip");
-	std::vector<std::pair<std::string, FilterBase::ArgType>> opt_args = FilterBase::avs_get_args();
+	std::vector<std::pair<std::string, FilterBase::AVS::ArgType>> opt_args = FilterBase::AVS::get_args();
 	for(auto arg : opt_args)
 		switch(arg.second){
-			case FilterBase::ArgType::BOOL:
-			case FilterBase::ArgType::INTEGER: args_def += ';' + arg.first + ":int"; break;
-			case FilterBase::ArgType::FLOAT: args_def += ';' + arg.first + ":float"; break;
-			case FilterBase::ArgType::STRING: args_def += ';' + arg.first + ":data"; break;
-			case FilterBase::ArgType::NONE: /* ignored */ break;
+			case FilterBase::AVS::ArgType::BOOL:
+			case FilterBase::AVS::ArgType::INTEGER: args_def += ';' + arg.first + ":int"; break;
+			case FilterBase::AVS::ArgType::FLOAT: args_def += ';' + arg.first + ":float"; break;
+			case FilterBase::AVS::ArgType::STRING: args_def += ';' + arg.first + ":data"; break;
+			case FilterBase::AVS::ArgType::NONE: /* ignored */ break;
 		}
 	// Register filter to Vapoursynth with configuration in plugin storage (filter name, arguments, filter creation function, userdata, plugin storage)
 	reg_func(FilterBase::get_name(), args_def.c_str(), VS::apply_filter, 0, plugin);

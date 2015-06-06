@@ -29,7 +29,7 @@ namespace AVS{
 
 	// Filter finished
 	void AVSC_CC free_filter(AVS_FilterInfo* filter_info){
-		FilterBase::deinit(filter_info->user_data);
+		FilterBase::AVS::deinit(filter_info->user_data);
 	}
 
 	// Frame filtering
@@ -39,7 +39,7 @@ namespace AVS{
 		// Make frame writable
 		avs_library->avs_make_writable(filter_info->env, &frame);
 		// Render on frame
-		FilterBase::filter_frame(avs_get_write_ptr(frame), avs_get_pitch(frame), n * (filter_info->vi.fps_denominator * 1000.0 / filter_info->vi.fps_numerator), &filter_info->user_data);
+		FilterBase::AVS::filter_frame(avs_get_write_ptr(frame), avs_get_pitch(frame), n * (filter_info->vi.fps_denominator * 1000.0 / filter_info->vi.fps_numerator), &filter_info->user_data);
 		// Pass frame further in processing chain
 		return frame;
 	}
@@ -56,23 +56,23 @@ namespace AVS{
 		else if(!avs_is_rgb(vinfo_native))	// Video must store colors in RGB24 or RGBA32 format
 			return avs_new_value_error("Video colorspace must be RGB!");
 		// Pack arguments for filter base
-		std::vector<FilterBase::Variant> packed_args;
+		std::vector<FilterBase::AVS::Variant> packed_args;
 		for(int i = 1, args_n = avs_array_size(args); i < args_n; ++i){
 			AVS_Value val = avs_array_elt(args, i);
-			FilterBase::Variant var;
+			FilterBase::AVS::Variant var;
 			if(!avs_defined(val))
-				var.type = FilterBase::ArgType::NONE;
+				var.type = FilterBase::AVS::ArgType::NONE;
 			else if(avs_is_bool(val)){
-				var.type = FilterBase::ArgType::BOOL;
+				var.type = FilterBase::AVS::ArgType::BOOL;
 				var.b = avs_as_bool(val);
 			}else if(avs_is_int(val)){
-				var.type = FilterBase::ArgType::INTEGER;
+				var.type = FilterBase::AVS::ArgType::INTEGER;
 				var.i = avs_as_int(val);
 			}else if(avs_is_float(val)){
-				var.type = FilterBase::ArgType::FLOAT;
+				var.type = FilterBase::AVS::ArgType::FLOAT;
 				var.f = avs_as_float(val);
 			}else if(avs_is_string(val)){
-				var.type = FilterBase::ArgType::STRING;
+				var.type = FilterBase::AVS::ArgType::STRING;
 				var.s = avs_as_string(val);
 			}
 			packed_args.push_back(var);
@@ -80,7 +80,7 @@ namespace AVS{
 		// Initialize filter base
 		filter_info->user_data = nullptr;
 		try{
-			FilterBase::avs_init({vinfo_native->width, vinfo_native->height, avs_is_rgb32(vinfo_native) ? FilterBase::ColorType::BGRA : FilterBase::ColorType::BGR, static_cast<double>(vinfo_native->fps_numerator)/vinfo_native->fps_denominator, vinfo_native->num_frames}, packed_args, &filter_info->user_data);
+			FilterBase::AVS::init({vinfo_native->width, vinfo_native->height, avs_is_rgb32(vinfo_native) ? FilterBase::ColorType::BGRA : FilterBase::ColorType::BGR, static_cast<double>(vinfo_native->fps_numerator)/vinfo_native->fps_denominator, vinfo_native->num_frames}, packed_args, &filter_info->user_data);
 		}catch(const char* err){
 			return avs_new_value_error(err);
 		}
@@ -105,14 +105,14 @@ AVSC_EXPORT const char* avisynth_c_plugin_init(AVS_ScriptEnvironment* env){
 	AVS::avs_library->avs_check_version(env, AVISYNTH_INTERFACE_VERSION);
 	// Get optional filter parameters (beside clip)
 	std::string args_def("c");
-	std::vector<std::pair<std::string, FilterBase::ArgType>> opt_args = FilterBase::avs_get_args();
+	std::vector<std::pair<std::string, FilterBase::AVS::ArgType>> opt_args = FilterBase::AVS::get_args();
 	for(auto arg : opt_args)
 		switch(arg.second){
-			case FilterBase::ArgType::BOOL: args_def += '[' + arg.first + "]b"; break;
-			case FilterBase::ArgType::INTEGER: args_def += '[' + arg.first + "]i"; break;
-			case FilterBase::ArgType::FLOAT: args_def += '[' + arg.first + "]f"; break;
-			case FilterBase::ArgType::STRING: args_def += '[' + arg.first + "]s"; break;
-			case FilterBase::ArgType::NONE: /* ignored */ break;
+			case FilterBase::AVS::ArgType::BOOL: args_def += '[' + arg.first + "]b"; break;
+			case FilterBase::AVS::ArgType::INTEGER: args_def += '[' + arg.first + "]i"; break;
+			case FilterBase::AVS::ArgType::FLOAT: args_def += '[' + arg.first + "]f"; break;
+			case FilterBase::AVS::ArgType::STRING: args_def += '[' + arg.first + "]s"; break;
+			case FilterBase::AVS::ArgType::NONE: /* ignored */ break;
 		}
 	// Register function to Avisynth scripting environment
 	AVS::avs_library->avs_add_function(env, FilterBase::get_name(), args_def.c_str(), AVS::apply_filter, nullptr);

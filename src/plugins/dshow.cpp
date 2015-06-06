@@ -24,6 +24,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 interface IFilterConfig : public IUnknown{
 	virtual void** LockData() = 0;
 	virtual void UnlockData() = 0;
+	virtual void* GetData() = 0;
 };
 
 // TODO
@@ -55,7 +56,7 @@ class MyFilter : public CVideoTransformFilter, public IFilterConfig{
 		}
 		// Filter instance destruction
 		~MyFilter(){
-			FilterBase::deinit(userdata);
+			FilterBase::DShow::deinit(userdata);
 		}
 		// Check validation of input media stream
 		HRESULT CheckInputType(const CMediaType* In){
@@ -166,7 +167,7 @@ class MyFilter : public CVideoTransformFilter, public IFilterConfig{
 			if(FAILED(hr))
 				return hr;
 			// Filter frame and invert vertically if required
-			FilterBase::filter_frame(dst, pitch_dst, start / 10000, &this->userdata);
+			FilterBase::DShow::filter_frame(dst, pitch_dst, start / 10000, end / 10000, &this->userdata);
 			// Frame successfully filtered
 			return S_OK;
 		}
@@ -175,7 +176,7 @@ class MyFilter : public CVideoTransformFilter, public IFilterConfig{
 			// Get video infos
 			BITMAPINFOHEADER *bmp = &reinterpret_cast<VIDEOINFOHEADER*>(this->m_pInput->CurrentMediaType().pbFormat)->bmiHeader;
 			try{
-				FilterBase::dshow_start(bmp->biWidth, bmp->biHeight, bmp->biBitCount == 32 ? FilterBase::ColorType::BGRA : FilterBase::ColorType::BGR, &this->userdata);
+				FilterBase::DShow::start(bmp->biWidth, bmp->biHeight, bmp->biBitCount == 32 ? FilterBase::ColorType::BGRA : FilterBase::ColorType::BGR, &this->userdata);
 			}catch(const char* err){
 				::MessageBoxA(NULL, err, FilterBase::get_name(), MB_OK | MB_ICONSTOP);
 				return VFW_E_WRONG_STATE;
@@ -185,7 +186,7 @@ class MyFilter : public CVideoTransformFilter, public IFilterConfig{
 		}
 		// Stop frame streaming
 		HRESULT StopStreaming(){
-			FilterBase::dshow_end();
+			FilterBase::DShow::end();
 			// Continue with default behaviour
 			return CVideoTransformFilter::StopStreaming();
 		}
@@ -243,6 +244,9 @@ class MyFilter : public CVideoTransformFilter, public IFilterConfig{
 		}
 		void UnlockData(){
 			this->crit_section.Unlock();
+		}
+		void* GetData(){
+			return this->userdata;
 		}
 };
 
