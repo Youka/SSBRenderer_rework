@@ -21,13 +21,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 #include "FilterBase.hpp"
 
 // Filter configuration interface
-interface IFilterConfig : public IUnknown{
-	virtual void** LockData() = 0;
-	virtual void UnlockData() = 0;
-	virtual void* GetData() = 0;
-};
-
-// TODO
+interface IFilterConfig : public FilterBase::DShow::IFilterConfig, public IUnknown{};
 
 // Video filter
 class MyFilter : public CVideoTransformFilter, public IFilterConfig{
@@ -38,7 +32,7 @@ class MyFilter : public CVideoTransformFilter, public IFilterConfig{
 		void* userdata = nullptr;
 		// Filter instance constructor
 		MyFilter(IUnknown* unknown) : CVideoTransformFilter(FilterBase::get_namew, unknown, *FilterBase::get_filter_guid()) throw (const char*){
-			FilterBase::dshow_init(&this->userdata);
+			FilterBase::DShow::init(dynamic_cast<FilterBase::DShow::IFilterConfig*>(this));
 		}
 	public:
 		// Create class instance
@@ -50,13 +44,13 @@ class MyFilter : public CVideoTransformFilter, public IFilterConfig{
 			}catch(const char* err){
                                 delete filter;
                                 *result = E_FAIL;
-                                ::MessageBoxA(NULL, err, FilterBase::get_name(), MB_OK | MB_ICONERROR);
+                                MessageBoxA(NULL, err, FilterBase::get_name(), MB_OK | MB_ICONERROR);
 			}
 			return filter;
 		}
 		// Filter instance destruction
 		~MyFilter(){
-			FilterBase::DShow::deinit(userdata);
+			FilterBase::DShow::deinit(dynamic_cast<FilterBase::DShow::IFilterConfig*>(this));
 		}
 		// Check validation of input media stream
 		HRESULT CheckInputType(const CMediaType* In){
@@ -167,7 +161,7 @@ class MyFilter : public CVideoTransformFilter, public IFilterConfig{
 			if(FAILED(hr))
 				return hr;
 			// Filter frame and invert vertically if required
-			FilterBase::DShow::filter_frame(dst, pitch_dst, start / 10000, end / 10000, &this->userdata);
+			FilterBase::DShow::filter_frame(dst, pitch_dst, start / 10000, end / 10000, dynamic_cast<FilterBase::DShow::IFilterConfig*>(this));
 			// Frame successfully filtered
 			return S_OK;
 		}
@@ -176,9 +170,9 @@ class MyFilter : public CVideoTransformFilter, public IFilterConfig{
 			// Get video infos
 			BITMAPINFOHEADER *bmp = &reinterpret_cast<VIDEOINFOHEADER*>(this->m_pInput->CurrentMediaType().pbFormat)->bmiHeader;
 			try{
-				FilterBase::DShow::start(bmp->biWidth, bmp->biHeight, bmp->biBitCount == 32 ? FilterBase::ColorType::BGRA : FilterBase::ColorType::BGR, &this->userdata);
+				FilterBase::DShow::start(bmp->biWidth, bmp->biHeight, bmp->biBitCount == 32 ? FilterBase::ColorType::BGRA : FilterBase::ColorType::BGR, dynamic_cast<FilterBase::DShow::IFilterConfig*>(this));
 			}catch(const char* err){
-				::MessageBoxA(NULL, err, FilterBase::get_name(), MB_OK | MB_ICONSTOP);
+				MessageBoxA(NULL, err, FilterBase::get_name(), MB_OK | MB_ICONSTOP);
 				return VFW_E_WRONG_STATE;
 			}
 			// Continue with default behaviour
@@ -186,7 +180,7 @@ class MyFilter : public CVideoTransformFilter, public IFilterConfig{
 		}
 		// Stop frame streaming
 		HRESULT StopStreaming(){
-			FilterBase::DShow::end();
+			FilterBase::DShow::end(dynamic_cast<FilterBase::DShow::IFilterConfig*>(this));
 			// Continue with default behaviour
 			return CVideoTransformFilter::StopStreaming();
 		}

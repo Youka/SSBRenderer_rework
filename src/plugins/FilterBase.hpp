@@ -81,10 +81,15 @@ namespace FilterBase{
 	}
 	// DirectShow processes
 	namespace DShow{
-		void init(void** userdata) throw (const char*);
-		void start(VideoInfo vinfo, void** userdata) throw (const char*);
-		void filter_frame(unsigned char* image_data, int stride, unsigned long start_ms, unsigned long end_ms, void** userdata);
-		void end(void** userdata);
-		void deinit(void* userdata);
+		struct IFilterConfig{	// "interface" keyword is MSVC-only
+			virtual void** LockData() = 0;
+			virtual void UnlockData() = 0;
+			virtual void* GetData() = 0;
+		};
+		void init(IFilterConfig* config) throw (const char*);
+		void start(VideoInfo vinfo, IFilterConfig* config) throw (const char*);
+		void filter_frame(unsigned char* image_data, int stride, unsigned long start_ms, unsigned long end_ms, IFilterConfig* config);
+		void end(IFilterConfig* config);
+		void deinit(IFilterConfig* config);
 	}
 }
