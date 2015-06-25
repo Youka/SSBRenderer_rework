@@ -88,14 +88,14 @@ namespace FilterBase{
 	}
 	namespace VDub{
 		void init(void**) throw (const char*){
-			std::cout << "VDub - Tried to initialize.";
+			std::cout << "VDub - Tried to initialize." << std::endl;
 		}
 		std::string gen_args_desc(void*){
-			std::cout << "VDub - Tried to generate arguments description.";
+			std::cout << "VDub - Tried to generate arguments description." << std::endl;
 			return "";
 		}
 		int request_config(HWND wnd, void**){
-			std::cout << "VDub - Tried to request configuration with window handle " << wnd << " .";
+			std::cout << "VDub - Tried to request configuration with window handle " << wnd << " ." << std::endl;
 			return 0;
 		}
 		void start(VideoInfo vinfo, void** userdata) throw (const char*){
@@ -120,7 +120,7 @@ namespace FilterBase{
 			delete reinterpret_cast<int*>(*userdata);
 		}
 		void deinit(void*){
-			std::cout << "VDub - Tried to close.";
+			std::cout << "VDub - Tried to close." << std::endl;
 		}
 	}
 	namespace CSRI{
@@ -132,7 +132,7 @@ namespace FilterBase{
 		bool init(std::istream& stream, void** userdata){
 			std::cout << "### CSRI - Tried to load data ###\n--------------------------\n";
 			std::copy(std::istream_iterator<char>(stream), std::istream_iterator<char>(), std::ostream_iterator<char>(std::cout));
-			std::cout.flush();
+			std::cout << std::endl;
 			*userdata = new int(0);
 			return true;
 		}
@@ -160,7 +160,7 @@ namespace FilterBase{
 	}
 	namespace DShow{
 		void init(IFilterConfig*) throw (const char*){
-			std::cout << "DShow - Tried to initialize.";
+			std::cout << "DShow - Tried to initialize." << std::endl;
 		}
 		void start(VideoInfo vinfo, IFilterConfig* config) throw (const char*){
 			std::cout << "DShow - Tried to start: " << vinfo.width << "x" << vinfo.height;
@@ -196,7 +196,7 @@ namespace FilterBase{
 			config->UnlockData();
 		}
 		void deinit(IFilterConfig*){
-			std::cout << "DShow - Tried to close.";
+			std::cout << "DShow - Tried to close." << std::endl;
 		}
 	}
 }
