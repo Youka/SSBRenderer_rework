@@ -1,6 +1,6 @@
 # Check for cmake minimum required version (used by development)
-cmake_minimum_required(VERSION 2.8)
-message(STATUS "CMake 2.8+: ${CMAKE_VERSION}")
+cmake_minimum_required(VERSION 3.0)
+message(STATUS "CMake 3.0+: ${CMAKE_VERSION}")
 
 # Set project header
 project(SSBRenderer)

@@ -15,17 +15,18 @@ endif()
 if(MSVC)
 	set(PLUGINS_SOURCES ${PLUGINS_SOURCES} dshow.cpp)
 endif()
-add_library(ssbplugins STATIC ${PLUGINS_SOURCES})
+add_library(ssbplugins OBJECT ${PLUGINS_SOURCES})
 if(MSVC)
 	target_include_directories(ssbplugins PUBLIC ${LIBRARY_BASECLASSES_INCLUDE})
-	target_link_libraries(ssbplugins ${LIBRARY_BASECLASSES_LIB})
 endif()
 
 # Add functionality tests
 if(${TEST_PLUGINS})
 	# Create color inversion plugin
-	add_library(ssbplugins_invert SHARED tests/invert.cpp)
-	target_link_libraries(ssbplugins_invert ssbplugins)
+	add_library(ssbplugins_invert SHARED tests/invert.cpp $<TARGET_OBJECTS:ssbplugins>)
+	if(MSVC)
+		target_link_libraries(ssbplugins ${LIBRARY_BASECLASSES_LIB})
+	endif()
 	# Create CSRI test
 	add_executable(ssbplugins_csri_host tests/csri_host.cpp)
 	add_test(ssbplugins_csri_test ssbplugins_csri_host)
