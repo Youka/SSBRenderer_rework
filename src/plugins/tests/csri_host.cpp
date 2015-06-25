@@ -13,6 +13,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 */
 
 #include "../interfaces/csri.h"
+#include <fstream>
 #if _WIN32
 	#define WIN_LEAN_AND_MEAN
 	#include <windows.h>
@@ -29,7 +30,17 @@ Permission is granted to anyone to use this software for any purpose, including 
 #endif // _WIN32
 #define ASSIGN_FUNC(dll_handle, funcname) (funcname = reinterpret_cast<decltype(funcname)>(DLL_GET_PROC(dll_handle, #funcname)))
 
+static bool write_ppm(const char* filename, unsigned width, unsigned height, unsigned char* data, unsigned long data_size){
+	std::ofstream img(filename, std::ios::binary);
+	if(!img)
+		return false;
+	img << "P6\n" << width << ' ' << height << "\n255\n";
+	img.write(reinterpret_cast<char*>(data), data_size);
+	return true;
+}
+
 int main(){
+	// Load plugin
 	DLL_HANDLE dll_handle;
 	void* (*csri_renderer_next)(void*);
 	void* (*csri_renderer_default)(void);
@@ -56,11 +67,48 @@ int main(){
 		ASSIGN_FUNC(dll_handle, csri_open_file)
 	)){
 		DLL_CLOSE(dll_handle);
-		return 1;
+		return 2;
 	}
-
-	// Test plugin filtering
-
+	// Generate PPM image data
+	const unsigned width = 800, height = 450;	/* Caution!!! Too big image could exceed stack memory. */
+	unsigned x = 0, y = 0;
+	unsigned char data[width*height*3], *pdata = data, *pdata_end = data + sizeof(data);
+	while(pdata < pdata_end){
+		float gamma = static_cast<decltype(gamma)>(x+y) / (width+height);
+		*pdata++ = gamma * 255;
+		*pdata++ = (1-gamma) * 255;
+		*pdata++ = 0;
+		if(x == width-1)
+			x = 0, y++;
+		else
+			x++;
+	}
+	// Write original image
+	if(!write_ppm("test.ppm", width, height, data, sizeof(data))){
+		DLL_CLOSE(dll_handle);
+		return 3;
+	}
+	// Filter image with dummy renderer
+	void* rinst;
+	if(!(rinst = csri_open_mem(nullptr, "test", 4, nullptr))){
+		DLL_CLOSE(dll_handle);
+		return 4;
+	}
+        const struct csri_fmt fmt = {CSRI_F_BGR, width, height};
+	if(csri_request_fmt(rinst, &fmt)){
+		DLL_CLOSE(dll_handle);
+		return 5;
+	}
+	struct csri_frame frame = {CSRI_F_BGR, {data}, {width*3}};
+	csri_render(rinst, &frame, 0.0);
+	csri_close(rinst);
+	// Write filtered image
+	if(!write_ppm("test_filtered.ppm", width, height, data, sizeof(data))){
+		DLL_CLOSE(dll_handle);
+		return 6;
+	}
+	// Unload plugin
 	DLL_CLOSE(dll_handle);
+	// Successfull finish
 	return 0;
 }
