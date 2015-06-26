@@ -68,6 +68,10 @@ message(STATUS "Processed parser")
 add_subdirectory(plugins)
 message(STATUS "Processed plugin interfaces")
 
+#Process graphics utilities
+add_subdirectory(graphics)
+message(STATUS "Processed graphics utilities")
+
 # Process renderer
 add_subdirectory(renderer)
 message(STATUS "Processed renderer")
