@@ -17,6 +17,11 @@ Permission is granted to anyone to use this software for any purpose, including 
 #include <type_traits>
 
 namespace GUtils{
+	struct vector_features{
+		bool sse2, avx;
+	};
+	vector_features detect_vectorization();
+
 	class Matrix4x4d{
 		private:
 			// Raw matrix data

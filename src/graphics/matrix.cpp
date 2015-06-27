@@ -14,27 +14,8 @@ Permission is granted to anyone to use this software for any purpose, including 
 
 #include "gutils.hpp"
 #include <algorithm>
-
-struct vector_features{
-	bool sse2, avx;
-};
-#ifdef _MSC_VER
-	#include <intrin.h>
-	#define bit_SSE2 (1 << 26)
-	#define bit_AVX (1 << 28)
-	static vector_features detect_vectorization(){
-		int cpu_info[4];
-		__cpuid(cpu_info, 1);
-		return {cpu_info[3] & bit_SSE2, cpu_info[2] & bit_AVX};
-	}
-#else
-	#include <cpuid.h>
-	static vector_features detect_vectorization(){
-		unsigned eax, ebx, ecx, edx;
-		__cpuid (1, eax, ebx, ecx, edx);
-		return {static_cast<bool>(edx & bit_SSE2), static_cast<bool>(ecx & bit_AVX)};
-	}
-#endif // _MSC_VER
+#include <emmintrin.h>	// SSE2 instrincs
+#include <immintrin.h>	// AVX instrincs
 
 namespace GUtils{
 	Matrix4x4d::Matrix4x4d(){std::copy(Matrix4x4d::identity_matrix, Matrix4x4d::identity_matrix+16, this->matrix);}
@@ -58,6 +39,7 @@ namespace GUtils{
 				// TODO: AVX matrix multiplication
 
 			}else{	// features.sse2
+				__m128d a = _mm_load1_pd(matrix);
 
 				// TODO: SSE2 matrix multiplication
 
