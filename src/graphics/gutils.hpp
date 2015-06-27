@@ -35,16 +35,21 @@ namespace GUtils{
 			Matrix4x4d& operator=(const Matrix4x4d& other);
 			Matrix4x4d(Matrix4x4d&& other) = delete;	// No movable resources
 			Matrix4x4d& operator=(Matrix4x4d&& other) = delete;
-			virtual ~Matrix4x4d();
+			~Matrix4x4d() = default;
 			// Raw data getter
 			double* data() const;
-			// Reset to identity matrix
-			Matrix4x4d& identity();
 			// General transformations
 			enum class Order{PREPEND, APPEND};
 			Matrix4x4d& multiply(const Matrix4x4d& other, Order order = Order::PREPEND);
 			double* transform2d(double* vec);
 			double* transform3d(double* vec);
 			double* transform4d(double* vec);
+			// Unary operations
+			Matrix4x4d& identity();
+			Matrix4x4d& invert();
+			// Binary operations
+
+			// TODO
+
 	};
 }

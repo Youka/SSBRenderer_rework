@@ -21,9 +21,7 @@ namespace GUtils{
 	Matrix4x4d::Matrix4x4d(double* matrix){std::copy(matrix, matrix+16, this->matrix);}
 	Matrix4x4d::Matrix4x4d(const Matrix4x4d& other){Matrix4x4d(other.matrix);}
 	Matrix4x4d& Matrix4x4d::operator=(const Matrix4x4d& other){Matrix4x4d(other.matrix); return *this;}
-	Matrix4x4d::~Matrix4x4d(){}
 	double* Matrix4x4d::data() const{return this->matrix;}
-	Matrix4x4d& Matrix4x4d::identity(){Matrix4x4d(); return *this;}
 	Matrix4x4d& Matrix4x4d::multiply(const Matrix4x4d& other, Matrix4x4d::Order order){
 		double* matrix1, *matrix2;
 		vector_features features = detect_vectorization();
@@ -308,8 +306,8 @@ namespace GUtils{
 			_mm256_storeu_pd(
 				vec,
 				_mm256_add_pd(
-					_mm256_permute2f128_pd(m_temp1, m_temp2, 0x20 /* b0010:0000 */),
-					_mm256_permute2f128_pd(m_temp1, m_temp2, 0x31 /* b0011:0001 */)
+					_mm256_permute2f128_pd(m_temp1, m_temp2, 0x20 /* 0b0010:0000 */),
+					_mm256_permute2f128_pd(m_temp1, m_temp2, 0x31 /* 0b0011:0001 */)
 				)
 			);
 		}else if(features.sse2){
@@ -355,5 +353,26 @@ namespace GUtils{
 			vec[2] = this->matrix[8] * vec[0] + this->matrix[9] * vec[1] + this->matrix[10] * vec[2] + this->matrix[11] * vec[3],
 			vec[3] = this->matrix[12] * vec[0] + this->matrix[13] * vec[1] + this->matrix[14] * vec[2] + this->matrix[15] * vec[3];
 		return vec;
+	}
+	Matrix4x4d& Matrix4x4d::identity(){Matrix4x4d(); return *this;}
+	Matrix4x4d& Matrix4x4d::invert(){
+		vector_features features = detect_vectorization();
+		if(features.avx){
+
+			// TODO: AVX matrix invert
+
+		}else if(features.sse2){
+
+			// TODO: SSE2 matrix invert
+
+		}else{
+			double inv_matrix[16] = {
+
+			};
+
+			// TODO: Reference matrix invert
+
+		}
+		return *this;
 	}
 }
