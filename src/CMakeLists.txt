@@ -27,11 +27,14 @@ endif()
 add_compile_options(${COMPILE_WARNINGS})
 message(STATUS "Compile warnings: ${COMPILE_WARNINGS}")
 
-# Add C++11 support
+# Add C++11 & vectorization support
 if(CMAKE_COMPILER_IS_GNUCC)
-	add_compile_options(-std=c++11)
-	message(STATUS "C++11 enabled")
+	set(COMPILE_FEATURES -std=c++11 -msse2 -mavx)
+else()
+	set(COMPILE_FEATURES /arch:SSE2 /arch:AVX)
 endif()
+add_compile_options(${COMPILE_FEATURES})
+message(STATUS "Additional compiler features: ${COMPILE_FEATURES}")
 
 # Set link time optimizations
 if(MSVC)
