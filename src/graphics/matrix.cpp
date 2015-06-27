@@ -14,11 +14,10 @@ Permission is granted to anyone to use this software for any purpose, including 
 
 #include "gutils.hpp"
 #include <algorithm>
-#include <emmintrin.h>	// SSE2 instrincs
-#include <immintrin.h>	// AVX instrincs
+#include <immintrin.h>	// SSE2+AVX instrincs
 
 namespace GUtils{
-	Matrix4x4d::Matrix4x4d(){std::copy(Matrix4x4d::identity_matrix, Matrix4x4d::identity_matrix+16, this->matrix);}
+	Matrix4x4d::Matrix4x4d(){static const double identity_matrix[16] = {1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1}; std::copy(identity_matrix, identity_matrix+16, this->matrix);}
 	Matrix4x4d::Matrix4x4d(double* matrix){std::copy(matrix, matrix+16, this->matrix);}
 	Matrix4x4d::Matrix4x4d(const Matrix4x4d& other){Matrix4x4d(other.matrix);}
 	Matrix4x4d& Matrix4x4d::operator=(const Matrix4x4d& other){Matrix4x4d(other.matrix); return *this;}
@@ -238,5 +237,123 @@ namespace GUtils{
 			this->matrix[15] = matrix1[12] * matrix2[3] + matrix1[13] * matrix2[7] + matrix1[14] * matrix2[11] + matrix1[15] * matrix2[15];
 		}
 		return *this;
+	}
+	double* Matrix4x4d::transform2d(double* vec){
+		vector_features features = detect_vectorization();
+		if(features.sse2){
+			__m128d m_vec = _mm_loadu_pd(vec),
+			m_temp1 = _mm_mul_pd(_mm_load_pd(this->matrix), m_vec),
+			m_temp2 = _mm_mul_pd(_mm_load_pd(this->matrix+4), m_vec);
+			_mm_storeu_pd(
+				vec,
+				_mm_add_pd(
+					_mm_unpacklo_pd(m_temp1, m_temp2),
+					_mm_unpackhi_pd(m_temp1, m_temp2)
+				)
+			);
+		}else
+			vec[0] = this->matrix[0] * vec[0] + this->matrix[1] * vec[1],
+			vec[1] = this->matrix[4] * vec[0] + this->matrix[5] * vec[1];
+		return vec;
+	}
+	double* Matrix4x4d::transform3d(double* vec){
+		vector_features features = detect_vectorization();
+		if(features.avx){
+			__m256d m_vec = _mm256_set_pd(vec[0], vec[1], vec[2], 0),
+			m_temp = _mm256_hadd_pd(
+				_mm256_mul_pd(_mm256_load_pd(this->matrix), m_vec),
+				_mm256_mul_pd(_mm256_load_pd(this->matrix+4), m_vec)
+			);
+			vec[0] = *reinterpret_cast<double*>(&m_temp) + reinterpret_cast<double*>(&m_temp)[2],
+			vec[1] = reinterpret_cast<double*>(&m_temp)[1] + reinterpret_cast<double*>(&m_temp)[3],
+			m_temp = _mm256_mul_pd(_mm256_load_pd(this->matrix+8), m_vec),
+			vec[3] = *reinterpret_cast<double*>(&m_temp) + reinterpret_cast<double*>(&m_temp)[1] + reinterpret_cast<double*>(&m_temp)[2];
+		}else if(features.sse2){
+			__m128d m_vec = _mm_loadu_pd(vec),
+			m_temp1 = _mm_mul_pd(_mm_load_pd(this->matrix), m_vec),
+			m_temp2 = _mm_mul_pd(_mm_load_pd(this->matrix+4), m_vec);
+			_mm_storeu_pd(
+				vec,
+				_mm_add_pd(
+					_mm_add_pd(
+						_mm_unpacklo_pd(m_temp1, m_temp2),
+						_mm_unpackhi_pd(m_temp1, m_temp2)
+					),
+					_mm_mul_pd(
+						_mm_set_pd(this->matrix[2], this->matrix[6]),
+						_mm_set1_pd(vec[2])
+					)
+				)
+			);
+			m_temp1 = _mm_mul_pd(_mm_load_pd(this->matrix+8), m_vec);
+			vec[2] = *reinterpret_cast<double*>(&m_temp1) + reinterpret_cast<double*>(&m_temp1)[1] + this->matrix[10] * vec[2];
+		}else
+			vec[0] = this->matrix[0] * vec[0] + this->matrix[1] * vec[1] + this->matrix[2] * vec[2],
+			vec[1] = this->matrix[4] * vec[0] + this->matrix[5] * vec[1] + this->matrix[6] * vec[2],
+			vec[2] = this->matrix[8] * vec[0] + this->matrix[9] * vec[1] + this->matrix[10] * vec[2];
+		return vec;
+	}
+	double* Matrix4x4d::transform4d(double* vec){
+		vector_features features = detect_vectorization();
+		if(features.avx){
+			__m256d m_vec = _mm256_loadu_pd(vec),
+			m_temp1 = _mm256_hadd_pd(
+				_mm256_mul_pd(_mm256_load_pd(this->matrix), m_vec),
+				_mm256_mul_pd(_mm256_load_pd(this->matrix+4), m_vec)
+			),
+			m_temp2 = _mm256_hadd_pd(
+				_mm256_mul_pd(_mm256_load_pd(this->matrix+8), m_vec),
+				_mm256_mul_pd(_mm256_load_pd(this->matrix+12), m_vec)
+			);
+			_mm256_storeu_pd(
+				vec,
+				_mm256_add_pd(
+					_mm256_permute2f128_pd(m_temp1, m_temp2, 0x20 /* b0010:0000 */),
+					_mm256_permute2f128_pd(m_temp1, m_temp2, 0x31 /* b0011:0001 */)
+				)
+			);
+		}else if(features.sse2){
+			__m128d m_vec1 = _mm_loadu_pd(vec),
+			m_vec2 = _mm_loadu_pd(vec+2),
+			m_temp1 = _mm_mul_pd(_mm_load_pd(this->matrix), m_vec1),
+			m_temp2 = _mm_mul_pd(_mm_load_pd(this->matrix+2), m_vec2),
+			m_temp3 = _mm_mul_pd(_mm_load_pd(this->matrix+4), m_vec1),
+			m_temp4 = _mm_mul_pd(_mm_load_pd(this->matrix+6), m_vec2);
+			_mm_storeu_pd(
+				vec,
+				_mm_add_pd(
+					_mm_add_pd(
+						_mm_unpacklo_pd(m_temp1, m_temp3),
+						_mm_unpackhi_pd(m_temp1, m_temp3)
+					),
+					_mm_add_pd(
+						_mm_unpacklo_pd(m_temp2, m_temp4),
+						_mm_unpackhi_pd(m_temp2, m_temp4)
+					)
+				)
+			);
+			m_temp1 = _mm_mul_pd(_mm_load_pd(this->matrix+8), m_vec1),
+			m_temp2 = _mm_mul_pd(_mm_load_pd(this->matrix+10), m_vec2),
+			m_temp3 = _mm_mul_pd(_mm_load_pd(this->matrix+12), m_vec1),
+			m_temp4 = _mm_mul_pd(_mm_load_pd(this->matrix+14), m_vec2);
+			_mm_storeu_pd(
+				vec+2,
+				_mm_add_pd(
+					_mm_add_pd(
+						_mm_unpacklo_pd(m_temp1, m_temp3),
+						_mm_unpackhi_pd(m_temp1, m_temp3)
+					),
+					_mm_add_pd(
+						_mm_unpacklo_pd(m_temp2, m_temp4),
+						_mm_unpackhi_pd(m_temp2, m_temp4)
+					)
+				)
+			);
+		}else
+			vec[0] = this->matrix[0] * vec[0] + this->matrix[1] * vec[1] + this->matrix[2] * vec[2] + this->matrix[3] * vec[3],
+			vec[1] = this->matrix[4] * vec[0] + this->matrix[5] * vec[1] + this->matrix[6] * vec[2] + this->matrix[7] * vec[3],
+			vec[2] = this->matrix[8] * vec[0] + this->matrix[9] * vec[1] + this->matrix[10] * vec[2] + this->matrix[11] * vec[3],
+			vec[3] = this->matrix[12] * vec[0] + this->matrix[13] * vec[1] + this->matrix[14] * vec[2] + this->matrix[15] * vec[3];
+		return vec;
 	}
 }

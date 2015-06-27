@@ -27,8 +27,6 @@ namespace GUtils{
 			// Raw matrix data
 			std::aligned_storage<sizeof(double)<<4, 16>::type storage;	// MSVC doesn't support keyword 'alignas'
 			double* matrix = reinterpret_cast<decltype(this->matrix)>(&this->storage);
-			// Identity matrix template
-			constexpr static const double identity_matrix[16] = {1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1};
 		public:
 			// Ctors, dtor & assignments (rule-of-five)
 			Matrix4x4d();
@@ -45,5 +43,8 @@ namespace GUtils{
 			// General transformations
 			enum class Order{PREPEND, APPEND};
 			Matrix4x4d& multiply(const Matrix4x4d& other, Order order = Order::PREPEND);
+			double* transform2d(double* vec);
+			double* transform3d(double* vec);
+			double* transform4d(double* vec);
 	};
 }
