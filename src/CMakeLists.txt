@@ -1,3 +1,7 @@
+# Include script helpers
+include(${PROJECT_SOURCE_DIR}/cmake/FindSIMD.cmake)
+include(${PROJECT_SOURCE_DIR}/cmake/LinkerFlags.cmake)
+
 # Check for available compilers (has to happen after project definition for compiler flags)
 if(NOT(CMAKE_COMPILER_IS_GNUCC OR MSVC_VERSION GREATER 1600))
 	message(FATAL_ERROR "Just GCC & MSVC11+ compilers supported!")
@@ -5,9 +9,27 @@ endif()
 message(STATUS "Generator: ${CMAKE_GENERATOR}")
 
 # Request build options from user
-option(BUILD_WITH_SSE2 "Use SSE2 instructions?" ON)
-option(BUILD_WITH_SSE3 "Use SSE3 instructions?" OFF)
-option(BUILD_WITH_AVX "Use AVX instructions?" OFF)
+CHECK_SSE2()
+if(HAS_SSE2)
+	set(BUILD_WITH_SSE2_VALUE ON)
+else()
+	set(BUILD_WITH_SSE2_VALUE OFF)
+endif()
+option(BUILD_WITH_SSE2 "Use SSE2 instructions?" ${BUILD_WITH_SSE2_VALUE})
+CHECK_SSE3()
+if(HAS_SSE3)
+	set(BUILD_WITH_SSE3_VALUE ON)
+else()
+	set(BUILD_WITH_SSE3_VALUE OFF)
+endif()
+option(BUILD_WITH_SSE3 "Use SSE3 instructions?" ${BUILD_WITH_SSE3_VALUE})
+CHECK_AVX()
+if(HAS_AVX)
+	set(BUILD_WITH_AVX_VALUE ON)
+else()
+	set(BUILD_WITH_AVX_VALUE OFF)
+endif()
+option(BUILD_WITH_AVX "Use AVX instructions?" ${BUILD_WITH_AVX_VALUE})
 if(MINGW)
 	set(BUILD_STD_STATIC_VALUE ON)
 else()
@@ -18,9 +40,6 @@ if(CMAKE_BUILD_TYPE STREQUAL "")
 	set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build, options are: Debug Release RelWithDebInfo MinSizeRel." FORCE)
 endif()
 
-# Include script helpers
-include(${PROJECT_SOURCE_DIR}/cmake/linker_flags.cmake)
-
 # Set compile warnings
 if(MSVC)
 	set(COMPILE_WARNINGS /W2)
@@ -30,7 +49,7 @@ endif()
 add_compile_options(${COMPILE_WARNINGS})
 message(STATUS "Compile warnings: ${COMPILE_WARNINGS}")
 
-# Add C++11 & vectorization support
+# Add compiler features (C++, vectorization)
 if(CMAKE_COMPILER_IS_GNUCC)
 	set(COMPILE_FEATURES -std=c++11)
 	if(BUILD_WITH_AVX)
