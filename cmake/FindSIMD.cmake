@@ -11,6 +11,9 @@ macro(CHECK_SSE2)
 	CHECK_C_SOURCE_RUNS(
 		"#include <emmintrin.h>
 		int main(){
+			#ifdef _WIN32
+			_set_abort_behavior(0, _WRITE_ABORT_MSG);
+			#endif
 			__m128d m;
 			_mm_xor_pd(m, m);
 			return 0;
@@ -28,6 +31,9 @@ macro(CHECK_SSE3)
 	CHECK_C_SOURCE_RUNS(
 		"#include <pmmintrin.h>
 		int main(){
+			#ifdef _WIN32
+			_set_abort_behavior(0, _WRITE_ABORT_MSG);
+			#endif
 			__m128d m;
 			_mm_hadd_pd(m, m);
 			return 0;
@@ -45,6 +51,9 @@ macro(CHECK_AVX)
 	CHECK_C_SOURCE_RUNS(
 		"#include <immintrin.h>
 		int main(){
+			#ifdef _WIN32
+			_set_abort_behavior(0, _WRITE_ABORT_MSG);
+			#endif
 			__m256d m;
 			_mm256_xor_pd(m, m);
 			return 0;
