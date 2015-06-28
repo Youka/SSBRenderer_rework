@@ -17,6 +17,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 #ifdef _MSC_VER
 	#include <intrin.h>
 	#define bit_SSE2 (1 << 26)
+	#define bit_SSE3 (1 << 0)
 	#define bit_AVX (1 << 28)
 #else
 	#include <cpuid.h>
@@ -27,11 +28,11 @@ namespace GUtils{
 #ifdef _MSC_VER
 		int cpu_info[4];
 		__cpuid(cpu_info, 1);
-		return {cpu_info[3] & bit_SSE2, cpu_info[2] & bit_AVX};
+		return {static_cast<bool>(cpu_info[3] & bit_SSE2), static_cast<bool>(cpu_info[2] & bit_SSE3), static_cast<bool>(cpu_info[2] & bit_AVX)};
 #else
 		unsigned eax, ebx, ecx, edx;
 		__cpuid (1, eax, ebx, ecx, edx);
-		return {static_cast<bool>(edx & bit_SSE2), static_cast<bool>(ecx & bit_AVX)};
+		return {static_cast<bool>(edx & bit_SSE2), static_cast<bool>(ecx & bit_SSE3), static_cast<bool>(ecx & bit_AVX)};
 #endif // _MSC_VER
 	}
 }

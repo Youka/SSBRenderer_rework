@@ -238,7 +238,16 @@ namespace GUtils{
 	}
 	double* Matrix4x4d::transform2d(double* vec){
 		vector_features features = detect_vectorization();
-		if(features.sse2){
+		if(features.sse3){
+			__m128d m_vec = _mm_loadu_pd(vec);
+			_mm_storeu_pd(
+				vec,
+				_mm_hadd_pd(
+					_mm_mul_pd(_mm_load_pd(this->matrix), m_vec),
+					_mm_mul_pd(_mm_load_pd(this->matrix+4), m_vec)
+				)
+			);
+		}else if(features.sse2){
 			__m128d m_vec = _mm_loadu_pd(vec),
 			m_temp1 = _mm_mul_pd(_mm_load_pd(this->matrix), m_vec),
 			m_temp2 = _mm_mul_pd(_mm_load_pd(this->matrix+4), m_vec);
@@ -266,6 +275,23 @@ namespace GUtils{
 			vec[1] = reinterpret_cast<double*>(&m_temp)[1] + reinterpret_cast<double*>(&m_temp)[3],
 			m_temp = _mm256_mul_pd(_mm256_load_pd(this->matrix+8), m_vec),
 			vec[3] = *reinterpret_cast<double*>(&m_temp) + reinterpret_cast<double*>(&m_temp)[1] + reinterpret_cast<double*>(&m_temp)[2];
+		}else if(features.sse3){
+			__m128d m_vec = _mm_loadu_pd(vec);
+			_mm_storeu_pd(
+				vec,
+				_mm_add_pd(
+					_mm_hadd_pd(
+						_mm_mul_pd(_mm_load_pd(this->matrix), m_vec),
+						_mm_mul_pd(_mm_load_pd(this->matrix+4), m_vec)
+					),
+					_mm_mul_pd(
+						_mm_set_pd(this->matrix[2], this->matrix[6]),
+						_mm_set1_pd(vec[2])
+					)
+				)
+			);
+			__m128d m_temp = _mm_mul_pd(_mm_load_pd(this->matrix+8), m_vec);
+			vec[2] = *reinterpret_cast<double*>(&m_temp) + reinterpret_cast<double*>(&m_temp)[1] + this->matrix[10] * vec[2];
 		}else if(features.sse2){
 			__m128d m_vec = _mm_loadu_pd(vec),
 			m_temp1 = _mm_mul_pd(_mm_load_pd(this->matrix), m_vec),
@@ -308,6 +334,35 @@ namespace GUtils{
 				_mm256_add_pd(
 					_mm256_permute2f128_pd(m_temp1, m_temp2, 0x20 /* 0b0010:0000 */),
 					_mm256_permute2f128_pd(m_temp1, m_temp2, 0x31 /* 0b0011:0001 */)
+				)
+			);
+		}else if(features.sse3){
+			__m128d m_vec1 = _mm_loadu_pd(vec),
+			m_vec2 = _mm_loadu_pd(vec+2);
+			_mm_storeu_pd(
+				vec,
+				_mm_add_pd(
+					_mm_hadd_pd(
+						_mm_mul_pd(_mm_load_pd(this->matrix), m_vec1),
+						_mm_mul_pd(_mm_load_pd(this->matrix+4), m_vec1)
+					),
+					_mm_hadd_pd(
+						_mm_mul_pd(_mm_load_pd(this->matrix+2), m_vec2),
+						_mm_mul_pd(_mm_load_pd(this->matrix+6), m_vec2)
+					)
+				)
+			);
+			_mm_storeu_pd(
+				vec+2,
+				_mm_add_pd(
+					_mm_hadd_pd(
+						_mm_mul_pd(_mm_load_pd(this->matrix+8), m_vec1),
+						_mm_mul_pd(_mm_load_pd(this->matrix+12), m_vec1)
+					),
+					_mm_hadd_pd(
+						_mm_mul_pd(_mm_load_pd(this->matrix+10), m_vec2),
+						_mm_mul_pd(_mm_load_pd(this->matrix+14), m_vec2)
+					)
 				)
 			);
 		}else if(features.sse2){
@@ -366,9 +421,9 @@ namespace GUtils{
 			// TODO: SSE2 matrix invert
 
 		}else{
-			double inv_matrix[16] = {
+			/*double inv_matrix[16] = {
 
-			};
+			};*/
 
 			// TODO: Reference matrix invert
 

@@ -29,9 +29,9 @@ message(STATUS "Compile warnings: ${COMPILE_WARNINGS}")
 
 # Add C++11 & vectorization support
 if(CMAKE_COMPILER_IS_GNUCC)
-	set(COMPILE_FEATURES -std=c++11 -msse2 -mavx)
+	set(COMPILE_FEATURES -std=c++11 -mavx)
 else()
-	set(COMPILE_FEATURES /arch:SSE2 /arch:AVX)
+	set(COMPILE_FEATURES /arch:AVX)
 endif()
 add_compile_options(${COMPILE_FEATURES})
 message(STATUS "Additional compiler features: ${COMPILE_FEATURES}")

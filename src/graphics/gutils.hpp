@@ -18,7 +18,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 
 namespace GUtils{
 	struct vector_features{
-		bool sse2, avx;
+		bool sse2, sse3, avx;
 	};
 	vector_features detect_vectorization();
 
