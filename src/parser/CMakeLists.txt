@@ -1,5 +1,5 @@
 # Request build options from user
-set(BUILD_MAX_INLINE_STYLES 64 CACHE STRING "Maximal number of insertions of a style into a line" FORCE)
+set(BUILD_MAX_INLINE_STYLES 64 CACHE STRING "Maximal number of insertions of a style into a SSB line" FORCE)
 option(TEST_PARSER "Build parser tests?" OFF)
 
 # Generate configuration header
