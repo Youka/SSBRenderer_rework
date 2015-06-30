@@ -53,7 +53,6 @@ namespace SSB{
 
 	// Base of any tag or geometry
 	class Object{
-		// TODO
 		public:
 			enum class Type : char{
 				TAG,
@@ -63,7 +62,7 @@ namespace SSB{
 			Object(Object&&) = delete;
 			Object& operator=(const Object&) = delete;
 			Object& operator=(Object&&) = delete;
-			virtual ~Object(){}
+			virtual ~Object() = default;
 		protected:
 			Object(Type type) : type(type){}
 	};

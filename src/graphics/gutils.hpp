@@ -41,7 +41,7 @@ namespace GUtils{
 			double* transform4d(double* vec);
 			// Unary operations
 			Matrix4x4d& identity();
-			Matrix4x4d& invert();
+			bool invert();
 			// Binary operations
 
 			// TODO

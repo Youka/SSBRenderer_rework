@@ -415,8 +415,8 @@ namespace GUtils{
 		return vec;
 	}
 	Matrix4x4d& Matrix4x4d::identity(){Matrix4x4d(); return *this;}
-	Matrix4x4d& Matrix4x4d::invert(){
-#ifdef __AVX__
+	bool Matrix4x4d::invert(){
+/*#ifdef __AVX__
 
 		// TODO: AVX matrix invert
 
@@ -428,15 +428,35 @@ namespace GUtils{
 
 		// TODO: SSE2 matrix invert
 
-#else
-
-		/*double inv_matrix[16] = {
-
-		};*/
-
-		// TODO: Reference matrix invert
-
-#endif
-		return *this;
+#else*/
+		double inv_matrix[16] = {
+		/* 11 */	this->matrix[5]*this->matrix[10]*this->matrix[15] + this->matrix[6]*this->matrix[11]*this->matrix[13] + this->matrix[7]*this->matrix[9]*this->matrix[14] - this->matrix[5]*this->matrix[11]*this->matrix[14] - this->matrix[6]*this->matrix[9]*this->matrix[15] - this->matrix[7]*this->matrix[10]*this->matrix[13],
+		/* 12 */	this->matrix[1]*this->matrix[11]*this->matrix[14] + this->matrix[2]*this->matrix[9]*this->matrix[15] + this->matrix[3]*this->matrix[10]*this->matrix[13] - this->matrix[1]*this->matrix[10]*this->matrix[15] - this->matrix[2]*this->matrix[11]*this->matrix[13] - this->matrix[3]*this->matrix[9]*this->matrix[14],
+		/* 13 */	this->matrix[1]*this->matrix[6]*this->matrix[15] + this->matrix[2]*this->matrix[7]*this->matrix[13] + this->matrix[3]*this->matrix[5]*this->matrix[14] - this->matrix[1]*this->matrix[7]*this->matrix[14] - this->matrix[2]*this->matrix[5]*this->matrix[15] - this->matrix[3]*this->matrix[6]*this->matrix[13],
+		/* 14 */	this->matrix[1]*this->matrix[7]*this->matrix[10] + this->matrix[2]*this->matrix[5]*this->matrix[11] + this->matrix[3]*this->matrix[6]*this->matrix[9] - this->matrix[1]*this->matrix[6]*this->matrix[11] - this->matrix[2]*this->matrix[7]*this->matrix[9] - this->matrix[3]*this->matrix[5]*this->matrix[10],
+		/* 21 */	this->matrix[4]*this->matrix[11]*this->matrix[14] + this->matrix[6]*this->matrix[8]*this->matrix[15] + this->matrix[7]*this->matrix[10]*this->matrix[12] - this->matrix[4]*this->matrix[10]*this->matrix[15] - this->matrix[6]*this->matrix[11]*this->matrix[12] - this->matrix[7]*this->matrix[8]*this->matrix[14],
+		/* 22 */	this->matrix[0]*this->matrix[10]*this->matrix[15] + this->matrix[2]*this->matrix[11]*this->matrix[12] + this->matrix[3]*this->matrix[8]*this->matrix[14] - this->matrix[0]*this->matrix[11]*this->matrix[14] - this->matrix[2]*this->matrix[8]*this->matrix[15] - this->matrix[3]*this->matrix[10]*this->matrix[12],
+		/* 23 */	this->matrix[0]*this->matrix[7]*this->matrix[14] + this->matrix[2]*this->matrix[4]*this->matrix[15] + this->matrix[3]*this->matrix[6]*this->matrix[12] - this->matrix[0]*this->matrix[6]*this->matrix[15] - this->matrix[2]*this->matrix[7]*this->matrix[12] - this->matrix[3]*this->matrix[4]*this->matrix[14],
+		/* 24 */	this->matrix[0]*this->matrix[6]*this->matrix[11] + this->matrix[2]*this->matrix[7]*this->matrix[8] + this->matrix[3]*this->matrix[4]*this->matrix[10] - this->matrix[0]*this->matrix[7]*this->matrix[10] - this->matrix[2]*this->matrix[4]*this->matrix[11] - this->matrix[3]*this->matrix[6]*this->matrix[8],
+		/* 31 */	this->matrix[4]*this->matrix[9]*this->matrix[15] + this->matrix[5]*this->matrix[11]*this->matrix[12] + this->matrix[7]*this->matrix[8]*this->matrix[13] - this->matrix[4]*this->matrix[11]*this->matrix[13] - this->matrix[5]*this->matrix[8]*this->matrix[15] - this->matrix[7]*this->matrix[9]*this->matrix[12],
+		/* 32 */	this->matrix[0]*this->matrix[11]*this->matrix[13] + this->matrix[1]*this->matrix[8]*this->matrix[15] + this->matrix[3]*this->matrix[9]*this->matrix[12] - this->matrix[0]*this->matrix[9]*this->matrix[15] - this->matrix[1]*this->matrix[11]*this->matrix[12] - this->matrix[3]*this->matrix[8]*this->matrix[13],
+		/* 33 */	this->matrix[0]*this->matrix[5]*this->matrix[15] + this->matrix[1]*this->matrix[7]*this->matrix[12] + this->matrix[3]*this->matrix[4]*this->matrix[13] - this->matrix[0]*this->matrix[7]*this->matrix[13] - this->matrix[1]*this->matrix[4]*this->matrix[15] - this->matrix[3]*this->matrix[5]*this->matrix[12],
+		/* 34 */	this->matrix[0]*this->matrix[7]*this->matrix[9] + this->matrix[1]*this->matrix[4]*this->matrix[11] + this->matrix[3]*this->matrix[5]*this->matrix[8] - this->matrix[0]*this->matrix[5]*this->matrix[11] - this->matrix[1]*this->matrix[7]*this->matrix[8] - this->matrix[3]*this->matrix[4]*this->matrix[9],
+		/* 41 */	this->matrix[4]*this->matrix[10]*this->matrix[13] + this->matrix[5]*this->matrix[8]*this->matrix[14] + this->matrix[6]*this->matrix[9]*this->matrix[12] - this->matrix[4]*this->matrix[9]*this->matrix[14] - this->matrix[5]*this->matrix[10]*this->matrix[12] - this->matrix[6]*this->matrix[8]*this->matrix[13],
+		/* 42 */	this->matrix[0]*this->matrix[9]*this->matrix[14] + this->matrix[1]*this->matrix[10]*this->matrix[12] + this->matrix[2]*this->matrix[8]*this->matrix[13] - this->matrix[0]*this->matrix[10]*this->matrix[13] - this->matrix[1]*this->matrix[8]*this->matrix[14] - this->matrix[2]*this->matrix[9]*this->matrix[12],
+		/* 43 */	this->matrix[0]*this->matrix[6]*this->matrix[13] + this->matrix[1]*this->matrix[4]*this->matrix[14] + this->matrix[2]*this->matrix[5]*this->matrix[12] - this->matrix[0]*this->matrix[5]*this->matrix[14] - this->matrix[1]*this->matrix[6]*this->matrix[12] - this->matrix[2]*this->matrix[4]*this->matrix[13],
+		/* 44 */	this->matrix[0]*this->matrix[5]*this->matrix[10] + this->matrix[1]*this->matrix[6]*this->matrix[8] + this->matrix[2]*this->matrix[4]*this->matrix[9] - this->matrix[0]*this->matrix[6]*this->matrix[9] - this->matrix[1]*this->matrix[4]*this->matrix[10] - this->matrix[2]*this->matrix[5]*this->matrix[8]
+		},
+		delta = this->matrix[0] * inv_matrix[0] +
+			this->matrix[1] * inv_matrix[4] +
+			this->matrix[2] * inv_matrix[8] +
+			this->matrix[3] * inv_matrix[12];
+		if(delta != 0.0){
+			delta = 1 / delta,
+			std::transform(inv_matrix, inv_matrix+16, this->matrix, [&delta](double& inv_field){return delta * inv_field;});
+			return true;
+		}else
+			return false;
+//#endif
 	}
 }
