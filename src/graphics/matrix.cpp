@@ -417,12 +417,113 @@ namespace GUtils{
 	}
 	Matrix4x4d& Matrix4x4d::identity(){Matrix4x4d(); return *this;}
 	bool Matrix4x4d::invert(){
-
-		// TODO: SSE3 & AVX matrix inversion
-
 #ifdef __SSE2__
 		decltype(this->storage) inv_matrix_storage;
 		double* inv_matrix = reinterpret_cast<double*>(&inv_matrix_storage);
+#ifdef __AVX__
+#define INVERT_CALC(TARGET, V1, V2, V3, V4, V5, V6, V7, V8, V9, V10, V11, V12, V13, V14, V15, V16, V17, V18) \
+		_mm256_store_pd( \
+			TARGET, \
+			_mm256_sub_pd( \
+				_mm256_sub_pd( \
+					_mm256_sub_pd( \
+						_mm256_add_pd( \
+							_mm256_add_pd( \
+								_mm256_mul_pd( \
+									_mm256_mul_pd( \
+										V1, \
+										V2 \
+									), \
+									V3 \
+								), \
+								_mm256_mul_pd( \
+									_mm256_mul_pd( \
+										V4, \
+										V5 \
+									), \
+									V6 \
+								) \
+							), \
+							_mm256_mul_pd( \
+								_mm256_mul_pd( \
+									V7, \
+									V8 \
+								), \
+								V9 \
+							) \
+						), \
+						_mm256_mul_pd( \
+							_mm256_mul_pd( \
+								V10, \
+								V11 \
+							), \
+							V12 \
+						) \
+					), \
+					_mm256_mul_pd( \
+						_mm256_mul_pd( \
+							V13, \
+							V14 \
+						), \
+						V15 \
+					) \
+				), \
+				_mm256_mul_pd( \
+					_mm256_mul_pd( \
+						V16, \
+						V17 \
+					), \
+					V18 \
+				) \
+			) \
+		)
+
+		// TODO: AVX matrix inversion
+
+#else
+#ifdef __SSE3__
+#define INVERT_CALC(TARGET, A1, A2, A3, A4, A5, A6, A7, A8, A9, B1, B2, B3, B4, B5, B6, B7, B8, B9) \
+		_mm_store_pd( \
+			TARGET, \
+			_mm_add_pd( \
+				_mm_sub_pd( \
+					_mm_hadd_pd( \
+						_mm_mul_pd( \
+							_mm_mul_pd(A1, A2), \
+							A3 \
+						), \
+						_mm_mul_pd( \
+							_mm_mul_pd(B1, B2), \
+							B3 \
+						) \
+					), \
+					_mm_hsub_pd( \
+						_mm_mul_pd( \
+							_mm_mul_pd(A4, A5), \
+							A6 \
+						), \
+						_mm_mul_pd( \
+							_mm_mul_pd(B4, B5), \
+							B6 \
+						) \
+					) \
+				), \
+				_mm_hsub_pd( \
+					_mm_mul_pd( \
+						_mm_mul_pd(A7, A8), \
+						A9 \
+					), \
+					_mm_mul_pd( \
+						_mm_mul_pd(B7, B8), \
+						B9 \
+					) \
+				) \
+			) \
+		)
+
+		// TODO: SSE3 matrix inversion
+
+#else
 #define INVERT_CALC(TARGET, V1, V2, V3, V4, V5, V6, V7, V8, V9, V10, V11, V12, V13, V14, V15, V16, V17, V18) \
 		_mm_store_pd( \
 			TARGET, \
@@ -647,6 +748,7 @@ namespace GUtils{
 			_mm_load_pd(this->matrix+4),
 			_mm_set_pd(this->matrix[13], this->matrix[8])
 		);
+#endif
 		// Delta
 		__m128d m_delta = _mm_add_pd(
 			_mm_mul_pd(
@@ -661,17 +763,15 @@ namespace GUtils{
 		double delta = *reinterpret_cast<double*>(&m_delta) + reinterpret_cast<double*>(&m_delta)[1];
 		if(delta != 0.0){
 			m_delta = _mm_set1_pd(1 / delta);
-			for(unsigned char i = 0; i < 16; i+=2)
+			for(double* matrix = this->matrix, *matrix_end = matrix + 16; matrix != matrix_end; matrix += 2, inv_matrix += 2)
 				_mm_store_pd(
-					this->matrix+i,
+					matrix,
 					_mm_mul_pd(
-						_mm_load_pd(inv_matrix+i),
+						_mm_load_pd(inv_matrix),
 						m_delta
 					)
 				);
-			return true;
-		}else
-			return false;
+#endif
 #undef INVERT_CALC
 #else
 		double inv_matrix[16] = {
@@ -699,9 +799,10 @@ namespace GUtils{
 		if(delta != 0.0){
 			delta = 1 / delta,
 			std::transform(inv_matrix, inv_matrix+16, this->matrix, [&delta](double& inv_field){return delta * inv_field;});
+#endif
 			return true;
 		}else
 			return false;
-#endif
+
 	}
 }
