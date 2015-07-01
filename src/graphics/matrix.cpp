@@ -18,6 +18,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 	#include <immintrin.h>
 #elif defined __SSE3__
 	#include <pmmintrin.h>
+	#define _mm_load1_pd _mm_loaddup_pd
 #elif defined __SSE2__
 	#include <emmintrin.h>
 #endif
@@ -416,19 +417,263 @@ namespace GUtils{
 	}
 	Matrix4x4d& Matrix4x4d::identity(){Matrix4x4d(); return *this;}
 	bool Matrix4x4d::invert(){
-/*#ifdef __AVX__
 
-		// TODO: AVX matrix invert
+		// TODO: SSE3 & AVX matrix inversion
 
-#elif defined __SSE3__
-
-		// TODO: SSE3 matrix invert
-
-#elif defined __SSE2__
-
-		// TODO: SSE2 matrix invert
-
-#else*/
+#ifdef __SSE2__
+		decltype(this->storage) inv_matrix_storage;
+		double* inv_matrix = reinterpret_cast<double*>(&inv_matrix_storage);
+#define INVERT_CALC(TARGET, V1, V2, V3, V4, V5, V6, V7, V8, V9, V10, V11, V12, V13, V14, V15, V16, V17, V18) \
+		_mm_store_pd( \
+			TARGET, \
+			_mm_sub_pd( \
+				_mm_sub_pd( \
+					_mm_sub_pd( \
+						_mm_add_pd( \
+							_mm_add_pd( \
+								_mm_mul_pd( \
+									_mm_mul_pd( \
+										V1, \
+										V2 \
+									), \
+									V3 \
+								), \
+								_mm_mul_pd( \
+									_mm_mul_pd( \
+										V4, \
+										V5 \
+									), \
+									V6 \
+								) \
+							), \
+							_mm_mul_pd( \
+								_mm_mul_pd( \
+									V7, \
+									V8 \
+								), \
+								V9 \
+							) \
+						), \
+						_mm_mul_pd( \
+							_mm_mul_pd( \
+								V10, \
+								V11 \
+							), \
+							V12 \
+						) \
+					), \
+					_mm_mul_pd( \
+						_mm_mul_pd( \
+							V13, \
+							V14 \
+						), \
+						V15 \
+					) \
+				), \
+				_mm_mul_pd( \
+					_mm_mul_pd( \
+						V16, \
+						V17 \
+					), \
+					V18 \
+				) \
+			) \
+		)
+		// 11/12
+		INVERT_CALC(inv_matrix,
+			_mm_set_pd(this->matrix[5], this->matrix[1]),
+			_mm_load_pd(this->matrix+10),
+			_mm_loadr_pd(this->matrix+14),
+			_mm_set_pd(this->matrix[6], this->matrix[2]),
+			_mm_set_pd(this->matrix[11], this->matrix[9]),
+			_mm_set_pd(this->matrix[13], this->matrix[15]),
+			_mm_set_pd(this->matrix[7], this->matrix[3]),
+			_mm_load_pd(this->matrix+9),
+			_mm_loadr_pd(this->matrix+13),
+			_mm_set_pd(this->matrix[5], this->matrix[1]),
+			_mm_loadr_pd(this->matrix+10),
+			_mm_load_pd(this->matrix+14),
+			_mm_set_pd(this->matrix[6], this->matrix[2]),
+			_mm_set_pd(this->matrix[9], this->matrix[11]),
+			_mm_set_pd(this->matrix[15], this->matrix[13]),
+			_mm_set_pd(this->matrix[7], this->matrix[3]),
+			_mm_loadr_pd(this->matrix+9),
+			_mm_load_pd(this->matrix+13)
+		);
+		// 13/14
+		INVERT_CALC(inv_matrix+2,
+			_mm_load1_pd(this->matrix+1),
+			_mm_load_pd(this->matrix+6),
+			_mm_set_pd(this->matrix[15], this->matrix[10]),
+			_mm_load1_pd(this->matrix+2),
+			_mm_set_pd(this->matrix[7], this->matrix[5]),
+                        _mm_set_pd(this->matrix[13], this->matrix[11]),
+			_mm_load1_pd(this->matrix+3),
+                        _mm_load_pd(this->matrix+5),
+			_mm_set_pd(this->matrix[14], this->matrix[9]),
+                        _mm_load1_pd(this->matrix+1),
+                        _mm_loadr_pd(this->matrix+6),
+			_mm_set_pd(this->matrix[14], this->matrix[11]),
+			_mm_load1_pd(this->matrix+2),
+			_mm_set_pd(this->matrix[5], this->matrix[7]),
+			_mm_set_pd(this->matrix[15], this->matrix[9]),
+			_mm_load1_pd(this->matrix+3),
+			_mm_loadr_pd(this->matrix+5),
+			_mm_set_pd(this->matrix[13], this->matrix[10])
+		);
+		// 21/22
+		INVERT_CALC(inv_matrix+4,
+			_mm_set_pd(this->matrix[4], *this->matrix),
+			_mm_loadr_pd(this->matrix+10),
+			_mm_load_pd(this->matrix+14),
+			_mm_set_pd(this->matrix[6], this->matrix[2]),
+			_mm_set_pd(this->matrix[8], this->matrix[11]),
+			_mm_set_pd(this->matrix[15], this->matrix[12]),
+			_mm_set_pd(this->matrix[7], this->matrix[3]),
+			_mm_set_pd(this->matrix[10], this->matrix[8]),
+			_mm_set_pd(this->matrix[12], this->matrix[14]),
+			_mm_set_pd(this->matrix[4], *this->matrix),
+			_mm_load_pd(this->matrix+10),
+			_mm_loadr_pd(this->matrix+14),
+			_mm_set_pd(this->matrix[6], this->matrix[2]),
+			_mm_set_pd(this->matrix[11], this->matrix[8]),
+			_mm_set_pd(this->matrix[12], this->matrix[15]),
+			_mm_set_pd(this->matrix[7], this->matrix[3]),
+			_mm_set_pd(this->matrix[8], this->matrix[10]),
+			_mm_set_pd(this->matrix[14], this->matrix[12])
+		);
+		// 23/24
+		INVERT_CALC(inv_matrix+6,
+                        _mm_load1_pd(this->matrix),
+			_mm_loadr_pd(this->matrix+6),
+			_mm_set_pd(this->matrix[14], this->matrix[11]),
+			_mm_load1_pd(this->matrix+2),
+			_mm_set_pd(this->matrix[4], this->matrix[7]),
+			_mm_set_pd(this->matrix[15], this->matrix[8]),
+			_mm_load1_pd(this->matrix+3),
+			_mm_set_pd(this->matrix[6], this->matrix[4]),
+			_mm_set_pd(this->matrix[12], this->matrix[10]),
+			_mm_load1_pd(this->matrix),
+			_mm_load_pd(this->matrix+6),
+			_mm_set_pd(this->matrix[15], this->matrix[10]),
+			_mm_load1_pd(this->matrix+2),
+			_mm_set_pd(this->matrix[7], this->matrix[4]),
+                        _mm_loadr_pd(this->matrix+11),
+                        _mm_load1_pd(this->matrix+3),
+			_mm_set_pd(this->matrix[4], this->matrix[6]),
+			_mm_set_pd(this->matrix[14], this->matrix[8])
+		);
+		// 31/32
+		INVERT_CALC(inv_matrix+8,
+			_mm_set_pd(this->matrix[4], *this->matrix),
+			_mm_set_pd(this->matrix[9], this->matrix[11]),
+			_mm_set_pd(this->matrix[15], this->matrix[13]),
+			_mm_set_pd(this->matrix[5], this->matrix[1]),
+			_mm_set_pd(this->matrix[11], this->matrix[8]),
+			_mm_set_pd(this->matrix[12], this->matrix[15]),
+			_mm_set_pd(this->matrix[7], this->matrix[3]),
+			_mm_load_pd(this->matrix+8),
+			_mm_loadr_pd(this->matrix+12),
+			_mm_set_pd(this->matrix[4], *this->matrix),
+                        _mm_set_pd(this->matrix[11], this->matrix[9]),
+			_mm_set_pd(this->matrix[13], this->matrix[15]),
+			_mm_set_pd(this->matrix[5], this->matrix[1]),
+			_mm_set_pd(this->matrix[8], this->matrix[11]),
+			_mm_set_pd(this->matrix[15], this->matrix[12]),
+                        _mm_set_pd(this->matrix[7], this->matrix[3]),
+			_mm_loadr_pd(this->matrix+8),
+			_mm_load_pd(this->matrix+12)
+		);
+		// 33/34
+		INVERT_CALC(inv_matrix+10,
+			_mm_load1_pd(this->matrix),
+                        _mm_set_pd(this->matrix[5], this->matrix[7]),
+			_mm_set_pd(this->matrix[15], this->matrix[9]),
+			_mm_load1_pd(this->matrix+1),
+			_mm_set_pd(this->matrix[7], this->matrix[4]),
+			_mm_loadr_pd(this->matrix+11),
+			_mm_load1_pd(this->matrix+3),
+			_mm_load_pd(this->matrix+4),
+			_mm_set_pd(this->matrix[13], this->matrix[8]),
+			_mm_load1_pd(this->matrix),
+                        _mm_set_pd(this->matrix[7], this->matrix[5]),
+			_mm_set_pd(this->matrix[13], this->matrix[11]),
+                        _mm_load1_pd(this->matrix+1),
+			_mm_set_pd(this->matrix[4], this->matrix[7]),
+			_mm_set_pd(this->matrix[15], this->matrix[8]),
+			_mm_load1_pd(this->matrix+3),
+			_mm_loadr_pd(this->matrix+4),
+			_mm_set_pd(this->matrix[11], this->matrix[9])
+		);
+		// 41/42
+		INVERT_CALC(inv_matrix+12,
+			_mm_set_pd(this->matrix[4], *this->matrix),
+			_mm_loadr_pd(this->matrix+9),
+                        _mm_load_pd(this->matrix+13),
+			_mm_set_pd(this->matrix[5], this->matrix[1]),
+			_mm_set_pd(this->matrix[8], this->matrix[10]),
+			_mm_set_pd(this->matrix[14], this->matrix[12]),
+			_mm_set_pd(this->matrix[6], this->matrix[2]),
+			_mm_loadr_pd(this->matrix+8),
+			_mm_load_pd(this->matrix+12),
+			_mm_set_pd(this->matrix[4], *this->matrix),
+                        _mm_load_pd(this->matrix+9),
+			_mm_loadr_pd(this->matrix+13),
+			_mm_set_pd(this->matrix[5], this->matrix[1]),
+			_mm_set_pd(this->matrix[10], this->matrix[8]),
+			_mm_set_pd(this->matrix[12], this->matrix[14]),
+                        _mm_set_pd(this->matrix[6], this->matrix[2]),
+			_mm_load_pd(this->matrix+8),
+			_mm_loadr_pd(this->matrix+12)
+		);
+		// 43/44
+		INVERT_CALC(inv_matrix+14,
+			_mm_load1_pd(this->matrix),
+			_mm_loadr_pd(this->matrix+5),
+			_mm_set_pd(this->matrix[13], this->matrix[10]),
+			_mm_load1_pd(this->matrix+1),
+			_mm_set_pd(this->matrix[4], this->matrix[6]),
+			_mm_set_pd(this->matrix[14], this->matrix[8]),
+			_mm_load1_pd(this->matrix+2),
+			_mm_loadr_pd(this->matrix+4),
+			_mm_set_pd(this->matrix[12], this->matrix[9]),
+			_mm_load1_pd(this->matrix),
+			_mm_load_pd(this->matrix+5),
+			_mm_set_pd(this->matrix[14], this->matrix[9]),
+			_mm_load1_pd(this->matrix+1),
+			_mm_set_pd(this->matrix[6], this->matrix[4]),
+			_mm_set_pd(this->matrix[12], this->matrix[10]),
+			_mm_load1_pd(this->matrix+2),
+			_mm_load_pd(this->matrix+4),
+			_mm_set_pd(this->matrix[13], this->matrix[8])
+		);
+		// Delta
+		__m128d m_delta = _mm_add_pd(
+			_mm_mul_pd(
+				_mm_load_pd(this->matrix),
+				_mm_set_pd(inv_matrix[0], inv_matrix[4])
+			),
+			_mm_mul_pd(
+				_mm_load_pd(this->matrix+2),
+				_mm_set_pd(inv_matrix[8], inv_matrix[12])
+			)
+		);
+		double delta = *reinterpret_cast<double*>(&m_delta) + reinterpret_cast<double*>(&m_delta)[1];
+		if(delta != 0.0){
+			m_delta = _mm_set1_pd(1 / delta);
+			for(unsigned char i = 0; i < 16; i+=2)
+				_mm_store_pd(
+					this->matrix+i,
+					_mm_mul_pd(
+						_mm_load_pd(inv_matrix+i),
+						m_delta
+					)
+				);
+			return true;
+		}else
+			return false;
+#undef INVERT_CALC
+#else
 		double inv_matrix[16] = {
 		/* 11 */	this->matrix[5]*this->matrix[10]*this->matrix[15] + this->matrix[6]*this->matrix[11]*this->matrix[13] + this->matrix[7]*this->matrix[9]*this->matrix[14] - this->matrix[5]*this->matrix[11]*this->matrix[14] - this->matrix[6]*this->matrix[9]*this->matrix[15] - this->matrix[7]*this->matrix[10]*this->matrix[13],
 		/* 12 */	this->matrix[1]*this->matrix[11]*this->matrix[14] + this->matrix[2]*this->matrix[9]*this->matrix[15] + this->matrix[3]*this->matrix[10]*this->matrix[13] - this->matrix[1]*this->matrix[10]*this->matrix[15] - this->matrix[2]*this->matrix[11]*this->matrix[13] - this->matrix[3]*this->matrix[9]*this->matrix[14],
@@ -457,6 +702,6 @@ namespace GUtils{
 			return true;
 		}else
 			return false;
-//#endif
+#endif
 	}
 }
