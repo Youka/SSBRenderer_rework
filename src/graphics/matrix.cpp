@@ -477,9 +477,103 @@ namespace GUtils{
 				) \
 			) \
 		)
-
-		// TODO: AVX matrix inversion
-
+		// 11-14
+		INVERT_CALC(inv_matrix,
+			_mm256_set_pd(this->matrix[5],this->matrix[1],this->matrix[1],this->matrix[1]),
+			_mm256_set_pd(this->matrix[10],this->matrix[11],this->matrix[6],this->matrix[7]),
+			_mm256_set_pd(this->matrix[15],this->matrix[14],this->matrix[15],this->matrix[10]),
+			_mm256_set_pd(this->matrix[6],this->matrix[2],this->matrix[2],this->matrix[2]),
+			_mm256_set_pd(this->matrix[11],this->matrix[9],this->matrix[7],this->matrix[5]),
+			_mm256_set_pd(this->matrix[13],this->matrix[15],this->matrix[13],this->matrix[11]),
+			_mm256_set_pd(this->matrix[7],this->matrix[3],this->matrix[3],this->matrix[3]),
+			_mm256_set_pd(this->matrix[9],this->matrix[10],this->matrix[5],this->matrix[6]),
+			_mm256_set_pd(this->matrix[14],this->matrix[13],this->matrix[14],this->matrix[9]),
+			_mm256_set_pd(this->matrix[5],this->matrix[1],this->matrix[1],this->matrix[1]),
+			_mm256_set_pd(this->matrix[11],this->matrix[10],this->matrix[7],this->matrix[6]),
+			_mm256_set_pd(this->matrix[14],this->matrix[15],this->matrix[14],this->matrix[11]),
+			_mm256_set_pd(this->matrix[6],this->matrix[2],this->matrix[2],this->matrix[2]),
+			_mm256_set_pd(this->matrix[9],this->matrix[11],this->matrix[5],this->matrix[7]),
+			_mm256_set_pd(this->matrix[15],this->matrix[13],this->matrix[15],this->matrix[9]),
+			_mm256_set_pd(this->matrix[7],this->matrix[3],this->matrix[3],this->matrix[3]),
+			_mm256_set_pd(this->matrix[10],this->matrix[9],this->matrix[6],this->matrix[5]),
+			_mm256_set_pd(this->matrix[13],this->matrix[14],this->matrix[13],this->matrix[10])
+		);
+		// 21-24
+		INVERT_CALC(inv_matrix+4,
+			_mm256_set_pd(this->matrix[4],*this->matrix,*this->matrix,*this->matrix),
+			_mm256_set_pd(this->matrix[11],this->matrix[10],this->matrix[7],this->matrix[6]),
+			_mm256_set_pd(this->matrix[14],this->matrix[15],this->matrix[14],this->matrix[11]),
+			_mm256_set_pd(this->matrix[6],this->matrix[2],this->matrix[2],this->matrix[2]),
+			_mm256_set_pd(this->matrix[8],this->matrix[11],this->matrix[4],this->matrix[7]),
+			_mm256_set_pd(this->matrix[15],this->matrix[12],this->matrix[15],this->matrix[8]),
+			_mm256_set_pd(this->matrix[7],this->matrix[3],this->matrix[3],this->matrix[3]),
+			_mm256_set_pd(this->matrix[10],this->matrix[8],this->matrix[6],this->matrix[4]),
+			_mm256_set_pd(this->matrix[12],this->matrix[14],this->matrix[12],this->matrix[10]),
+			_mm256_set_pd(this->matrix[4],*this->matrix,*this->matrix,*this->matrix),
+			_mm256_set_pd(this->matrix[10],this->matrix[11],this->matrix[6],this->matrix[7]),
+			_mm256_set_pd(this->matrix[15],this->matrix[14],this->matrix[15],this->matrix[10]),
+			_mm256_set_pd(this->matrix[6],this->matrix[2],this->matrix[2],this->matrix[2]),
+			_mm256_set_pd(this->matrix[11],this->matrix[8],this->matrix[7],this->matrix[4]),
+			_mm256_set_pd(this->matrix[12],this->matrix[15],this->matrix[12],this->matrix[11]),
+			_mm256_set_pd(this->matrix[7],this->matrix[3],this->matrix[3],this->matrix[3]),
+			_mm256_set_pd(this->matrix[8],this->matrix[10],this->matrix[4],this->matrix[6]),
+			_mm256_set_pd(this->matrix[14],this->matrix[12],this->matrix[14],this->matrix[8])
+		);
+		// 31-34
+		INVERT_CALC(inv_matrix+8,
+			_mm256_set_pd(this->matrix[4],*this->matrix,*this->matrix,*this->matrix),
+			_mm256_set_pd(this->matrix[9],this->matrix[11],this->matrix[5],this->matrix[7]),
+			_mm256_set_pd(this->matrix[15],this->matrix[13],this->matrix[15],this->matrix[9]),
+			_mm256_set_pd(this->matrix[5],this->matrix[1],this->matrix[1],this->matrix[1]),
+			_mm256_set_pd(this->matrix[11],this->matrix[8],this->matrix[7],this->matrix[4]),
+			_mm256_set_pd(this->matrix[12],this->matrix[15],this->matrix[12],this->matrix[11]),
+			_mm256_set_pd(this->matrix[7],this->matrix[3],this->matrix[3],this->matrix[3]),
+			_mm256_set_pd(this->matrix[8],this->matrix[9],this->matrix[4],this->matrix[5]),
+			_mm256_set_pd(this->matrix[13],this->matrix[12],this->matrix[13],this->matrix[8]),
+			_mm256_set_pd(this->matrix[4],*this->matrix,*this->matrix,*this->matrix),
+			_mm256_set_pd(this->matrix[11],this->matrix[9],this->matrix[7],this->matrix[5]),
+			_mm256_set_pd(this->matrix[13],this->matrix[15],this->matrix[13],this->matrix[11]),
+			_mm256_set_pd(this->matrix[5],this->matrix[1],this->matrix[1],this->matrix[1]),
+			_mm256_set_pd(this->matrix[8],this->matrix[11],this->matrix[4],this->matrix[7]),
+			_mm256_set_pd(this->matrix[15],this->matrix[12],this->matrix[15],this->matrix[8]),
+			_mm256_set_pd(this->matrix[7],this->matrix[3],this->matrix[3],this->matrix[3]),
+			_mm256_set_pd(this->matrix[9],this->matrix[8],this->matrix[5],this->matrix[4]),
+			_mm256_set_pd(this->matrix[12],this->matrix[13],this->matrix[12],this->matrix[9])
+		);
+		// 41-44
+		INVERT_CALC(inv_matrix+12,
+			_mm256_set_pd(this->matrix[4],*this->matrix,*this->matrix,*this->matrix),
+			_mm256_set_pd(this->matrix[10],this->matrix[9],this->matrix[6],this->matrix[5]),
+			_mm256_set_pd(this->matrix[13],this->matrix[14],this->matrix[13],this->matrix[10]),
+			_mm256_set_pd(this->matrix[5],this->matrix[1],this->matrix[1],this->matrix[1]),
+			_mm256_set_pd(this->matrix[8],this->matrix[10],this->matrix[4],this->matrix[6]),
+			_mm256_set_pd(this->matrix[14],this->matrix[12],this->matrix[14],this->matrix[8]),
+			_mm256_set_pd(this->matrix[6],this->matrix[2],this->matrix[2],this->matrix[2]),
+			_mm256_set_pd(this->matrix[9],this->matrix[8],this->matrix[5],this->matrix[4]),
+			_mm256_set_pd(this->matrix[12],this->matrix[13],this->matrix[12],this->matrix[9]),
+			_mm256_set_pd(this->matrix[4],*this->matrix,*this->matrix,*this->matrix),
+			_mm256_set_pd(this->matrix[9],this->matrix[10],this->matrix[5],this->matrix[6]),
+			_mm256_set_pd(this->matrix[14],this->matrix[13],this->matrix[14],this->matrix[9]),
+			_mm256_set_pd(this->matrix[5],this->matrix[1],this->matrix[1],this->matrix[1]),
+			_mm256_set_pd(this->matrix[10],this->matrix[8],this->matrix[6],this->matrix[4]),
+			_mm256_set_pd(this->matrix[12],this->matrix[14],this->matrix[12],this->matrix[10]),
+			_mm256_set_pd(this->matrix[6],this->matrix[2],this->matrix[2],this->matrix[2]),
+			_mm256_set_pd(this->matrix[8],this->matrix[9],this->matrix[4],this->matrix[5]),
+			_mm256_set_pd(this->matrix[13],this->matrix[12],this->matrix[13],this->matrix[8])
+		);
+		// Delta
+		__m256d m_delta = _mm256_mul_pd(_mm256_load_pd(this->matrix), _mm256_set_pd(inv_matrix[0], inv_matrix[4], inv_matrix[8], inv_matrix[12]));
+		double delta = *reinterpret_cast<double*>(&m_delta) + reinterpret_cast<double*>(&m_delta)[1] + reinterpret_cast<double*>(&m_delta)[2] + reinterpret_cast<double*>(&m_delta)[3];
+		if(delta != 0.0){
+			m_delta = _mm256_set1_pd(1 / delta);
+			for(double* matrix = this->matrix, *matrix_end = matrix + 16; matrix != matrix_end; matrix += 4, inv_matrix += 4)
+				_mm256_store_pd(
+					matrix,
+					_mm256_mul_pd(
+						_mm256_load_pd(inv_matrix),
+						m_delta
+					)
+				);
 #else
 #ifdef __SSE3__
 #define INVERT_CALC(TARGET, A1, A2, A3, A4, A5, A6, A7, A8, A9, B1, B2, B3, B4, B5, B6, B7, B8, B9) \
