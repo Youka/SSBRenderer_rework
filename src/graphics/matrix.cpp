@@ -22,13 +22,24 @@ Permission is granted to anyone to use this software for any purpose, including 
 #elif defined __SSE2__
 	#include <emmintrin.h>
 #endif
+#include <cmath>
 
 namespace GUtils{
 	Matrix4x4d::Matrix4x4d(){static const double identity_matrix[16] = {1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1}; std::copy(identity_matrix, identity_matrix+16, this->matrix);}
 	Matrix4x4d::Matrix4x4d(double* matrix){std::copy(matrix, matrix+16, this->matrix);}
+	Matrix4x4d::Matrix4x4d(double x11, double x12, double x13, double x14,
+				double x21, double x22, double x23, double x24,
+				double x31, double x32, double x33, double x34,
+				double x41, double x42, double x43, double x44){
+		this->matrix[0] = x11, this->matrix[1] = x12, this->matrix[2] = x13, this->matrix[3] = x14,
+		this->matrix[4] = x21, this->matrix[5] = x22, this->matrix[6] = x23, this->matrix[7] = x24,
+		this->matrix[8] = x31, this->matrix[9] = x32, this->matrix[10] = x33, this->matrix[11] = x34,
+		this->matrix[12] = x41, this->matrix[13] = x42, this->matrix[14] = x43, this->matrix[15] = x44;
+	}
 	Matrix4x4d::Matrix4x4d(const Matrix4x4d& other){Matrix4x4d(other.matrix);}
 	Matrix4x4d& Matrix4x4d::operator=(const Matrix4x4d& other){Matrix4x4d(other.matrix); return *this;}
 	double* Matrix4x4d::data() const{return this->matrix;}
+	double& Matrix4x4d::operator[](unsigned index) const{return this->matrix[index];}
 	Matrix4x4d& Matrix4x4d::multiply(const Matrix4x4d& other, Matrix4x4d::Order order){
 		double* matrix1, *matrix2;
 #ifdef __SSE2__
@@ -1079,5 +1090,65 @@ namespace GUtils{
 		}else
 			return false;
 
+	}
+	Matrix4x4d& Matrix4x4d::translate(double x, double y, double z, Matrix4x4d::Order order){
+		this->multiply(
+			Matrix4x4d(
+				1, 0, 0, x,
+				0, 1, 0, y,
+				0, 0, 1, z,
+				0, 0, 0, 1
+			),
+			order
+		);
+		return *this;
+	}
+	Matrix4x4d& Matrix4x4d::scale(double x, double y, double z, Matrix4x4d::Order order){
+		this->multiply(
+			Matrix4x4d(
+				x, 0, 0, 0,
+				0, y, 0, 0,
+				0, 0, z, 0,
+				0, 0, 0, 1
+			),
+			order
+		);
+		return *this;
+	}
+	Matrix4x4d& Matrix4x4d::rotate_x(double rad, Matrix4x4d::Order order){
+		this->multiply(
+			Matrix4x4d(
+				1, 0, 0, 0,
+				0, ::cos(rad), -::sin(rad), 0,
+				0, ::sin(rad), ::cos(rad), 0,
+				0, 0, 0, 1
+			),
+			order
+		);
+		return *this;
+	}
+	Matrix4x4d& Matrix4x4d::rotate_y(double rad, Matrix4x4d::Order order){
+		this->multiply(
+			Matrix4x4d(
+				::cos(rad), 0, ::sin(rad), 0,
+				0, 1, 0, 0,
+				-::sin(rad), 0, ::cos(rad), 0,
+				0, 0, 0, 1
+			),
+			order
+		);
+		return *this;
+	}
+	Matrix4x4d& Matrix4x4d::rotate_z(double rad, Matrix4x4d::Order order){
+		this->multiply(
+			Matrix4x4d(
+				::cos(rad), -::sin(rad), 0, 0,
+				::sin(rad), ::cos(rad), 0, 0,
+				0, 0, 1, 0,
+				0, 0, 0, 1
+			),
+			order
+		);
+		return *this;
 	}
 }

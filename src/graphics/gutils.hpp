@@ -26,13 +26,18 @@ namespace GUtils{
 			// Ctors, dtor & assignments (rule-of-five)
 			Matrix4x4d();
 			Matrix4x4d(double* matrix);
+			Matrix4x4d(double x11, double x12, double x13, double x14,
+				double x21, double x22, double x23, double x24,
+				double x31, double x32, double x33, double x34,
+				double x41, double x42, double x43, double x44);
 			Matrix4x4d(const Matrix4x4d& other);
 			Matrix4x4d& operator=(const Matrix4x4d& other);
 			Matrix4x4d(Matrix4x4d&& other) = delete;	// No movable resources
 			Matrix4x4d& operator=(Matrix4x4d&& other) = delete;
 			~Matrix4x4d() = default;
-			// Raw data getter
+			// Raw data access
 			double* data() const;
+			double& operator[](unsigned index) const;
 			// General transformations
 			enum class Order{PREPEND, APPEND};
 			Matrix4x4d& multiply(const Matrix4x4d& other, Order order = Order::PREPEND);
@@ -43,8 +48,10 @@ namespace GUtils{
 			Matrix4x4d& identity();
 			bool invert();
 			// Binary operations
-
-			// TODO
-
+			Matrix4x4d& translate(double x, double y, double z, Order order = Order::PREPEND);
+			Matrix4x4d& scale(double x, double y, double z, Order order = Order::PREPEND);
+			Matrix4x4d& rotate_x(double rad, Order order = Order::PREPEND);
+			Matrix4x4d& rotate_y(double rad, Order order = Order::PREPEND);
+			Matrix4x4d& rotate_z(double rad, Order order = Order::PREPEND);
 	};
 }
