@@ -13,6 +13,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 */
 
 #include <iostream>
+#include <stdexcept>
 #include "../SSBParser.hpp"
 
 int main(){
@@ -23,7 +24,7 @@ int main(){
 		parser.parse_line(data, line);
 		std::cout << "SUCCESS!!!" << std::endl;
 	}catch(std::string msg){
-		std::cout << "ERROR: " << msg << std::endl;
+		throw std::logic_error(msg);
 	}
 	return 0;
 }

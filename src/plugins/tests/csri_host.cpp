@@ -14,6 +14,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 
 #include "../interfaces/csri.h"
 #include <fstream>
+#include <stdexcept>
 #if _WIN32
 	#define WIN_LEAN_AND_MEAN
 	#include <windows.h>
@@ -53,7 +54,7 @@ int main(){
 	void* (*csri_open_mem)(void*, const void*, size_t, struct csri_openflag*);
 	void* (*csri_open_file)(void*, const char*, struct csri_openflag*);
 	if(!(dll_handle = DLL_OPEN("libssbplugins_invert")))
-		return 1;
+		throw std::domain_error("Couldn't load plugin DLL.");
 	if(!(
 		ASSIGN_FUNC(dll_handle, csri_renderer_next) &&
 		ASSIGN_FUNC(dll_handle, csri_renderer_default) &&
@@ -67,7 +68,7 @@ int main(){
 		ASSIGN_FUNC(dll_handle, csri_open_file)
 	)){
 		DLL_CLOSE(dll_handle);
-		return 2;
+		throw std::domain_error("Couldn't load DLL function.");
 	}
 	// Generate PPM image data
 	const unsigned width = 800, height = 450;	/* Caution!!! Too big image could exceed stack memory. */
@@ -86,18 +87,18 @@ int main(){
 	// Write original image
 	if(!write_ppm("test.ppm", width, height, data, sizeof(data))){
 		DLL_CLOSE(dll_handle);
-		return 3;
+		throw std::domain_error("Couldn't write original image.");
 	}
 	// Filter image with dummy renderer
 	void* rinst;
 	if(!(rinst = csri_open_mem(nullptr, "test", 4, nullptr))){
 		DLL_CLOSE(dll_handle);
-		return 4;
+		throw std::bad_alloc();
 	}
         const struct csri_fmt fmt = {CSRI_F_BGR, width, height};
 	if(csri_request_fmt(rinst, &fmt)){
 		DLL_CLOSE(dll_handle);
-		return 5;
+		throw std::invalid_argument ("Couldn't set format to CSRI instance.");
 	}
 	struct csri_frame frame = {CSRI_F_BGR, {data}, {width*3}};
 	csri_render(rinst, &frame, 0.0);
@@ -105,7 +106,7 @@ int main(){
 	// Write filtered image
 	if(!write_ppm("test_filtered.ppm", width, height, data, sizeof(data))){
 		DLL_CLOSE(dll_handle);
-		return 6;
+		throw std::domain_error("Couldn't write filtered image.");
 	}
 	// Unload plugin
 	DLL_CLOSE(dll_handle);

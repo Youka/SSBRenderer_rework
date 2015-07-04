@@ -24,5 +24,5 @@ if(${TEST_PARSER})
 	# Create simple test
 	add_executable(ssbparser_simple tests/simple.cpp)
 	target_link_libraries(ssbparser_simple ssbparser)
-	add_test(ssbparser_simple_test ssbparser_simple "#META" "Width: 100")
+	add_test(ssbparser_simple_test ssbparser_simple "#FRAME" "Width: 100")
 endif()

@@ -15,6 +15,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 #include <iostream>
 #include <sstream>
 #include <algorithm>
+#include <stdexcept>
 #include "../SSBParser.hpp"
 
 int main(int argc, char** argv){
@@ -32,7 +33,7 @@ int main(int argc, char** argv){
 		std::cout << "\n\n#EVENTS";
 		std::for_each(data.events.begin(), data.events.end(), [](SSB::Event& event){std::cout << "\n" << event.start_ms << " - " << event.end_ms << " | " << event.objects.size() << " objects " << (event.static_tags ? "(static)" : "(dynamic)");});
 	}catch(std::string msg){
-		std::cout << "ERROR: " << msg << std::endl;
+		throw std::logic_error(msg);
 	}
 	return 0;
 }
