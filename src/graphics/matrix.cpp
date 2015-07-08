@@ -25,8 +25,8 @@ Permission is granted to anyone to use this software for any purpose, including 
 #include <cmath>
 
 namespace GUtils{
-	Matrix4x4d::Matrix4x4d(){static const double identity_matrix[16] = {1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1}; std::copy(identity_matrix, identity_matrix+16, this->matrix);}
-	Matrix4x4d::Matrix4x4d(double* matrix){std::copy(matrix, matrix+16, this->matrix);}
+	Matrix4x4d::Matrix4x4d(){this->identity();}
+	Matrix4x4d::Matrix4x4d(const double* matrix){std::copy(matrix, matrix+16, this->matrix);}
 	Matrix4x4d::Matrix4x4d(double x11, double x12, double x13, double x14,
 				double x21, double x22, double x23, double x24,
 				double x31, double x32, double x33, double x34,
@@ -426,7 +426,11 @@ namespace GUtils{
 #endif
 		return vec;
 	}
-	Matrix4x4d& Matrix4x4d::identity(){Matrix4x4d(); return *this;}
+	Matrix4x4d& Matrix4x4d::identity(){
+		static const double identity_matrix[16] = {1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1};
+		std::copy(identity_matrix, identity_matrix+16, this->matrix);
+		return *this;
+	}
 	bool Matrix4x4d::invert(){
 #ifdef __SSE2__
 		decltype(this->storage) inv_matrix_storage;

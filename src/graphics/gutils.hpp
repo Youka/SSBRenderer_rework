@@ -20,12 +20,22 @@ namespace GUtils{
 	class Matrix4x4d{
 		private:
 			// Raw matrix data
-			std::aligned_storage<sizeof(double)<<4, 16>::type storage;	// MSVC doesn't support keyword 'alignas'
-			double* matrix = reinterpret_cast<decltype(this->matrix)>(&this->storage);
+#ifdef __SSE2__
+			std::aligned_storage<sizeof(double)<<4,
+#ifdef __AVX__
+				sizeof(double)<<2
+#else
+				sizeof(float)<<2
+#endif
+			>::type storage;	// MSVC doesn't support keyword 'alignas'
+#else
+			double storage[16];
+#endif
+			double* const matrix = reinterpret_cast<decltype(this->matrix)>(&this->storage);
 		public:
 			// Ctors, dtor & assignments (rule-of-five)
 			Matrix4x4d();
-			Matrix4x4d(double* matrix);
+			Matrix4x4d(const double* matrix);
 			Matrix4x4d(double x11, double x12, double x13, double x14,
 				double x21, double x22, double x23, double x24,
 				double x31, double x32, double x33, double x34,
