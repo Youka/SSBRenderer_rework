@@ -36,8 +36,8 @@ namespace GUtils{
 		this->matrix[8] = x31, this->matrix[9] = x32, this->matrix[10] = x33, this->matrix[11] = x34,
 		this->matrix[12] = x41, this->matrix[13] = x42, this->matrix[14] = x43, this->matrix[15] = x44;
 	}
-	Matrix4x4d::Matrix4x4d(const Matrix4x4d& other){Matrix4x4d(other.matrix);}
-	Matrix4x4d& Matrix4x4d::operator=(const Matrix4x4d& other){Matrix4x4d(other.matrix); return *this;}
+	Matrix4x4d::Matrix4x4d(const Matrix4x4d& other) : Matrix4x4d(other.matrix){}
+	Matrix4x4d& Matrix4x4d::operator=(const Matrix4x4d& other){std::copy(other.matrix, other.matrix+16, this->matrix); return *this;}
 	double* Matrix4x4d::data() const{return this->matrix;}
 	double& Matrix4x4d::operator[](unsigned index) const{return this->matrix[index];}
 	Matrix4x4d& Matrix4x4d::multiply(const Matrix4x4d& other, Matrix4x4d::Order order){
@@ -1092,7 +1092,7 @@ namespace GUtils{
 
 	}
 	Matrix4x4d& Matrix4x4d::translate(double x, double y, double z, Matrix4x4d::Order order){
-		this->multiply(
+		return this->multiply(
 			Matrix4x4d(
 				1, 0, 0, x,
 				0, 1, 0, y,
@@ -1101,10 +1101,9 @@ namespace GUtils{
 			),
 			order
 		);
-		return *this;
 	}
 	Matrix4x4d& Matrix4x4d::scale(double x, double y, double z, Matrix4x4d::Order order){
-		this->multiply(
+		return this->multiply(
 			Matrix4x4d(
 				x, 0, 0, 0,
 				0, y, 0, 0,
@@ -1113,10 +1112,9 @@ namespace GUtils{
 			),
 			order
 		);
-		return *this;
 	}
 	Matrix4x4d& Matrix4x4d::rotate_x(double rad, Matrix4x4d::Order order){
-		this->multiply(
+		return this->multiply(
 			Matrix4x4d(
 				1, 0, 0, 0,
 				0, ::cos(rad), -::sin(rad), 0,
@@ -1125,10 +1123,9 @@ namespace GUtils{
 			),
 			order
 		);
-		return *this;
 	}
 	Matrix4x4d& Matrix4x4d::rotate_y(double rad, Matrix4x4d::Order order){
-		this->multiply(
+		return this->multiply(
 			Matrix4x4d(
 				::cos(rad), 0, ::sin(rad), 0,
 				0, 1, 0, 0,
@@ -1137,10 +1134,9 @@ namespace GUtils{
 			),
 			order
 		);
-		return *this;
 	}
 	Matrix4x4d& Matrix4x4d::rotate_z(double rad, Matrix4x4d::Order order){
-		this->multiply(
+		return this->multiply(
 			Matrix4x4d(
 				::cos(rad), -::sin(rad), 0, 0,
 				::sin(rad), ::cos(rad), 0, 0,
@@ -1149,6 +1145,5 @@ namespace GUtils{
 			),
 			order
 		);
-		return *this;
 	}
 }
