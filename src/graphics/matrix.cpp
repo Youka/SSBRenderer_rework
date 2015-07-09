@@ -632,48 +632,48 @@ namespace GUtils{
 		// 11/12
 		INVERT_CALC(inv_matrix,
 			// A
-			_mm_load_pd(this->matrix+5),
+			_mm_loadu_pd(this->matrix+5),
 			_mm_load_pd(this->matrix+10),
 			_mm_set_pd(this->matrix[15],this->matrix[13]),
-			_mm_load_pd(this->matrix+5),
+			_mm_loadu_pd(this->matrix+5),
 			_mm_set_pd(this->matrix[11],this->matrix[9]),
 			_mm_load_pd(this->matrix+14),
 			_mm_load1_pd(this->matrix+7),
-			_mm_load_pd(this->matrix+9),
-			_mm_loadr_pd(this->matrix+13),
+			_mm_loadu_pd(this->matrix+9),
+			_mm_set_pd(this->matrix[14], this->matrix[13]),
 			// B
-			_mm_load_pd(this->matrix+1),
+			_mm_loadu_pd(this->matrix+1),
 			_mm_set_pd(this->matrix[11],this->matrix[9]),
 			_mm_load_pd(this->matrix+14),
-			_mm_load_pd(this->matrix+1),
+			_mm_loadu_pd(this->matrix+1),
 			_mm_load_pd(this->matrix+10),
 			_mm_set_pd(this->matrix[15],this->matrix[13]),
 			_mm_load1_pd(this->matrix+3),
-			_mm_loadr_pd(this->matrix+9),
-			_mm_load_pd(this->matrix+13)
+			_mm_set_pd(this->matrix[10], this->matrix[9]),
+			_mm_loadu_pd(this->matrix+13)
 		);
 		// 13/14
 		INVERT_CALC(inv_matrix+2,
 			// A
-			_mm_load_pd(this->matrix+1),
+			_mm_loadu_pd(this->matrix+1),
 			_mm_load_pd(this->matrix+6),
 			_mm_set_pd(this->matrix[15],this->matrix[13]),
-			_mm_load_pd(this->matrix+1),
+			_mm_loadu_pd(this->matrix+1),
 			_mm_set_pd(this->matrix[7],this->matrix[5]),
 			_mm_load_pd(this->matrix+14),
 			_mm_load1_pd(this->matrix+3),
-			_mm_load_pd(this->matrix+5),
-			_mm_loadr_pd(this->matrix+13),
+			_mm_loadu_pd(this->matrix+5),
+			_mm_set_pd(this->matrix[14], this->matrix[13]),
 			// B
-			_mm_load_pd(this->matrix+1),
+			_mm_loadu_pd(this->matrix+1),
 			_mm_set_pd(this->matrix[7],this->matrix[5]),
 			_mm_load_pd(this->matrix+10),
-			_mm_load_pd(this->matrix+1),
+			_mm_loadu_pd(this->matrix+1),
 			_mm_load_pd(this->matrix+6),
 			_mm_set_pd(this->matrix[11],this->matrix[9]),
 			_mm_load1_pd(this->matrix+3),
-			_mm_loadr_pd(this->matrix+5),
-			_mm_load_pd(this->matrix+9)
+			_mm_set_pd(this->matrix[6], this->matrix[5]),
+			_mm_loadu_pd(this->matrix+9)
 		);
 		// 21/22
 		INVERT_CALC(inv_matrix+4,
@@ -772,20 +772,20 @@ namespace GUtils{
 			// A
 			_mm_load_pd(this->matrix+4),
 			_mm_set_pd(this->matrix[10],this->matrix[8]),
-			_mm_load_pd(this->matrix+13),
+			_mm_loadu_pd(this->matrix+13),
 			_mm_load_pd(this->matrix+4),
-			_mm_load_pd(this->matrix+9),
+			_mm_loadu_pd(this->matrix+9),
 			_mm_set_pd(this->matrix[14],this->matrix[12]),
 			_mm_load1_pd(this->matrix+6),
 			_mm_loadr_pd(this->matrix+8),
 			_mm_load_pd(this->matrix+12),
 			// B
 			_mm_load_pd(this->matrix),
-			_mm_load_pd(this->matrix+9),
+			_mm_loadu_pd(this->matrix+9),
 			_mm_set_pd(this->matrix[14],this->matrix[12]),
 			_mm_load_pd(this->matrix),
 			_mm_set_pd(this->matrix[10],this->matrix[8]),
-			_mm_load_pd(this->matrix+13),
+			_mm_loadu_pd(this->matrix+13),
 			_mm_load1_pd(this->matrix+2),
 			_mm_load_pd(this->matrix+8),
 			_mm_loadr_pd(this->matrix+12)
@@ -795,20 +795,20 @@ namespace GUtils{
 			// A
 			_mm_load_pd(this->matrix),
 			_mm_set_pd(this->matrix[6],this->matrix[4]),
-			_mm_load_pd(this->matrix+13),
+			_mm_loadu_pd(this->matrix+13),
 			_mm_load_pd(this->matrix),
-			_mm_load_pd(this->matrix+5),
+			_mm_loadu_pd(this->matrix+5),
 			_mm_set_pd(this->matrix[14],this->matrix[12]),
 			_mm_load1_pd(this->matrix+2),
 			_mm_loadr_pd(this->matrix+4),
 			_mm_load_pd(this->matrix+12),
 			// B
 			_mm_load_pd(this->matrix),
-			_mm_load_pd(this->matrix+5),
+			_mm_loadu_pd(this->matrix+5),
 			_mm_set_pd(this->matrix[10],this->matrix[8]),
 			_mm_load_pd(this->matrix),
 			_mm_set_pd(this->matrix[6],this->matrix[4]),
-			_mm_load_pd(this->matrix+9),
+			_mm_loadu_pd(this->matrix+9),
 			_mm_load1_pd(this->matrix+2),
 			_mm_load_pd(this->matrix+4),
 			_mm_loadr_pd(this->matrix+8)
@@ -879,8 +879,8 @@ namespace GUtils{
 			_mm_set_pd(this->matrix[11], this->matrix[9]),
 			_mm_set_pd(this->matrix[13], this->matrix[15]),
 			_mm_set_pd(this->matrix[7], this->matrix[3]),
-			_mm_load_pd(this->matrix+9),
-			_mm_loadr_pd(this->matrix+13),
+			_mm_loadu_pd(this->matrix+9),
+			_mm_set_pd(this->matrix[14], this->matrix[13]),
 			_mm_set_pd(this->matrix[5], this->matrix[1]),
 			_mm_loadr_pd(this->matrix+10),
 			_mm_load_pd(this->matrix+14),
@@ -888,8 +888,8 @@ namespace GUtils{
 			_mm_set_pd(this->matrix[9], this->matrix[11]),
 			_mm_set_pd(this->matrix[15], this->matrix[13]),
 			_mm_set_pd(this->matrix[7], this->matrix[3]),
-			_mm_loadr_pd(this->matrix+9),
-			_mm_load_pd(this->matrix+13)
+			_mm_set_pd(this->matrix[10], this->matrix[9]),
+			_mm_loadu_pd(this->matrix+13)
 		);
 		// 13/14
 		INVERT_CALC(inv_matrix+2,
@@ -900,7 +900,7 @@ namespace GUtils{
 			_mm_set_pd(this->matrix[7], this->matrix[5]),
                         _mm_set_pd(this->matrix[13], this->matrix[11]),
 			_mm_load1_pd(this->matrix+3),
-                        _mm_load_pd(this->matrix+5),
+                        _mm_loadu_pd(this->matrix+5),
 			_mm_set_pd(this->matrix[14], this->matrix[9]),
                         _mm_load1_pd(this->matrix+1),
                         _mm_loadr_pd(this->matrix+6),
@@ -909,7 +909,7 @@ namespace GUtils{
 			_mm_set_pd(this->matrix[5], this->matrix[7]),
 			_mm_set_pd(this->matrix[15], this->matrix[9]),
 			_mm_load1_pd(this->matrix+3),
-			_mm_loadr_pd(this->matrix+5),
+			_mm_set_pd(this->matrix[6], this->matrix[5]),
 			_mm_set_pd(this->matrix[13], this->matrix[10])
 		);
 		// 21/22
@@ -949,7 +949,7 @@ namespace GUtils{
 			_mm_set_pd(this->matrix[15], this->matrix[10]),
 			_mm_load1_pd(this->matrix+2),
 			_mm_set_pd(this->matrix[7], this->matrix[4]),
-                        _mm_loadr_pd(this->matrix+11),
+                        _mm_set_pd(this->matrix[12], this->matrix[11]),
                         _mm_load1_pd(this->matrix+3),
 			_mm_set_pd(this->matrix[4], this->matrix[6]),
 			_mm_set_pd(this->matrix[14], this->matrix[8])
@@ -982,7 +982,7 @@ namespace GUtils{
 			_mm_set_pd(this->matrix[15], this->matrix[9]),
 			_mm_load1_pd(this->matrix+1),
 			_mm_set_pd(this->matrix[7], this->matrix[4]),
-			_mm_loadr_pd(this->matrix+11),
+			_mm_set_pd(this->matrix[12], this->matrix[11]),
 			_mm_load1_pd(this->matrix+3),
 			_mm_load_pd(this->matrix+4),
 			_mm_set_pd(this->matrix[13], this->matrix[8]),
@@ -999,8 +999,8 @@ namespace GUtils{
 		// 41/42
 		INVERT_CALC(inv_matrix+12,
 			_mm_set_pd(this->matrix[4], *this->matrix),
-			_mm_loadr_pd(this->matrix+9),
-                        _mm_load_pd(this->matrix+13),
+			_mm_set_pd(this->matrix[10], this->matrix[9]),
+                        _mm_loadu_pd(this->matrix+13),
 			_mm_set_pd(this->matrix[5], this->matrix[1]),
 			_mm_set_pd(this->matrix[8], this->matrix[10]),
 			_mm_set_pd(this->matrix[14], this->matrix[12]),
@@ -1008,8 +1008,8 @@ namespace GUtils{
 			_mm_loadr_pd(this->matrix+8),
 			_mm_load_pd(this->matrix+12),
 			_mm_set_pd(this->matrix[4], *this->matrix),
-                        _mm_load_pd(this->matrix+9),
-			_mm_loadr_pd(this->matrix+13),
+                        _mm_loadu_pd(this->matrix+9),
+			_mm_set_pd(this->matrix[14], this->matrix[13]),
 			_mm_set_pd(this->matrix[5], this->matrix[1]),
 			_mm_set_pd(this->matrix[10], this->matrix[8]),
 			_mm_set_pd(this->matrix[12], this->matrix[14]),
@@ -1020,7 +1020,7 @@ namespace GUtils{
 		// 43/44
 		INVERT_CALC(inv_matrix+14,
 			_mm_load1_pd(this->matrix),
-			_mm_loadr_pd(this->matrix+5),
+			_mm_set_pd(this->matrix[6], this->matrix[5]),
 			_mm_set_pd(this->matrix[13], this->matrix[10]),
 			_mm_load1_pd(this->matrix+1),
 			_mm_set_pd(this->matrix[4], this->matrix[6]),
@@ -1029,7 +1029,7 @@ namespace GUtils{
 			_mm_loadr_pd(this->matrix+4),
 			_mm_set_pd(this->matrix[12], this->matrix[9]),
 			_mm_load1_pd(this->matrix),
-			_mm_load_pd(this->matrix+5),
+			_mm_loadu_pd(this->matrix+5),
 			_mm_set_pd(this->matrix[14], this->matrix[9]),
 			_mm_load1_pd(this->matrix+1),
 			_mm_set_pd(this->matrix[6], this->matrix[4]),
