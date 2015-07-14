@@ -9,7 +9,7 @@ configure_file(
 )
 
 # Plan static library compiling
-file(GLOB PARSER_SOURCES *.cpp)
+file(GLOB PARSER_SOURCES *.cpp *.hpp)
 add_library(ssbparser STATIC ${PARSER_SOURCES})
 
 # Add library include directories

@@ -8,7 +8,7 @@ if(MSVC)
 endif()
 
 # Plan static library compiling
-set(PLUGINS_SOURCES csri.cpp vapoursynth.cpp)
+set(PLUGINS_SOURCES FilterBase.hpp csri.cpp vapoursynth.cpp)
 if(WIN32)
 	set(PLUGINS_SOURCES ${PLUGINS_SOURCES} avisynth.cpp virtualdub.cpp)
 endif()
