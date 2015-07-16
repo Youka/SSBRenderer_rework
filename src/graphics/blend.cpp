@@ -23,15 +23,15 @@ Permission is granted to anyone to use this software for any purpose, including 
 #endif
 
 namespace GUtils{
-	bool blend_rgba_rgba(const unsigned char* src_data, unsigned src_width, unsigned src_height, const unsigned src_stride,
-		unsigned char* dst_data, const unsigned dst_width, const unsigned dst_height, const unsigned dst_stride,
+	bool blend(const unsigned char* src_data, unsigned src_width, unsigned src_height, const unsigned src_stride, const bool src_with_alpha,
+		unsigned char* dst_data, const unsigned dst_width, const unsigned dst_height, const unsigned dst_stride, const bool dst_with_alpha,
 		const int dst_x, const int dst_y, const BlendOp op){
 		// Anything to overlay?
 		if(dst_x >= static_cast<int>(dst_width) || dst_y >= static_cast<int>(dst_height) || dst_x+src_width <= 0 || dst_y+src_height <= 0)
 			return false;
 		// Update source to overlay rectangle
 		if(dst_x < 0)
-			src_data += -dst_x << 2,
+			src_data += src_with_alpha ? -dst_x << 2 : (-dst_x << 1) - dst_x,
 			src_width += dst_x;
 		if(dst_y < 0)
 			src_data += -dst_y * src_stride,
@@ -42,24 +42,59 @@ namespace GUtils{
 			src_height = dst_height - dst_y;
 		// Update destination origin for source overlay
 		if(dst_x > 0)
-			dst_data += dst_x << 2;
+			dst_data += dst_with_alpha ? dst_x << 2 : (dst_x << 1) + dst_x;
 		if(dst_y > 0)
 			dst_data += dst_y * dst_stride;
 		// Data iteration stop pointers
 		const unsigned char* src_row_end;
 		const unsigned char* const src_data_end = src_data + src_height * src_stride;
 		// Offset after row
-		const unsigned src_offset = src_stride - (src_width << 2),
-			dst_offset = dst_stride - (src_width << 2);
+		const unsigned src_offset = src_stride - (src_with_alpha ? src_width << 2 : (src_width << 1) + src_width),
+			dst_offset = dst_stride - (dst_with_alpha ? src_width << 2 : (src_width << 1) + src_width);
 		// Blend by operation
 		switch(op){
 			case BlendOp::SOURCE:
-				while(src_data < src_data_end)
-					std::copy(src_data, src_data+(src_width << 2), dst_data),
-					src_data += src_stride,
-					dst_data += dst_stride;
+				if(src_with_alpha && dst_with_alpha)
+					while(src_data < src_data_end)
+						std::copy(src_data, src_data + (src_width << 2), dst_data),
+						src_data += src_stride,
+						dst_data += dst_stride;
+				else if(!src_with_alpha && !dst_with_alpha)
+					while(src_data < src_data_end)
+						std::copy(src_data, src_data + (src_width << 1) + src_width, dst_data),
+						src_data += src_stride,
+						dst_data += dst_stride;
+				else if(src_with_alpha && !dst_with_alpha)
+					while(src_data < src_data_end){
+						src_row_end = src_data + (src_width << 2);
+						while(src_data < src_row_end)
+							*reinterpret_cast<unsigned short*>(dst_data) = *reinterpret_cast<const unsigned short*>(src_data),
+							src_data += 2,
+							dst_data += 2,
+							*dst_data++ = *src_data,
+							src_data += 2;
+						src_data += src_offset,
+						dst_data += dst_offset;
+					}
+				else
+					while(src_data < src_data_end){
+						src_row_end = src_data + (src_width << 1) + src_width;
+						while(src_data < src_row_end)
+							*reinterpret_cast<unsigned short*>(dst_data) = *reinterpret_cast<const unsigned short*>(src_data),
+							src_data += 2,
+							dst_data += 2,
+							*dst_data++ = *src_data++,
+							*dst_data++ = 255;
+						src_data += src_offset,
+						dst_data += dst_offset;
+					}
 				break;
 			case BlendOp::OVER:
+
+
+				// TODO: change following instructions for both color formats
+
+
 #ifdef __SSE2__
 #define OVER_CALC16 \
 	if(src_data[3] == 255 && src_data[7] == 255 && src_data[11] == 255 && src_data[15] == 255) \

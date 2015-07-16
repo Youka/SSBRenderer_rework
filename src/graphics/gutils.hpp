@@ -66,7 +66,7 @@ namespace GUtils{
 	};
 
 	enum class BlendOp{SOURCE, OVER, ADD, SUB, MUL, SCR, DIFF};
-	bool blend_rgba_rgba(const unsigned char* src_data, unsigned src_width, unsigned src_height, const unsigned src_stride,
-		unsigned char* dst_data, const unsigned dst_width, const unsigned dst_height, const unsigned dst_stride,
+	bool blend(const unsigned char* src_data, unsigned src_width, unsigned src_height, const unsigned src_stride, const bool src_with_alpha,
+		unsigned char* dst_data, const unsigned dst_width, const unsigned dst_height, const unsigned dst_stride, const bool dst_with_alpha,
 		const int dst_x, const int dst_y, const BlendOp op);
 }
