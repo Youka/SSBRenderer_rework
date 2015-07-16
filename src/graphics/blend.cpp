@@ -15,11 +15,21 @@ Permission is granted to anyone to use this software for any purpose, including 
 #include "gutils.hpp"
 #include <algorithm>
 #include <cstdint>
+#ifdef __SSE2__
 #ifdef __SSE3__
 	#include <pmmintrin.h>
 	#define _mm_loadu_si128 _mm_lddqu_si128
-#elif defined __SSE2__
+#else
 	#include <emmintrin.h>
+#endif
+	#define MMX_LOAD_U8_16(x) _mm_unpacklo_pi8(_m_from_int(*reinterpret_cast<const int*>(x)), _mm_setzero_si64())
+	#define MMX_STORE_16_U8(mem, x) (*reinterpret_cast<int*>(mem) = _m_to_int(_m_packuswb(x, _mm_setzero_si64())))
+	#define MMX_DIV255_U16(x) _mm_srli_pi16(_mm_mulhi_pu16(x, _mm_set1_pi16(static_cast<short>(0x8081))), 7)
+	#define SSE2_LOAD_U8_16(x) _mm_unpacklo_epi8(_mm_loadl_epi64(reinterpret_cast<const __m128i*>(x)), _mm_setzero_si128())
+	#define SSE2_STORE_16_U8(mem, x) _mm_storel_epi64(reinterpret_cast<__m128i*>(mem), _mm_packus_epi16(x, _mm_setzero_si128()))
+	#define SSE2_STORE_2X16_U8(mem, x1, x2) _mm_storeu_si128(reinterpret_cast<__m128i*>(mem), _mm_packus_epi16(x1, x2))
+	#define SSE2_SET2_U16(x2, x1) _mm_shufflehi_epi16(_mm_shufflelo_epi16(_mm_set_epi32(0, x2, 0, x1), 0x0), 0x0)
+	#define SSE2_DIV255_U16(x) _mm_srli_epi16(_mm_mulhi_epu16(x, _mm_set1_epi16(static_cast<short>(0x8081))), 7)
 #endif
 
 namespace GUtils{
@@ -68,7 +78,7 @@ namespace GUtils{
 					while(src_data != src_data_end){
 						src_row_end = src_data + (src_width << 2);
 						while(src_data != src_row_end)
-							*reinterpret_cast<unsigned short*>(dst_data) = *reinterpret_cast<const unsigned short*>(src_data),
+							*reinterpret_cast<int16_t*>(dst_data) = *reinterpret_cast<const int16_t*>(src_data),
 							src_data += 2,
 							dst_data += 2,
 							*dst_data++ = *src_data,
@@ -80,7 +90,7 @@ namespace GUtils{
 					while(src_data != src_data_end){
 						src_row_end = src_data + (src_width << 1) + src_width;
 						while(src_data != src_row_end)
-							*reinterpret_cast<unsigned short*>(dst_data) = *reinterpret_cast<const unsigned short*>(src_data),
+							*reinterpret_cast<int16_t*>(dst_data) = *reinterpret_cast<const int16_t*>(src_data),
 							src_data += 2,
 							dst_data += 2,
 							*dst_data++ = *src_data++,
@@ -102,33 +112,23 @@ namespace GUtils{
 	else if(src_data[3] > 0 || src_data[7] > 0 || src_data[11] > 0 || src_data[15] > 0){ \
 		__m128i a = _mm_loadu_si128(reinterpret_cast<const __m128i*>(src_data)), \
 			b = _mm_loadu_si128(reinterpret_cast<const __m128i*>(dst_data)); \
-		_mm_storeu_si128( \
-			reinterpret_cast<__m128i*>(dst_data), \
-			_mm_packus_epi16( \
-				_mm_add_epi16( \
-					_mm_unpacklo_epi8(a, _mm_setzero_si128()), \
-					_mm_srli_epi16( \
-						_mm_mulhi_epu16( \
-							_mm_mullo_epi16( \
-								_mm_unpacklo_epi8(b, _mm_setzero_si128()), \
-								_mm_shufflehi_epi16(_mm_shufflelo_epi16(_mm_set_epi32(0, src_data[7] ^ 0xFF, 0, src_data[3] ^ 0xFF), 0x0), 0x0) \
-							), \
-							_mm_set1_epi16(static_cast<short>(0x8081)) \
-						), \
-						7 \
+		SSE2_STORE_2X16_U8( \
+			dst_data, \
+			_mm_add_epi16( \
+				_mm_unpacklo_epi8(a, _mm_setzero_si128()), \
+				SSE2_DIV255_U16( \
+					_mm_mullo_epi16( \
+						_mm_unpacklo_epi8(b, _mm_setzero_si128()), \
+						SSE2_SET2_U16(src_data[7] ^ 0xFF, src_data[3] ^ 0xFF) \
 					) \
-				), \
-				_mm_add_epi16( \
-					_mm_unpackhi_epi8(a, _mm_setzero_si128()), \
-					_mm_srli_epi16( \
-						_mm_mulhi_epu16( \
-							_mm_mullo_epi16( \
-								_mm_unpackhi_epi8(b, _mm_setzero_si128()), \
-								_mm_shufflehi_epi16(_mm_shufflelo_epi16(_mm_set_epi32(0, src_data[15] ^ 0xFF, 0, src_data[11] ^ 0xFF), 0x0), 0x0) \
-							), \
-							_mm_set1_epi16(static_cast<short>(0x8081)) \
-						), \
-						7 \
+				) \
+			), \
+			_mm_add_epi16( \
+				_mm_unpackhi_epi8(a, _mm_setzero_si128()), \
+				SSE2_DIV255_U16( \
+					_mm_mullo_epi16( \
+						_mm_unpackhi_epi8(b, _mm_setzero_si128()), \
+						SSE2_SET2_U16(src_data[15] ^ 0xFF, src_data[11] ^ 0xFF) \
 					) \
 				) \
 			) \
@@ -138,45 +138,32 @@ namespace GUtils{
 	if(src_data[3] == 255 && src_data[7] == 255) \
 		*reinterpret_cast<int64_t*>(dst_data) = *reinterpret_cast<const int64_t*>(src_data); \
 	else if(src_data[3] > 0 || src_data[7] > 0) \
-		_mm_storel_epi64( \
-			reinterpret_cast<__m128i*>(dst_data), \
-			_mm_packus_epi16( \
-				_mm_add_epi16( \
-					_mm_unpacklo_epi8(_mm_loadl_epi64(reinterpret_cast<const __m128i*>(src_data)), _mm_setzero_si128()), \
-					_mm_srli_epi16( \
-						_mm_mulhi_epu16( \
-							_mm_mullo_epi16( \
-								_mm_unpacklo_epi8(_mm_loadl_epi64(reinterpret_cast<const __m128i*>(dst_data)), _mm_setzero_si128()), \
-								_mm_shufflehi_epi16(_mm_shufflelo_epi16(_mm_set_epi32(0, src_data[7] ^ 0xFF, 0, src_data[3] ^ 0xFF), 0x0), 0x0) \
-							), \
-							_mm_set1_epi16(static_cast<short>(0x8081)) \
-						), \
-						7 \
+		SSE2_STORE_16_U8( \
+			dst_data, \
+			_mm_add_epi16( \
+				SSE2_LOAD_U8_16(src_data), \
+				SSE2_DIV255_U16( \
+					_mm_mullo_epi16( \
+						SSE2_LOAD_U8_16(dst_data), \
+						SSE2_SET2_U16(src_data[7] ^ 0xFF, src_data[3] ^ 0xFF) \
 					) \
-				), \
-				_mm_setzero_si128() \
+				) \
 			) \
 		);
 #define OVER_CALC4 \
 	if(src_data[3] == 255) \
 		*reinterpret_cast<int32_t*>(dst_data) = *reinterpret_cast<const int32_t*>(src_data); \
 	else if(src_data[3] > 0) \
-		*reinterpret_cast<int*>(dst_data) = _m_to_int( \
-			_m_packuswb( \
-				_mm_add_pi16( \
-					_mm_unpacklo_pi8(_m_from_int(*reinterpret_cast<const int*>(src_data)), _mm_setzero_si64()), \
-					_mm_srli_pi16( \
-						_mm_mulhi_pu16( \
-							_mm_mullo_pi16( \
-								_mm_unpacklo_pi8(_m_from_int(*reinterpret_cast<const int*>(dst_data)), _mm_setzero_si64()), \
-								_mm_set1_pi16(src_data[3] ^ 0xFF) \
-							), \
-							_mm_set1_pi16(static_cast<short>(0x8081)) \
-						), \
-						7 \
+		MMX_STORE_16_U8( \
+			dst_data, \
+			_mm_add_pi16( \
+				MMX_LOAD_U8_16(src_data), \
+				MMX_DIV255_U16( \
+					_mm_mullo_pi16( \
+						MMX_LOAD_U8_16(dst_data), \
+						_mm_set1_pi16(src_data[3] ^ 0xFF) \
 					) \
-				), \
-				_mm_setzero_si64() \
+				) \
 			) \
 		);
 				switch(src_width & 0x3){
