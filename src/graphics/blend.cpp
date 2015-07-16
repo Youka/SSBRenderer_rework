@@ -55,19 +55,19 @@ namespace GUtils{
 		switch(op){
 			case BlendOp::SOURCE:
 				if(src_with_alpha && dst_with_alpha)
-					while(src_data < src_data_end)
+					while(src_data != src_data_end)
 						std::copy(src_data, src_data + (src_width << 2), dst_data),
 						src_data += src_stride,
 						dst_data += dst_stride;
 				else if(!src_with_alpha && !dst_with_alpha)
-					while(src_data < src_data_end)
+					while(src_data != src_data_end)
 						std::copy(src_data, src_data + (src_width << 1) + src_width, dst_data),
 						src_data += src_stride,
 						dst_data += dst_stride;
 				else if(src_with_alpha && !dst_with_alpha)
-					while(src_data < src_data_end){
+					while(src_data != src_data_end){
 						src_row_end = src_data + (src_width << 2);
-						while(src_data < src_row_end)
+						while(src_data != src_row_end)
 							*reinterpret_cast<unsigned short*>(dst_data) = *reinterpret_cast<const unsigned short*>(src_data),
 							src_data += 2,
 							dst_data += 2,
@@ -77,9 +77,9 @@ namespace GUtils{
 						dst_data += dst_offset;
 					}
 				else
-					while(src_data < src_data_end){
+					while(src_data != src_data_end){
 						src_row_end = src_data + (src_width << 1) + src_width;
-						while(src_data < src_row_end)
+						while(src_data != src_row_end)
 							*reinterpret_cast<unsigned short*>(dst_data) = *reinterpret_cast<const unsigned short*>(src_data),
 							src_data += 2,
 							dst_data += 2,
@@ -181,9 +181,9 @@ namespace GUtils{
 		);
 				switch(src_width & 0x3){
 					case 0x0:
-						while(src_data < src_data_end){
+						while(src_data != src_data_end){
 							src_row_end = src_data + (src_width << 2);
-							while(src_data < src_row_end){
+							while(src_data != src_row_end){
 								OVER_CALC16
 								src_data += 16,
 								dst_data += 16;
@@ -193,9 +193,9 @@ namespace GUtils{
 						}
 						break;
 					case 0x1:
-						while(src_data < src_data_end){
+						while(src_data != src_data_end){
 							src_row_end = src_data + ((src_width & ~0x1) << 2);
-							while(src_data < src_row_end){
+							while(src_data != src_row_end){
 								OVER_CALC16
 								src_data += 16,
 								dst_data += 16;
@@ -206,9 +206,9 @@ namespace GUtils{
 						}
 						break;
 					case 0x2:
-						while(src_data < src_data_end){
+						while(src_data != src_data_end){
 							src_row_end = src_data + ((src_width & ~0x2) << 2);
-							while(src_data < src_row_end){
+							while(src_data != src_row_end){
 								OVER_CALC16
 								src_data += 16,
 								dst_data += 16;
@@ -219,9 +219,9 @@ namespace GUtils{
 						}
 						break;
 					case 0x3:
-						while(src_data < src_data_end){
+						while(src_data != src_data_end){
 							src_row_end = src_data + ((src_width & ~0x3) << 2);
-							while(src_data < src_row_end){
+							while(src_data != src_row_end){
 								OVER_CALC16
 								src_data += 16,
 								dst_data += 16;
@@ -239,9 +239,9 @@ namespace GUtils{
 #undef OVER_CALC8
 #undef OVER_CALC16
 #else
-				while(src_data < src_data_end){
+				while(src_data != src_data_end){
 					src_row_end = src_data + (src_width << 2);
-					while(src_data < src_row_end){
+					while(src_data != src_row_end){
 						if(src_data[3] == 255)
 							*reinterpret_cast<int32_t*>(dst_data) = *reinterpret_cast<const int32_t*>(src_data);
 						else if(src_data[3] > 0){
