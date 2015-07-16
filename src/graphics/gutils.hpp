@@ -65,6 +65,9 @@ namespace GUtils{
 			Matrix4x4d& rotate_z(double rad, Order order = Order::PREPEND);
 	};
 
+	void flip(unsigned char* data, const unsigned height, const unsigned stride);
+	void flip(const unsigned char* src_data, const unsigned height, const unsigned stride, unsigned char* dst_data);
+
 	enum class BlendOp{SOURCE, OVER, ADD, SUB, MUL, SCR, DIFF};
 	bool blend(const unsigned char* src_data, unsigned src_width, unsigned src_height, const unsigned src_stride, const bool src_with_alpha,
 		unsigned char* dst_data, const unsigned dst_width, const unsigned dst_height, const unsigned dst_stride, const bool dst_with_alpha,
