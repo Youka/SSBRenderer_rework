@@ -14,14 +14,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 
 #include "gutils.hpp"
 #include <algorithm>
-#ifdef __AVX__
-	#include <immintrin.h>
-#elif defined __SSE3__
-	#include <pmmintrin.h>
-	#define _mm_load1_pd _mm_loaddup_pd
-#elif defined __SSE2__
-	#include <emmintrin.h>
-#endif
+#include "simd.hpp"
 #include <cmath>
 
 namespace GUtils{

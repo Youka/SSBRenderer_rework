@@ -15,22 +15,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 #include "gutils.hpp"
 #include <algorithm>
 #include <cstdint>
-#ifdef __SSE2__
-#ifdef __SSE3__
-	#include <pmmintrin.h>
-	#define _mm_loadu_si128 _mm_lddqu_si128
-#else
-	#include <emmintrin.h>
-#endif
-	#define MMX_LOAD_U8_16(x) _mm_unpacklo_pi8(_m_from_int(*reinterpret_cast<const int*>(x)), _mm_setzero_si64())
-	#define MMX_STORE_16_U8(mem, x) (*reinterpret_cast<int*>(mem) = _m_to_int(_m_packuswb(x, _mm_setzero_si64())))
-	#define MMX_DIV255_U16(x) _mm_srli_pi16(_mm_mulhi_pu16(x, _mm_set1_pi16(static_cast<short>(0x8081))), 7)
-	#define SSE2_LOAD_U8_16(x) _mm_unpacklo_epi8(_mm_loadl_epi64(reinterpret_cast<const __m128i*>(x)), _mm_setzero_si128())
-	#define SSE2_STORE_16_U8(mem, x) _mm_storel_epi64(reinterpret_cast<__m128i*>(mem), _mm_packus_epi16(x, _mm_setzero_si128()))
-	#define SSE2_STORE_2X16_U8(mem, x1, x2) _mm_storeu_si128(reinterpret_cast<__m128i*>(mem), _mm_packus_epi16(x1, x2))
-	#define SSE2_SET2_U16(x2, x1) _mm_shufflehi_epi16(_mm_shufflelo_epi16(_mm_set_epi32(0, x2, 0, x1), 0x0), 0x0)
-	#define SSE2_DIV255_U16(x) _mm_srli_epi16(_mm_mulhi_epu16(x, _mm_set1_epi16(static_cast<short>(0x8081))), 7)
-#endif
+#include "simd.hpp"
 
 namespace GUtils{
 	bool blend(const unsigned char* src_data, unsigned src_width, unsigned src_height, const unsigned src_stride, const bool src_with_alpha,
@@ -226,24 +211,61 @@ namespace GUtils{
 #undef OVER_CALC8
 #undef OVER_CALC16
 #else
-				while(src_data != src_data_end){
-					src_row_end = src_data + (src_width << 2);
-					while(src_data != src_row_end){
-						if(src_data[3] == 255)
-							*reinterpret_cast<int32_t*>(dst_data) = *reinterpret_cast<const int32_t*>(src_data);
-						else if(src_data[3] > 0){
-							unsigned char inv_alpha = src_data[3] ^ 0xFF;
-							dst_data[0] = src_data[0] + dst_data[0] * inv_alpha / 255,
-							dst_data[1] = src_data[1] + dst_data[1] * inv_alpha / 255,
-							dst_data[2] = src_data[2] + dst_data[2] * inv_alpha / 255,
-							dst_data[3] = src_data[3] + dst_data[3] * inv_alpha / 255;
+				if(src_with_alpha && dst_with_alpha)
+					while(src_data != src_data_end){
+						src_row_end = src_data + (src_width << 2);
+						while(src_data != src_row_end){
+							if(src_data[3] == 255)
+								*reinterpret_cast<int32_t*>(dst_data) = *reinterpret_cast<const int32_t*>(src_data);
+							else if(src_data[3] > 0){
+								unsigned char inv_alpha = src_data[3] ^ 0xFF;
+								dst_data[0] = src_data[0] + dst_data[0] * inv_alpha / 255,
+								dst_data[1] = src_data[1] + dst_data[1] * inv_alpha / 255,
+								dst_data[2] = src_data[2] + dst_data[2] * inv_alpha / 255,
+								dst_data[3] = src_data[3] + dst_data[3] * inv_alpha / 255;
+							}
+							src_data += 4,
+							dst_data += 4;
 						}
-						src_data += 4,
-						dst_data += 4;
+						src_data += src_offset,
+						dst_data += dst_offset;
 					}
-					src_data += src_offset,
-					dst_data += dst_offset;
-				}
+				else if(!src_with_alpha && !dst_with_alpha)
+					while(src_data != src_data_end)
+						std::copy(src_data, src_data + (src_width << 1) + src_width, dst_data),
+						src_data += src_stride,
+						dst_data += dst_stride;
+				else if(src_with_alpha && !dst_with_alpha)
+					while(src_data != src_data_end){
+						src_row_end = src_data + (src_width << 2);
+						while(src_data != src_row_end){
+							if(src_data[3] == 255)
+								*reinterpret_cast<int16_t*>(dst_data) = *reinterpret_cast<const int16_t*>(src_data),
+								dst_data[2] = src_data[2];
+							else if(src_data[3] > 0){
+								unsigned char inv_alpha = src_data[3] ^ 0xFF;
+								dst_data[0] = src_data[0] + dst_data[0] * inv_alpha / 255,
+								dst_data[1] = src_data[1] + dst_data[1] * inv_alpha / 255,
+								dst_data[2] = src_data[2] + dst_data[2] * inv_alpha / 255;
+							}
+							src_data += 4,
+							dst_data += 3;
+						}
+						src_data += src_offset,
+						dst_data += dst_offset;
+					}
+				else
+					while(src_data != src_data_end){
+						src_row_end = src_data + (src_width << 1) + src_width;
+						while(src_data != src_row_end)
+							*reinterpret_cast<int16_t*>(dst_data) = *reinterpret_cast<const int16_t*>(src_data),
+							src_data += 2,
+							dst_data += 2,
+							*dst_data++ = *src_data++,
+							*dst_data++ = 255;
+						src_data += src_offset,
+						dst_data += dst_offset;
+					}
 #endif
 				break;
 			case BlendOp::ADD: break;
