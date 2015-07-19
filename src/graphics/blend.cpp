@@ -15,6 +15,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 #include "gutils.hpp"
 #include <algorithm>
 #include <cstdint>
+#include <cmath>
 #include "simd.hpp"
 
 namespace GUtils{
@@ -194,7 +195,7 @@ namespace GUtils{
 								dst_data[5] = src_data[6];
 							else if(src_data[3] > 0 || src_data[7] > 0){
 								unsigned char tmp[8],
-									*ptmp = tmp;	// Just to make the compiler stop to cry about strict-aliasing
+									*ptmp = tmp;	// Just to make the compiler stop crying about strict-aliasing
 								SSE2_STORE_16_U8(
 									ptmp,
 									_mm_add_epi16(
@@ -272,11 +273,268 @@ namespace GUtils{
 						dst_data += dst_offset;
 					}
 				break;
-			case BlendOp::ADD: break;
-			case BlendOp::SUB: break;
-			case BlendOp::MUL: break;
-			case BlendOp::SCR: break;
-			case BlendOp::DIFF: break;
+			case BlendOp::ADD:
+				if(src_with_alpha && dst_with_alpha)
+					while(src_data != src_data_end){
+						src_row_end = src_data + (src_width << 2);
+						while(src_data != src_row_end){
+							if(src_data[3] > 0)
+								dst_data[0] = std::min(255, dst_data[0] + src_data[0]),
+								dst_data[1] = std::min(255, dst_data[1] + src_data[1]),
+								dst_data[2] = std::min(255, dst_data[2] + src_data[2]),
+								dst_data[3] = std::min(255, dst_data[3] + src_data[3]);
+							src_data += 4,
+							dst_data += 4;
+						}
+						src_data += src_offset,
+						dst_data += dst_offset;
+					}
+				else if(!src_with_alpha && !dst_with_alpha)
+					while(src_data != src_data_end){
+						src_row_end = src_data + (src_width << 1) + src_width;
+						while(src_data != src_row_end)
+							dst_data[0] = std::min(255, dst_data[0] + src_data[0]),
+							dst_data[1] = std::min(255, dst_data[1] + src_data[1]),
+							dst_data[2] = std::min(255, dst_data[2] + src_data[2]),
+							src_data += 3,
+							dst_data += 3;
+						src_data += src_offset,
+						dst_data += dst_offset;
+					}
+				else if(src_with_alpha && !dst_with_alpha)
+					while(src_data != src_data_end){
+						src_row_end = src_data + (src_width << 2);
+						while(src_data != src_row_end){
+							if(src_data[3] > 0)
+								dst_data[0] = std::min(255, dst_data[0] + src_data[0]),
+								dst_data[1] = std::min(255, dst_data[1] + src_data[1]),
+								dst_data[2] = std::min(255, dst_data[2] + src_data[2]);
+							src_data += 4,
+							dst_data += 3;
+						}
+						src_data += src_offset,
+						dst_data += dst_offset;
+					}
+				else
+					while(src_data != src_data_end){
+						src_row_end = src_data + (src_width << 1) + src_width;
+						while(src_data != src_row_end)
+							dst_data[0] = std::min(255, dst_data[0] + src_data[0]),
+							dst_data[1] = std::min(255, dst_data[1] + src_data[1]),
+							dst_data[2] = std::min(255, dst_data[2] + src_data[2]),
+							dst_data[3] = 255,
+							src_data += 3,
+							dst_data += 4;
+						src_data += src_offset,
+						dst_data += dst_offset;
+					}
+				break;
+			case BlendOp::SUB:
+				if(src_with_alpha && dst_with_alpha)
+					while(src_data != src_data_end){
+						src_row_end = src_data + (src_width << 2);
+						while(src_data != src_row_end){
+							if(src_data[3] > 0)
+								dst_data[0] = std::max(0, dst_data[0] - src_data[0]),
+								dst_data[1] = std::max(0, dst_data[1] - src_data[1]),
+								dst_data[2] = std::max(0, dst_data[2] - src_data[2]),
+								dst_data[3] = std::max(0, dst_data[3] - src_data[3]);
+							src_data += 4,
+							dst_data += 4;
+						}
+						src_data += src_offset,
+						dst_data += dst_offset;
+					}
+				else if(!src_with_alpha && !dst_with_alpha)
+					while(src_data != src_data_end){
+						src_row_end = src_data + (src_width << 1) + src_width;
+						while(src_data != src_row_end)
+							dst_data[0] = std::max(0, dst_data[0] - src_data[0]),
+							dst_data[1] = std::max(0, dst_data[1] - src_data[1]),
+							dst_data[2] = std::max(0, dst_data[2] - src_data[2]),
+							src_data += 3,
+							dst_data += 3;
+						src_data += src_offset,
+						dst_data += dst_offset;
+					}
+				else if(src_with_alpha && !dst_with_alpha)
+					while(src_data != src_data_end){
+						src_row_end = src_data + (src_width << 2);
+						while(src_data != src_row_end){
+							if(src_data[3] > 0)
+								dst_data[0] = std::max(0, dst_data[0] - src_data[0]),
+								dst_data[1] = std::max(0, dst_data[1] - src_data[1]),
+								dst_data[2] = std::max(0, dst_data[2] - src_data[2]);
+							src_data += 4,
+							dst_data += 3;
+						}
+						src_data += src_offset,
+						dst_data += dst_offset;
+					}
+				else
+					while(src_data != src_data_end){
+						src_row_end = src_data + (src_width << 1) + src_width;
+						while(src_data != src_row_end)
+							dst_data[0] = std::max(0, dst_data[0] - src_data[0]),
+							dst_data[1] = std::max(0, dst_data[1] - src_data[1]),
+							dst_data[2] = std::max(0, dst_data[2] - src_data[2]),
+							dst_data[3] = 0,
+							src_data += 3,
+							dst_data += 4;
+						src_data += src_offset,
+						dst_data += dst_offset;
+					}
+				break;
+			case BlendOp::MUL:
+				if(src_with_alpha && dst_with_alpha)
+					while(src_data != src_data_end){
+						src_row_end = src_data + (src_width << 2);
+						while(src_data != src_row_end)
+
+							// TODO
+
+							src_data += 4,
+							dst_data += 4;
+						src_data += src_offset,
+						dst_data += dst_offset;
+					}
+				else if(!src_with_alpha && !dst_with_alpha)
+					while(src_data != src_data_end){
+						src_row_end = src_data + (src_width << 1) + src_width;
+						while(src_data != src_row_end)
+
+							// TODO
+
+							src_data += 3,
+							dst_data += 3;
+						src_data += src_offset,
+						dst_data += dst_offset;
+					}
+				else if(src_with_alpha && !dst_with_alpha)
+					while(src_data != src_data_end){
+						src_row_end = src_data + (src_width << 2);
+						while(src_data != src_row_end)
+
+							// TODO
+
+							src_data += 4,
+							dst_data += 3;
+						src_data += src_offset,
+						dst_data += dst_offset;
+					}
+				else
+					while(src_data != src_data_end){
+						src_row_end = src_data + (src_width << 1) + src_width;
+						while(src_data != src_row_end)
+
+							// TODO
+
+							src_data += 3,
+							dst_data += 4;
+						src_data += src_offset,
+						dst_data += dst_offset;
+					}
+				break;
+			case BlendOp::SCR:
+				if(src_with_alpha && dst_with_alpha)
+					while(src_data != src_data_end){
+						src_row_end = src_data + (src_width << 2);
+						while(src_data != src_row_end)
+
+							// TODO
+
+							src_data += 4,
+							dst_data += 4;
+						src_data += src_offset,
+						dst_data += dst_offset;
+					}
+				else if(!src_with_alpha && !dst_with_alpha)
+					while(src_data != src_data_end){
+						src_row_end = src_data + (src_width << 1) + src_width;
+						while(src_data != src_row_end)
+
+							// TODO
+
+							src_data += 3,
+							dst_data += 3;
+						src_data += src_offset,
+						dst_data += dst_offset;
+					}
+				else if(src_with_alpha && !dst_with_alpha)
+					while(src_data != src_data_end){
+						src_row_end = src_data + (src_width << 2);
+						while(src_data != src_row_end)
+
+							// TODO
+
+							src_data += 4,
+							dst_data += 3;
+						src_data += src_offset,
+						dst_data += dst_offset;
+					}
+				else
+					while(src_data != src_data_end){
+						src_row_end = src_data + (src_width << 1) + src_width;
+						while(src_data != src_row_end)
+
+							// TODO
+
+							src_data += 3,
+							dst_data += 4;
+						src_data += src_offset,
+						dst_data += dst_offset;
+					}
+				break;
+			case BlendOp::DIFF:
+				if(src_with_alpha && dst_with_alpha)
+					while(src_data != src_data_end){
+						src_row_end = src_data + (src_width << 2);
+						while(src_data != src_row_end)
+
+							// TODO
+
+							src_data += 4,
+							dst_data += 4;
+						src_data += src_offset,
+						dst_data += dst_offset;
+					}
+				else if(!src_with_alpha && !dst_with_alpha)
+					while(src_data != src_data_end){
+						src_row_end = src_data + (src_width << 1) + src_width;
+						while(src_data != src_row_end)
+
+							// TODO
+
+							src_data += 3,
+							dst_data += 3;
+						src_data += src_offset,
+						dst_data += dst_offset;
+					}
+				else if(src_with_alpha && !dst_with_alpha)
+					while(src_data != src_data_end){
+						src_row_end = src_data + (src_width << 2);
+						while(src_data != src_row_end)
+
+							// TODO
+
+							src_data += 4,
+							dst_data += 3;
+						src_data += src_offset,
+						dst_data += dst_offset;
+					}
+				else
+					while(src_data != src_data_end){
+						src_row_end = src_data + (src_width << 1) + src_width;
+						while(src_data != src_row_end)
+
+							// TODO
+
+							src_data += 3,
+							dst_data += 4;
+						src_data += src_offset,
+						dst_data += dst_offset;
+					}
+				break;
 		}
 		return true;
 	}
