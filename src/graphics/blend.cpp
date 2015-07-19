@@ -85,134 +85,80 @@ namespace GUtils{
 					}
 				break;
 			case BlendOp::OVER:
-
-
-				// TODO: change following instructions for both color formats
-
-
-#ifdef __SSE2__
-#define OVER_CALC16 \
-	if(src_data[3] == 255 && src_data[7] == 255 && src_data[11] == 255 && src_data[15] == 255) \
-		_mm_storeu_si128(reinterpret_cast<__m128i*>(dst_data), _mm_loadu_si128(reinterpret_cast<const __m128i*>(src_data))); \
-	else if(src_data[3] > 0 || src_data[7] > 0 || src_data[11] > 0 || src_data[15] > 0){ \
-		__m128i a = _mm_loadu_si128(reinterpret_cast<const __m128i*>(src_data)), \
-			b = _mm_loadu_si128(reinterpret_cast<const __m128i*>(dst_data)); \
-		SSE2_STORE_2X16_U8( \
-			dst_data, \
-			_mm_add_epi16( \
-				_mm_unpacklo_epi8(a, _mm_setzero_si128()), \
-				SSE2_DIV255_U16( \
-					_mm_mullo_epi16( \
-						_mm_unpacklo_epi8(b, _mm_setzero_si128()), \
-						SSE2_SET2_U16(src_data[7] ^ 0xFF, src_data[3] ^ 0xFF) \
-					) \
-				) \
-			), \
-			_mm_add_epi16( \
-				_mm_unpackhi_epi8(a, _mm_setzero_si128()), \
-				SSE2_DIV255_U16( \
-					_mm_mullo_epi16( \
-						_mm_unpackhi_epi8(b, _mm_setzero_si128()), \
-						SSE2_SET2_U16(src_data[15] ^ 0xFF, src_data[11] ^ 0xFF) \
-					) \
-				) \
-			) \
-		); \
-	}
-#define OVER_CALC8 \
-	if(src_data[3] == 255 && src_data[7] == 255) \
-		*reinterpret_cast<int64_t*>(dst_data) = *reinterpret_cast<const int64_t*>(src_data); \
-	else if(src_data[3] > 0 || src_data[7] > 0) \
-		SSE2_STORE_16_U8( \
-			dst_data, \
-			_mm_add_epi16( \
-				SSE2_LOAD_U8_16(src_data), \
-				SSE2_DIV255_U16( \
-					_mm_mullo_epi16( \
-						SSE2_LOAD_U8_16(dst_data), \
-						SSE2_SET2_U16(src_data[7] ^ 0xFF, src_data[3] ^ 0xFF) \
-					) \
-				) \
-			) \
-		);
-#define OVER_CALC4 \
-	if(src_data[3] == 255) \
-		*reinterpret_cast<int32_t*>(dst_data) = *reinterpret_cast<const int32_t*>(src_data); \
-	else if(src_data[3] > 0) \
-		MMX_STORE_16_U8( \
-			dst_data, \
-			_mm_add_pi16( \
-				MMX_LOAD_U8_16(src_data), \
-				MMX_DIV255_U16( \
-					_mm_mullo_pi16( \
-						MMX_LOAD_U8_16(dst_data), \
-						_mm_set1_pi16(src_data[3] ^ 0xFF) \
-					) \
-				) \
-			) \
-		);
-				switch(src_width & 0x3){
-					case 0x0:
-						while(src_data != src_data_end){
-							src_row_end = src_data + (src_width << 2);
-							while(src_data != src_row_end){
-								OVER_CALC16
-								src_data += 16,
-								dst_data += 16;
-							}
-							src_data += src_offset,
-							dst_data += dst_offset;
-						}
-						break;
-					case 0x1:
-						while(src_data != src_data_end){
-							src_row_end = src_data + ((src_width & ~0x1) << 2);
-							while(src_data != src_row_end){
-								OVER_CALC16
-								src_data += 16,
-								dst_data += 16;
-							}
-							OVER_CALC4
-							src_data += 4 + src_offset,
-							dst_data += 4 + dst_offset;
-						}
-						break;
-					case 0x2:
-						while(src_data != src_data_end){
-							src_row_end = src_data + ((src_width & ~0x2) << 2);
-							while(src_data != src_row_end){
-								OVER_CALC16
-								src_data += 16,
-								dst_data += 16;
-							}
-							OVER_CALC8
-							src_data += 8 + src_offset,
-							dst_data += 8 + dst_offset;
-						}
-						break;
-					case 0x3:
-						while(src_data != src_data_end){
-							src_row_end = src_data + ((src_width & ~0x3) << 2);
-							while(src_data != src_row_end){
-								OVER_CALC16
-								src_data += 16,
-								dst_data += 16;
-							}
-							OVER_CALC8
-							src_data += 8,
-							dst_data += 8;
-							OVER_CALC4
-							src_data += 4 + src_offset,
-							dst_data += 4 + dst_offset;
-						}
-						break;
-				}
-#undef OVER_CALC4
-#undef OVER_CALC8
-#undef OVER_CALC16
-#else
 				if(src_with_alpha && dst_with_alpha)
 					while(src_data != src_data_end){
+#ifdef __SSE2__
+						src_row_end = src_data + ((src_width & ~0x3) << 2);
+						while(src_data != src_row_end){
+							if(src_data[3] == 255 && src_data[7] == 255 && src_data[11] == 255 && src_data[15] == 255)
+								_mm_storeu_si128(reinterpret_cast<__m128i*>(dst_data), _mm_loadu_si128(reinterpret_cast<const __m128i*>(src_data)));
+							else if(src_data[3] > 0 || src_data[7] > 0 || src_data[11] > 0 || src_data[15] > 0){
+								__m128i a = _mm_loadu_si128(reinterpret_cast<const __m128i*>(src_data)),
+									b = _mm_loadu_si128(reinterpret_cast<const __m128i*>(dst_data));
+								SSE2_STORE_2X16_U8(
+									dst_data,
+									_mm_add_epi16(
+										_mm_unpacklo_epi8(a, _mm_setzero_si128()),
+										SSE2_DIV255_U16(
+											_mm_mullo_epi16(
+												_mm_unpacklo_epi8(b, _mm_setzero_si128()),
+												SSE2_SET2_U16(src_data[7] ^ 0xFF, src_data[3] ^ 0xFF)
+											)
+										)
+									),
+									_mm_add_epi16(
+										_mm_unpackhi_epi8(a, _mm_setzero_si128()),
+										SSE2_DIV255_U16(
+											_mm_mullo_epi16(
+												_mm_unpackhi_epi8(b, _mm_setzero_si128()),
+												SSE2_SET2_U16(src_data[15] ^ 0xFF, src_data[11] ^ 0xFF)
+											)
+										)
+									)
+								);
+							}
+							src_data += 16,
+							dst_data += 16;
+						}
+						if(src_width & 0x2){
+							if(src_data[3] == 255 && src_data[7] == 255)
+								*reinterpret_cast<int64_t*>(dst_data) = *reinterpret_cast<const int64_t*>(src_data);
+							else if(src_data[3] > 0 || src_data[7] > 0)
+								SSE2_STORE_16_U8(
+									dst_data,
+									_mm_add_epi16(
+										SSE2_LOAD_U8_16(src_data),
+										SSE2_DIV255_U16(
+											_mm_mullo_epi16(
+												SSE2_LOAD_U8_16(dst_data),
+												SSE2_SET2_U16(src_data[7] ^ 0xFF, src_data[3] ^ 0xFF)
+											)
+										)
+									)
+								);
+							src_data += 8,
+							dst_data += 8;
+						}
+						if(src_width & 0x1){
+							if(src_data[3] == 255)
+								*reinterpret_cast<int32_t*>(dst_data) = *reinterpret_cast<const int32_t*>(src_data);
+							else if(src_data[3] > 0)
+								MMX_STORE_16_U8(
+									dst_data,
+									_mm_add_pi16(
+										MMX_LOAD_U8_16(src_data),
+										MMX_DIV255_U16(
+											_mm_mullo_pi16(
+												MMX_LOAD_U8_16(dst_data),
+												_mm_set1_pi16(src_data[3] ^ 0xFF)
+											)
+										)
+									)
+								);
+							src_data += 4,
+							dst_data += 4;
+						}
+#else
 						src_row_end = src_data + (src_width << 2);
 						while(src_data != src_row_end){
 							if(src_data[3] == 255)
@@ -227,6 +173,7 @@ namespace GUtils{
 							src_data += 4,
 							dst_data += 4;
 						}
+#endif
 						src_data += src_offset,
 						dst_data += dst_offset;
 					}
@@ -237,6 +184,63 @@ namespace GUtils{
 						dst_data += dst_stride;
 				else if(src_with_alpha && !dst_with_alpha)
 					while(src_data != src_data_end){
+#ifdef __SSE2__
+						src_row_end = src_data + ((src_width & ~0x1) << 2);
+						while(src_data != src_row_end){
+							if(src_data[3] == 255 && src_data[7] == 255)
+								*reinterpret_cast<int16_t*>(dst_data) = *reinterpret_cast<const int16_t*>(src_data),
+								dst_data[2] = src_data[2],
+								*reinterpret_cast<int16_t*>(dst_data+3) = *reinterpret_cast<const int16_t*>(src_data+4),
+								dst_data[5] = src_data[6];
+							else if(src_data[3] > 0 || src_data[7] > 0){
+								unsigned char tmp[8],
+									*ptmp = tmp;	// Just to make the compiler stop to cry about strict-aliasing
+								SSE2_STORE_16_U8(
+									ptmp,
+									_mm_add_epi16(
+										SSE2_LOAD_U8_16(src_data),
+										SSE2_DIV255_U16(
+											_mm_mullo_epi16(
+												_mm_set_epi16(0, dst_data[5], dst_data[4], dst_data[3], 0, dst_data[2], dst_data[1], dst_data[0]),
+												SSE2_SET2_U16(src_data[7] ^ 0xFF, src_data[3] ^ 0xFF)
+											)
+										)
+									)
+								);
+								*reinterpret_cast<int16_t*>(dst_data) = *reinterpret_cast<const int16_t*>(ptmp),
+								dst_data[2] = tmp[2];
+								*reinterpret_cast<int16_t*>(dst_data+3) = *reinterpret_cast<const int16_t*>(ptmp+4),
+								dst_data[5] = tmp[6];
+							}
+							src_data += 8,
+							dst_data += 6;
+						}
+						if(src_width & 0x1){
+							if(src_data[3] == 255)
+								*reinterpret_cast<int16_t*>(dst_data) = *reinterpret_cast<const int16_t*>(src_data),
+								dst_data[2] = src_data[2];
+							else if(src_data[3] > 0){
+								unsigned char tmp[4],
+									*ptmp = tmp;
+								MMX_STORE_16_U8(
+									ptmp,
+									_mm_add_pi16(
+										MMX_LOAD_U8_16(src_data),
+										MMX_DIV255_U16(
+											_mm_mullo_pi16(
+												_mm_set_pi16(0, dst_data[2], dst_data[1], dst_data[0]),
+												_mm_set1_pi16(src_data[3] ^ 0xFF)
+											)
+										)
+									)
+								);
+								*reinterpret_cast<int16_t*>(dst_data) = *reinterpret_cast<const int16_t*>(ptmp),
+								dst_data[2] = tmp[2];
+							}
+							src_data += 4,
+							dst_data += 3;
+						}
+#else
 						src_row_end = src_data + (src_width << 2);
 						while(src_data != src_row_end){
 							if(src_data[3] == 255)
@@ -251,6 +255,7 @@ namespace GUtils{
 							src_data += 4,
 							dst_data += 3;
 						}
+#endif
 						src_data += src_offset,
 						dst_data += dst_offset;
 					}
@@ -266,7 +271,6 @@ namespace GUtils{
 						src_data += src_offset,
 						dst_data += dst_offset;
 					}
-#endif
 				break;
 			case BlendOp::ADD: break;
 			case BlendOp::SUB: break;

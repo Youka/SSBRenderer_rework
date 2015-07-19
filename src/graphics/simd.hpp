@@ -32,3 +32,10 @@ Permission is granted to anyone to use this software for any purpose, including 
 #define SSE2_STORE_2X16_U8(mem, x1, x2) _mm_storeu_si128(reinterpret_cast<__m128i*>(mem), _mm_packus_epi16(x1, x2))
 #define SSE2_SET2_U16(x2, x1) _mm_shufflehi_epi16(_mm_shufflelo_epi16(_mm_set_epi32(0, x2, 0, x1), 0x0), 0x0)
 #define SSE2_DIV255_U16(x) _mm_srli_epi16(_mm_mulhi_epu16(x, _mm_set1_epi16(static_cast<short>(0x8081))), 7)
+
+/*
+Divide unsigned short by constant 255:
+> x / 255
+> (x * 0x8081) >> 0x17
+> HWORD((x << 15) + (x << 7) + x) >> 7
+*/
