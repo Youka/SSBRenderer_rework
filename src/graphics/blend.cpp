@@ -389,12 +389,29 @@ namespace GUtils{
 				if(src_with_alpha && dst_with_alpha)
 					while(src_data != src_data_end){
 						src_row_end = src_data + (src_width << 2);
-						while(src_data != src_row_end)
-
-							// TODO
-
+						while(src_data != src_row_end){
+							if(src_data[3] > 0){
+								unsigned char inv_alpha;
+								if(dst_data[3] == 0)
+									inv_alpha = src_data[3] ^ 0xFF,
+									dst_data[0] = dst_data[0] * inv_alpha / 255,
+									dst_data[1] = dst_data[1] * inv_alpha / 255,
+									dst_data[2] = dst_data[2] * inv_alpha / 255,
+									dst_data[3] = src_data[3];
+								else if(src_data[3] == 255 && dst_data[3] == 255)
+									dst_data[0] = dst_data[0] * src_data[0] / 255,
+									dst_data[1] = dst_data[1] * src_data[1] / 255,
+									dst_data[2] = dst_data[2] * src_data[2] / 255;
+								else
+									inv_alpha = src_data[3] ^ 0xFF,
+									dst_data[0] = (dst_data[0] * 255 / dst_data[3]) * (src_data[0] * 255 / src_data[3]) * src_data[3] / 65025 + dst_data[0] * inv_alpha / 255,
+									dst_data[1] = (dst_data[1] * 255 / dst_data[3]) * (src_data[1] * 255 / src_data[3]) * src_data[3] / 65025 + dst_data[1] * inv_alpha / 255,
+									dst_data[2] = (dst_data[2] * 255 / dst_data[3]) * (src_data[2] * 255 / src_data[3]) * src_data[3] / 65025 + dst_data[2] * inv_alpha / 255,
+									dst_data[3] = src_data[3] + dst_data[3] * inv_alpha / 255;
+							}
 							src_data += 4,
 							dst_data += 4;
+						}
 						src_data += src_offset,
 						dst_data += dst_offset;
 					}
@@ -402,9 +419,9 @@ namespace GUtils{
 					while(src_data != src_data_end){
 						src_row_end = src_data + (src_width << 1) + src_width;
 						while(src_data != src_row_end)
-
-							// TODO
-
+							dst_data[0] = dst_data[0] * src_data[0] / 255,
+							dst_data[1] = dst_data[1] * src_data[1] / 255,
+							dst_data[2] = dst_data[2] * src_data[2] / 255,
 							src_data += 3,
 							dst_data += 3;
 						src_data += src_offset,
@@ -413,24 +430,45 @@ namespace GUtils{
 				else if(src_with_alpha && !dst_with_alpha)
 					while(src_data != src_data_end){
 						src_row_end = src_data + (src_width << 2);
-						while(src_data != src_row_end)
-
-							// TODO
-
+						while(src_data != src_row_end){
+							if(src_data[3] > 0){
+								if(src_data[3] == 255)
+									dst_data[0] = dst_data[0] * src_data[0] / 255,
+									dst_data[1] = dst_data[1] * src_data[1] / 255,
+									dst_data[2] = dst_data[2] * src_data[2] / 255;
+								else{
+									unsigned char inv_alpha = src_data[3] ^ 0xFF;
+									dst_data[0] = dst_data[0] * (src_data[0] * 255 / src_data[3]) * src_data[3] / 65025 + dst_data[0] * inv_alpha / 255,
+									dst_data[1] = dst_data[1] * (src_data[1] * 255 / src_data[3]) * src_data[3] / 65025 + dst_data[1] * inv_alpha / 255,
+									dst_data[2] = dst_data[2] * (src_data[2] * 255 / src_data[3]) * src_data[3] / 65025 + dst_data[2] * inv_alpha / 255;
+								}
+							}
 							src_data += 4,
 							dst_data += 3;
+						}
 						src_data += src_offset,
 						dst_data += dst_offset;
 					}
 				else
 					while(src_data != src_data_end){
 						src_row_end = src_data + (src_width << 1) + src_width;
-						while(src_data != src_row_end)
-
-							// TODO
-
+						while(src_data != src_row_end){
+							if(dst_data[3] == 0)
+								*reinterpret_cast<int16_t*>(dst_data) = 0,
+								dst_data[2] = 0,
+								dst_data[3] = 255;
+							else if(dst_data[3] == 255)
+								dst_data[0] = dst_data[0] * src_data[0] / 255,
+								dst_data[1] = dst_data[1] * src_data[1] / 255,
+								dst_data[2] = dst_data[2] * src_data[2] / 255;
+							else
+								dst_data[0] = (dst_data[0] * 255 / dst_data[3]) * src_data[0] / 255,
+								dst_data[1] = (dst_data[1] * 255 / dst_data[3]) * src_data[1] / 255,
+								dst_data[2] = (dst_data[2] * 255 / dst_data[3]) * src_data[2] / 255,
+								dst_data[3] = 255;
 							src_data += 3,
 							dst_data += 4;
+						}
 						src_data += src_offset,
 						dst_data += dst_offset;
 					}
