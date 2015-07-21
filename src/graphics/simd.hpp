@@ -36,6 +36,6 @@ Permission is granted to anyone to use this software for any purpose, including 
 /*
 Divide unsigned short by constant 255:
 > x / 255
-> (x * 0x8081) >> 0x17
+> DWORD(x * 0x8081) >> 0x17
 > HWORD((x << 15) + (x << 7) + x) >> 7
 */
