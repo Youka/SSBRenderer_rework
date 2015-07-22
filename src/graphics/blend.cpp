@@ -51,6 +51,7 @@ namespace GUtils{
 		unsigned char inv_alpha;
 		// Blend by operation
 		switch(op){
+			// DST = SRC
 			case BlendOp::SOURCE:
 				if(src_with_alpha && dst_with_alpha)
 					while(src_data != src_data_end)
@@ -87,6 +88,7 @@ namespace GUtils{
 						dst_data += dst_offset;
 					}
 				break;
+			// DST = SRC + DST * ~SRCa
 			case BlendOp::OVER:
 				if(src_with_alpha && dst_with_alpha)
 					while(src_data != src_data_end){
@@ -273,6 +275,7 @@ namespace GUtils{
 						dst_data += dst_offset;
 					}
 				break;
+			// DST = MIN(255, SRC + DST)
 			case BlendOp::ADD:
 				if(src_with_alpha && dst_with_alpha)
 					while(src_data != src_data_end){
@@ -329,6 +332,7 @@ namespace GUtils{
 						dst_data += dst_offset;
 					}
 				break;
+			// DST = MAX(0, DST - SRC)
 			case BlendOp::SUB:
 				if(src_with_alpha && dst_with_alpha)
 					while(src_data != src_data_end){
@@ -385,6 +389,10 @@ namespace GUtils{
 						dst_data += dst_offset;
 					}
 				break;
+			/*
+			DSTrgb = (DSTrgb / DSTa) * (SRCrgb / SRCa) * SRCa + DSTrgb * ~SRCa
+			DSTa = SRCa + DSTa * ~SRCa
+			*/
 			case BlendOp::MUL:
 				if(src_with_alpha && dst_with_alpha)
 					while(src_data != src_data_end){
@@ -471,6 +479,10 @@ namespace GUtils{
 						dst_data += dst_offset;
 					}
 				break;
+			/*
+			DSTrgb = ~(~(DSTrgb / DSTa) * ~(SRCrgb / SRCa)) * SRCa + DSTrgb * ~SRCa
+			DSTa = SRCa + DSTa * ~SRCa
+			*/
 			case BlendOp::SCR:
 				if(src_with_alpha && dst_with_alpha)
 					while(src_data != src_data_end){
@@ -557,14 +569,33 @@ namespace GUtils{
 						dst_data += dst_offset;
 					}
 				break;
+			/*
+			DSTrgb = ABS((DSTrgb / DSTa) - (SRCrgb / SRCa)) * SRCa + DSTrgb * ~SRCa
+			DSTa = SRCa + DSTa * ~SRCa
+			*/
 			case BlendOp::DIFF:
 				if(src_with_alpha && dst_with_alpha)
 					while(src_data != src_data_end){
 						src_row_end = src_data + (src_width << 2);
 						while(src_data != src_row_end){
-
-							// TODO
-
+							if(src_data[3] > 0){
+								if(dst_data[3] == 0)
+									inv_alpha = src_data[3] ^ 0xFF,
+									dst_data[0] = src_data[0] + dst_data[0] * inv_alpha / 255,
+									dst_data[1] = src_data[1] + dst_data[1] * inv_alpha / 255,
+									dst_data[2] = src_data[2] + dst_data[2] * inv_alpha / 255,
+									dst_data[3] = src_data[3];
+								else if(src_data[3] == 255 && dst_data[3] == 255)
+									dst_data[0] = ::abs(dst_data[0] - src_data[0]),
+									dst_data[1] = ::abs(dst_data[1] - src_data[1]),
+									dst_data[2] = ::abs(dst_data[2] - src_data[2]);
+								else
+									inv_alpha = src_data[3] ^ 0xFF,
+									dst_data[0] = ::abs(dst_data[0] * 255 / dst_data[3] - src_data[0] * 255 / src_data[3]) * src_data[3] / 255 + dst_data[0] * inv_alpha / 255,
+									dst_data[1] = ::abs(dst_data[1] * 255 / dst_data[3] - src_data[1] * 255 / src_data[3]) * src_data[3] / 255 + dst_data[1] * inv_alpha / 255,
+									dst_data[2] = ::abs(dst_data[2] * 255 / dst_data[3] - src_data[2] * 255 / src_data[3]) * src_data[3] / 255 + dst_data[2] * inv_alpha / 255,
+									dst_data[3] = src_data[3] + dst_data[3] * inv_alpha / 255;
+							}
 							src_data += 4,
 							dst_data += 4;
 						}
@@ -575,9 +606,9 @@ namespace GUtils{
 					while(src_data != src_data_end){
 						src_row_end = src_data + (src_width << 1) + src_width;
 						while(src_data != src_row_end)
-
-							// TODO
-
+							dst_data[0] = ::abs(dst_data[0] - src_data[0]),
+							dst_data[1] = ::abs(dst_data[1] - src_data[1]),
+							dst_data[2] = ::abs(dst_data[2] - src_data[2]),
 							src_data += 3,
 							dst_data += 3;
 						src_data += src_offset,
@@ -587,9 +618,17 @@ namespace GUtils{
 					while(src_data != src_data_end){
 						src_row_end = src_data + (src_width << 2);
 						while(src_data != src_row_end){
-
-							// TODO
-
+							if(src_data[3] > 0){
+								if(src_data[3] == 255)
+									dst_data[0] = ::abs(dst_data[0] - src_data[0]),
+									dst_data[1] = ::abs(dst_data[1] - src_data[1]),
+									dst_data[2] = ::abs(dst_data[2] - src_data[2]);
+								else
+									inv_alpha = src_data[3] ^ 0xFF,
+									dst_data[0] = ::abs(dst_data[0] - src_data[0] * 255 / src_data[3]) * src_data[3] / 255 + dst_data[0] * inv_alpha / 255,
+									dst_data[1] = ::abs(dst_data[1] - src_data[1] * 255 / src_data[3]) * src_data[3] / 255 + dst_data[1] * inv_alpha / 255,
+									dst_data[2] = ::abs(dst_data[2] - src_data[2] * 255 / src_data[3]) * src_data[3] / 255 + dst_data[2] * inv_alpha / 255;
+							}
 							src_data += 4,
 							dst_data += 3;
 						}
@@ -600,9 +639,20 @@ namespace GUtils{
 					while(src_data != src_data_end){
 						src_row_end = src_data + (src_width << 1) + src_width;
 						while(src_data != src_row_end){
-
-							// TODO
-
+							if(dst_data[3] == 0)
+								*reinterpret_cast<int16_t*>(dst_data) = *reinterpret_cast<const int16_t*>(src_data),
+								dst_data[2] = src_data[2],
+								dst_data[3] = 255;
+							else if(dst_data[3] == 255)
+								dst_data[0] = ::abs(dst_data[0] - src_data[0]),
+								dst_data[1] = ::abs(dst_data[1] - src_data[1]),
+								dst_data[2] = ::abs(dst_data[2] - src_data[2]);
+							else
+								inv_alpha = 0,
+								dst_data[0] = ::abs(dst_data[0] * 255 / dst_data[3] - src_data[0]),
+								dst_data[1] = ::abs(dst_data[1] * 255 / dst_data[3] - src_data[1]),
+								dst_data[2] = ::abs(dst_data[2] * 255 / dst_data[3] - src_data[2]),
+								dst_data[3] = 255;
 							src_data += 3,
 							dst_data += 4;
 						}
