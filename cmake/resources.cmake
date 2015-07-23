@@ -9,7 +9,7 @@ function(create_resources dir output)
 		# Get short filename
 		string(REGEX MATCH "([^/]+)$" filename ${bin})
 		# Replace filename spaces & extension separator for C compatibility
-		string(REGEX REPLACE "\\.| " "_" filename ${filename})
+		string(MAKE_C_IDENTIFIER ${filename} filename)
 		# Read hex data from file
 		file(READ ${bin} filedata HEX)
 		# Convert hex data for C compatibility
