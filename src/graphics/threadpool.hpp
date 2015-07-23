@@ -50,8 +50,7 @@ namespace stdex{
 								// Lock scope for threadsafe tasks access
 								std::unique_lock<std::mutex> lock(tp->mx);
 								// Wait when nothing to do but pool still active
-								if(tp->tasks.empty() && !tp->stop)
-									tp->cond.wait(lock);
+								tp->cond.wait(lock, [tp](){return !tp->tasks.empty() || tp->stop;});
 								// Finish when nothing to do and pool in destruction
 								if(tp->tasks.empty() && tp->stop)
 									return;
