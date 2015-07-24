@@ -47,8 +47,10 @@ namespace GUtils{
 		// Offset after row
 		const unsigned src_offset = src_stride - (src_with_alpha ? src_width << 2 : (src_width << 1) + src_width),
 			dst_offset = dst_stride - (dst_with_alpha ? src_width << 2 : (src_width << 1) + src_width);
-		// Often used temporary for inverted alpha
-		unsigned char inv_alpha;
+		// Often used temporaries
+		unsigned char inv_alpha,	// Inverted alpha
+			tmp[16],	// Storage for non-2^n unpack
+			*ptmp = tmp;	// Just to make the compiler stop crying about strict-aliasing
 		// Blend by operation
 		switch(op){
 			// DST = SRC
@@ -196,9 +198,7 @@ namespace GUtils{
 								dst_data[2] = src_data[2],
 								*reinterpret_cast<int16_t*>(dst_data+3) = *reinterpret_cast<const int16_t*>(src_data+4),
 								dst_data[5] = src_data[6];
-							else if(src_data[3] > 0 || src_data[7] > 0){
-								unsigned char tmp[8],
-									*ptmp = tmp;	// Just to make the compiler stop crying about strict-aliasing
+							else if(src_data[3] > 0 || src_data[7] > 0)
 								SSE2_STORE_16_U8(
 									ptmp,
 									_mm_add_epi16(
@@ -210,12 +210,11 @@ namespace GUtils{
 											)
 										)
 									)
-								);
+								),
 								*reinterpret_cast<int16_t*>(dst_data) = *reinterpret_cast<const int16_t*>(ptmp),
-								dst_data[2] = tmp[2];
+								dst_data[2] = tmp[2],
 								*reinterpret_cast<int16_t*>(dst_data+3) = *reinterpret_cast<const int16_t*>(ptmp+4),
 								dst_data[5] = tmp[6];
-							}
 							src_data += 8,
 							dst_data += 6;
 						}
@@ -223,9 +222,7 @@ namespace GUtils{
 							if(src_data[3] == 255)
 								*reinterpret_cast<int16_t*>(dst_data) = *reinterpret_cast<const int16_t*>(src_data),
 								dst_data[2] = src_data[2];
-							else if(src_data[3] > 0){
-								unsigned char tmp[4],
-									*ptmp = tmp;
+							else if(src_data[3] > 0)
 								MMX_STORE_16_U8(
 									ptmp,
 									_mm_add_pi16(
@@ -237,10 +234,9 @@ namespace GUtils{
 											)
 										)
 									)
-								);
+								),
 								*reinterpret_cast<int16_t*>(dst_data) = *reinterpret_cast<const int16_t*>(ptmp),
 								dst_data[2] = tmp[2];
-							}
 							src_data += 4,
 							dst_data += 3;
 						}
@@ -279,6 +275,41 @@ namespace GUtils{
 			case BlendOp::ADD:
 				if(src_with_alpha && dst_with_alpha)
 					while(src_data != src_data_end){
+#ifdef __SSE2__
+						src_row_end = src_data + ((src_width & ~0x3) << 2);
+						while(src_data != src_row_end){
+							if(src_data[3] > 0 || src_data[7] > 0)
+								_mm_storeu_si128(
+									reinterpret_cast<__m128i*>(dst_data),
+									_mm_adds_epu8(
+										_mm_loadu_si128(reinterpret_cast<const __m128i*>(dst_data)),
+										_mm_loadu_si128(reinterpret_cast<const __m128i*>(src_data))
+									)
+								);
+							src_data += 16,
+							dst_data += 16;
+						}
+						if(src_width & 0x2){
+							if(src_data[3] > 0)
+								*reinterpret_cast<__m64*>(dst_data) = _mm_adds_pu8(
+									_mm_set_pi32(*reinterpret_cast<const int*>(dst_data+4), *reinterpret_cast<const int*>(dst_data)),
+									_mm_set_pi32(*reinterpret_cast<const int*>(src_data+4), *reinterpret_cast<const int*>(src_data))
+								);
+							src_data += 8,
+							dst_data += 8;
+						}
+						if(src_width & 0x1){
+							if(src_data[3] > 0)
+								*reinterpret_cast<int*>(dst_data) = _mm_cvtsi64_si32(
+									_mm_adds_pu8(
+										_mm_cvtsi32_si64(*reinterpret_cast<const int*>(dst_data)),
+										_mm_cvtsi32_si64(*reinterpret_cast<const int*>(src_data))
+									)
+								);
+							src_data += 4,
+							dst_data += 4;
+						}
+#else
 						src_row_end = src_data + (src_width << 2);
 						while(src_data != src_row_end){
 							if(src_data[3] > 0)
@@ -289,6 +320,7 @@ namespace GUtils{
 							src_data += 4,
 							dst_data += 4;
 						}
+#endif
 						src_data += src_offset,
 						dst_data += dst_offset;
 					}
@@ -336,6 +368,41 @@ namespace GUtils{
 			case BlendOp::SUB:
 				if(src_with_alpha && dst_with_alpha)
 					while(src_data != src_data_end){
+#ifdef __SSE2__
+						src_row_end = src_data + ((src_width & ~0x3) << 2);
+						while(src_data != src_row_end){
+							if(src_data[3] > 0 || src_data[7] > 0)
+								_mm_storeu_si128(
+									reinterpret_cast<__m128i*>(dst_data),
+									_mm_subs_epu8(
+										_mm_loadu_si128(reinterpret_cast<const __m128i*>(dst_data)),
+										_mm_loadu_si128(reinterpret_cast<const __m128i*>(src_data))
+									)
+								);
+							src_data += 16,
+							dst_data += 16;
+						}
+						if(src_width & 0x2){
+							if(src_data[3] > 0)
+								*reinterpret_cast<__m64*>(dst_data) = _mm_subs_pu8(
+									_mm_set_pi32(*reinterpret_cast<const int*>(dst_data+4), *reinterpret_cast<const int*>(dst_data)),
+									_mm_set_pi32(*reinterpret_cast<const int*>(src_data+4), *reinterpret_cast<const int*>(src_data))
+								);
+							src_data += 8,
+							dst_data += 8;
+						}
+						if(src_width & 0x1){
+							if(src_data[3] > 0)
+								*reinterpret_cast<int*>(dst_data) = _mm_cvtsi64_si32(
+									_mm_subs_pu8(
+										_mm_cvtsi32_si64(*reinterpret_cast<const int*>(dst_data)),
+										_mm_cvtsi32_si64(*reinterpret_cast<const int*>(src_data))
+									)
+								);
+							src_data += 4,
+							dst_data += 4;
+						}
+#else
 						src_row_end = src_data + (src_width << 2);
 						while(src_data != src_row_end){
 							if(src_data[3] > 0)
@@ -346,6 +413,7 @@ namespace GUtils{
 							src_data += 4,
 							dst_data += 4;
 						}
+#endif
 						src_data += src_offset,
 						dst_data += dst_offset;
 					}
@@ -396,6 +464,47 @@ namespace GUtils{
 			case BlendOp::MUL:
 				if(src_with_alpha && dst_with_alpha)
 					while(src_data != src_data_end){
+#ifdef __SSE2__
+						src_row_end = src_data + ((src_width & ~0x1) << 2);
+						while(src_data != src_row_end){
+
+
+						}
+						if(src_width & 0x1){
+							if(src_data[3] > 0){
+								if(dst_data[3] == 0)
+									MMX_STORE_16_U8(
+										dst_data,
+										MMX_DIV255_U16(
+											_mm_mullo_pi16(
+												MMX_LOAD_U8_16(dst_data),
+												_mm_set1_pi16(src_data[3] ^ 0xFF)
+											)
+										)
+									),
+									dst_data[3] = src_data[3];
+								else if(src_data[3] == 255 && dst_data[3] == 255)
+									MMX_STORE_16_U8(
+										dst_data,
+										MMX_DIV255_U16(
+											_mm_mullo_pi16(
+												MMX_LOAD_U8_16(dst_data),
+												MMX_LOAD_U8_16(src_data)
+											)
+										)
+									);
+								else
+
+									MMX_MUL255_U16_UNSAFE(
+										MMX_LOAD_U8_16(dst_data)
+									);
+
+
+							}
+							src_data += 4,
+							dst_data += 4;
+						}
+#else
 						src_row_end = src_data + (src_width << 2);
 						while(src_data != src_row_end){
 							if(src_data[3] > 0){
@@ -419,6 +528,7 @@ namespace GUtils{
 							src_data += 4,
 							dst_data += 4;
 						}
+#endif
 						src_data += src_offset,
 						dst_data += dst_offset;
 					}
