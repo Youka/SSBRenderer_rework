@@ -74,5 +74,6 @@ namespace GUtils{
 		const int dst_x, const int dst_y, const BlendOp op);
 
 	enum class ColorDepth{X1/* A */, X3/* RGB */, X4/* RGBA */};
-	void blur(unsigned char* data, const unsigned width, const unsigned height, const unsigned stride, const ColorDepth depth, const float strength);
+	void blur(unsigned char* data, const unsigned width, const unsigned height, const unsigned stride, const ColorDepth depth,
+		const float strength_h, const float strength_v);
 }

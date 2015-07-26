@@ -19,8 +19,14 @@ Permission is granted to anyone to use this software for any purpose, including 
 #include <cmath>
 #include <algorithm>
 #include <thread>
+#ifdef _WIN32
+	#define WIN32_LEAN_AND_MEAN
+	#include <windows.h>
+#else
+        #include <unistd.h>
+#endif
 
-inline std::vector<float> create_gauss_kernel(float radius){
+std::vector<float> create_gauss_kernel(float radius){
 	// Allocate kernel
 	const int radius_i = ::ceil(radius);
 	std::vector<float> kernel((radius_i << 1) + 1
@@ -36,10 +42,7 @@ inline std::vector<float> create_gauss_kernel(float radius){
 	for(int x = -radius_i; x <= radius_i; ++x)
 		*pkernel++ = part1 * ::exp(-(x*x) / sqrsigma2);
 	// Smooth kernel edges
-	const float radius_fract = radius - ::floor(radius);
-	if(radius_fract > 0)
-		kernel.front() *= radius_fract,
-		kernel.back() *= radius_fract;
+	kernel.front() = kernel.back() *= 1 - (radius_i - radius);
 	// Normalize kernel
 	float kernel_sum = std::accumulate(kernel.begin(), kernel.end(), 0.0f);
 	if(kernel_sum != 1){
@@ -51,14 +54,68 @@ inline std::vector<float> create_gauss_kernel(float radius){
 }
 
 namespace GUtils{
-	void blur(unsigned char* data, const unsigned width, const unsigned height, const unsigned stride, const ColorDepth depth, const float strength){
+	void blur(unsigned char* data, const unsigned width, const unsigned height, const unsigned stride, const ColorDepth depth,
+		const float strength_h, const float strength_v){
 		// Anything to do?
-		if(strength <= 0)
+		if(strength_h <= 0 && strength_v <= 0)
 			return;
-		// Generate filter kernel
-		auto kernel = std::move(create_gauss_kernel(strength));
+		// Generate filter kernels
+		std::vector<float> kernel_h, kernel_v;
+		if(strength_h > 0) kernel_h = std::move(create_gauss_kernel(strength_h));
+		if(strength_v > 0) kernel_v = strength_v == strength_h ? kernel_h : std::move(create_gauss_kernel(strength_v));
+		// Setup buffers for data in floating point format (required for faster processing)
+		const unsigned trimmed_stride = depth == ColorDepth::X1 ? width : (depth == ColorDepth::X3 ? width * 3 : width << 2/* X4 */);
+		std::vector<float> fdata(height * trimmed_stride
+#ifdef __SSE2__
+	, 		Align16Allocator<float>()
+#endif
+		), fdata2(fdata.size(), fdata.get_allocator());
+		if(stride == trimmed_stride)
+			std::copy(data, data+fdata.size(), fdata.begin());
+		else{
+			const unsigned char* pdata = data;
+			float* pfdata = fdata.data();
+			for(unsigned y = 0; y < height; ++y)
+				pfdata = std::copy(pdata, pdata+trimmed_stride, pfdata),
+				pdata += stride;
+		}
+		// Get threads number
+                unsigned threads_n = std::thread::hardware_concurrency();
+                if(!threads_n)	// std::thread::hardware_concurrency is just a hint, means, no or bad implementations
+#ifdef _WIN32
+			{
+				SYSTEM_INFO si;
+				GetSystemInfo(&si);
+				threads_n = si.dwNumberOfProcessors;
+			}
+#else
+			threads_n = sysconf(_SC_NPROCESSORS_ONLN);
+#endif
+		const unsigned remote_threads_n = threads_n - 1;
+		// Create threads & run for horizontal blur
+		std::vector<std::thread> threads;
+		threads.reserve(remote_threads_n);
+		auto blur_h = [&](unsigned i){
 
-		// TODO
+			// TODO: kernel check & horizontal blur
 
+		};
+		for(unsigned thread_i = 0; thread_i < remote_threads_n; ++thread_i)
+			threads.emplace_back(blur_h, thread_i);
+		blur_h(remote_threads_n);
+		for(std::thread& t : threads)
+			t.join();
+		// Recreate threads & run for vertical blur
+		threads.clear();
+		auto blur_v = [&](unsigned i){
+
+			// TODO: kernel check & vertical blur
+
+		};
+		for(unsigned thread_i = 0; thread_i < remote_threads_n; ++thread_i)
+			threads.emplace_back(blur_v, thread_i);
+		blur_v(remote_threads_n);
+		for(std::thread& t : threads)
+			t.join();
 	}
 }
