@@ -62,3 +62,19 @@ Divide unsigned short by constant 255:
 > DWORD(x * 0x8081) >> 0x17
 > HWORD((x << 15) + (x << 7) + x) >> 7
 */
+
+#ifdef __cplusplus
+#include <memory>
+#include <malloc.h>
+template<typename T>
+struct Align16Allocator : public std::allocator<T>{
+	T* allocate(std::size_t n, const void* = 0){
+		void* p = _mm_malloc(sizeof(T) * n, 16);
+		if(!p) throw std::bad_alloc();
+		return p;
+	}
+	void deallocate(T* p, std::size_t){
+		_mm_free(p);
+	}
+};
+#endif
