@@ -468,7 +468,7 @@ namespace GUtils{
 						src_row_end = src_data + ((src_width & ~0x1) << 2);
 						while(src_data != src_row_end){
 							if(src_data[3] > 0 || src_data[7] > 0){
-								if(dst_data[3] == 0)
+								if(dst_data[3] == 0 && dst_data[7] == 0)
 									SSE2_STORE_16_U8(
 										dst_data,
 										SSE2_DIV255_U16(
@@ -480,7 +480,7 @@ namespace GUtils{
 									),
 									dst_data[3] = src_data[3],
 									dst_data[7] = src_data[7];
-								else if(src_data[3] == 255 && dst_data[3] == 255)
+								else if(src_data[3] == 255 && dst_data[3] == 255 && src_data[7] == 255 && dst_data[7] == 255)
 									SSE2_STORE_16_U8(
 										dst_data,
 										SSE2_DIV255_U16(
@@ -491,8 +491,8 @@ namespace GUtils{
 										)
 									);
 								else{
-									__m128i xmm0 = SSE2_LOAD_U8_16(dst_data),
-										xmm1 = SSE2_SET2_U16(src_data[7], src_data[3]);
+									__m128i a = SSE2_LOAD_U8_16(dst_data),
+										b = SSE2_SET2_U16(src_data[7], src_data[3]);
 									inv_alpha = src_data[3] ^ 0xFF,
 									inv_alpha2 = src_data[7] ^ 0xFF,
 									SSE2_STORE_16_U8(
@@ -504,7 +504,7 @@ namespace GUtils{
 														_mm_mullo_epi16(
 															SSE2_DIV_U16(
 																SSE2_MUL255_U16_UNSAFE(
-																	xmm0
+																	a
 																),
 																SSE2_SET2_U16(dst_data[7], dst_data[3])
 															),
@@ -512,16 +512,16 @@ namespace GUtils{
 																SSE2_MUL255_U16_UNSAFE(
 																	SSE2_LOAD_U8_16(src_data)
 																),
-																xmm1
+																b
 															)
 														)
 													),
-													xmm1
+													b
 												)
 											),
 											SSE2_DIV255_U16(
 												_mm_mullo_epi16(
-													xmm0,
+													a,
 													SSE2_SET2_U16(inv_alpha2, inv_alpha)
 												)
 											)
@@ -558,8 +558,8 @@ namespace GUtils{
 										)
 									);
 								else{
-									__m64 xmm0 = MMX_LOAD_U8_16(dst_data),
-										xmm1 = _mm_set1_pi16(src_data[3]);
+									__m64 a = MMX_LOAD_U8_16(dst_data),
+										b = _mm_set1_pi16(src_data[3]);
 									inv_alpha = src_data[3] ^ 0xFF,
 									MMX_STORE_16_U8(
 										dst_data,
@@ -570,7 +570,7 @@ namespace GUtils{
 														_mm_mullo_pi16(
 															MMX_DIV_U16(
 																MMX_MUL255_U16_UNSAFE(
-																	xmm0
+																	a
 																),
 																_mm_set1_pi16(dst_data[3])
 															),
@@ -578,16 +578,16 @@ namespace GUtils{
 																MMX_MUL255_U16_UNSAFE(
 																	MMX_LOAD_U8_16(src_data)
 																),
-																xmm1
+																b
 															)
 														)
 													),
-													xmm1
+													b
 												)
 											),
 											MMX_DIV255_U16(
 												_mm_mullo_pi16(
-													xmm0,
+													a,
 													_mm_set1_pi16(inv_alpha)
 												)
 											)
@@ -691,6 +691,172 @@ namespace GUtils{
 			case BlendOp::SCR:
 				if(src_with_alpha && dst_with_alpha)
 					while(src_data != src_data_end){
+#ifdef __SSE2__
+						src_row_end = src_data + ((src_width & ~0x1) << 2);
+						while(src_data != src_row_end){
+							if(src_data[3] > 0 || dst_data[7] > 0){
+								if(dst_data[3] == 0 && dst_data[7] == 0)
+									SSE2_STORE_16_U8(
+										dst_data,
+										_mm_add_epi16(
+											SSE2_LOAD_U8_16(src_data),
+											SSE2_DIV255_U16(
+												_mm_mullo_epi16(
+													SSE2_LOAD_U8_16(dst_data),
+													SSE2_SET2_U16(src_data[7] ^ 0xFF, src_data[3] ^ 0xFF)
+												)
+											)
+										)
+									),
+									dst_data[3] = src_data[3],
+									dst_data[7] = src_data[7];
+								else if(src_data[3] == 255 && dst_data[3] == 255 && src_data[7] == 255 && dst_data[7] == 255)
+									SSE2_STORE_16_U8(
+										dst_data,
+										SSE2_INV_LBYTE_U16(
+											SSE2_DIV255_U16(
+												_mm_mullo_epi16(
+													SSE2_INV_LBYTE_U16(
+														SSE2_LOAD_U8_16(dst_data)
+													),
+													SSE2_INV_LBYTE_U16(
+														SSE2_LOAD_U8_16(src_data)
+													)
+												)
+											)
+										)
+									);
+								else{
+									__m128i a = SSE2_LOAD_U8_16(dst_data),
+										b = SSE2_SET2_U16(src_data[7], src_data[3]);
+									inv_alpha = src_data[3] ^ 0xFF,
+									inv_alpha2 = src_data[7] ^ 0xFF,
+									SSE2_STORE_16_U8(
+										dst_data,
+										_mm_add_epi16(
+											SSE2_DIV255_U16(
+												_mm_mullo_epi16(
+													SSE2_INV_LBYTE_U16(
+														SSE2_DIV255_U16(
+															_mm_mullo_epi16(
+																SSE2_INV_LBYTE_U16(
+																	SSE2_DIV_U16(
+																		SSE2_MUL255_U16_UNSAFE(
+																			a
+																		),
+																		SSE2_SET2_U16(dst_data[7], dst_data[3])
+																	)
+																),
+																SSE2_INV_LBYTE_U16(
+																	SSE2_DIV_U16(
+																		SSE2_MUL255_U16_UNSAFE(
+																			SSE2_LOAD_U8_16(src_data)
+																		),
+																		b
+																	)
+																)
+															)
+														)
+													),
+													b
+												)
+											),
+											SSE2_DIV255_U16(
+												_mm_mullo_epi16(
+													a,
+													SSE2_SET2_U16(inv_alpha2, inv_alpha)
+												)
+											)
+										)
+									),
+									dst_data[3] = src_data[3] + dst_data[3] * inv_alpha / 255,
+									dst_data[7] = src_data[7] + dst_data[7] * inv_alpha2 / 255;
+								}
+							}
+							src_data += 8,
+							dst_data += 8;
+						}
+						if(src_width & 0x1){
+							if(src_data[3] > 0){
+								if(dst_data[3] == 0)
+									MMX_STORE_16_U8(
+										dst_data,
+										_mm_add_pi16(
+											MMX_LOAD_U8_16(src_data),
+											MMX_DIV255_U16(
+												_mm_mullo_pi16(
+													MMX_LOAD_U8_16(dst_data),
+													_mm_set1_pi16(src_data[3] ^ 0xFF)
+												)
+											)
+										)
+									),
+									dst_data[3] = src_data[3];
+								else if(src_data[3] == 255 && dst_data[3] == 255)
+									MMX_STORE_16_U8(
+										dst_data,
+										MMX_INV_LBYTE_U16(
+											MMX_DIV255_U16(
+												_mm_mullo_pi16(
+													MMX_INV_LBYTE_U16(
+														MMX_LOAD_U8_16(dst_data)
+													),
+													MMX_INV_LBYTE_U16(
+														MMX_LOAD_U8_16(src_data)
+													)
+												)
+											)
+										)
+									);
+								else{
+									__m64 a = MMX_LOAD_U8_16(dst_data),
+										b = _mm_set1_pi16(src_data[3]);
+									inv_alpha = src_data[3] ^ 0xFF,
+									MMX_STORE_16_U8(
+										dst_data,
+										_mm_add_pi16(
+											MMX_DIV255_U16(
+												_mm_mullo_pi16(
+													MMX_INV_LBYTE_U16(
+														MMX_DIV255_U16(
+															_mm_mullo_pi16(
+																MMX_INV_LBYTE_U16(
+																	MMX_DIV_U16(
+																		MMX_MUL255_U16_UNSAFE(
+																			a
+																		),
+																		_mm_set1_pi16(dst_data[3])
+																	)
+																),
+																MMX_INV_LBYTE_U16(
+																	MMX_DIV_U16(
+																		MMX_MUL255_U16_UNSAFE(
+																			MMX_LOAD_U8_16(src_data)
+																		),
+																		b
+																	)
+																)
+															)
+														)
+													),
+													b
+												)
+											),
+											MMX_DIV255_U16(
+												_mm_mullo_pi16(
+													a,
+													_mm_set1_pi16(inv_alpha)
+												)
+											)
+										)
+									),
+									dst_data[3] = src_data[3] + dst_data[3] * inv_alpha / 255;
+								}
+							}
+							src_data += 4,
+							dst_data += 4;
+						}
+#else
 						src_row_end = src_data + (src_width << 2);
 						while(src_data != src_row_end){
 							if(src_data[3] > 0){
@@ -714,6 +880,7 @@ namespace GUtils{
 							src_data += 4,
 							dst_data += 4;
 						}
+#endif
 						src_data += src_offset,
 						dst_data += dst_offset;
 					}
@@ -781,6 +948,142 @@ namespace GUtils{
 			case BlendOp::DIFF:
 				if(src_with_alpha && dst_with_alpha)
 					while(src_data != src_data_end){
+#ifdef __SSE2__
+						src_row_end = src_data + ((src_width & ~0x1) << 2);
+						while(src_data != src_row_end){
+							if(src_data[3] > 0 || src_data[7] > 0){
+								if(dst_data[3] == 0 && dst_data[7] == 0)
+									SSE2_STORE_16_U8(
+										dst_data,
+										_mm_add_epi16(
+											SSE2_LOAD_U8_16(src_data),
+											SSE2_DIV255_U16(
+												_mm_mullo_epi16(
+													SSE2_LOAD_U8_16(dst_data),
+													SSE2_SET2_U16(src_data[7] ^ 0xFF, src_data[3] ^ 0xFF)
+												)
+											)
+										)
+									),
+									dst_data[3] = src_data[3],
+									dst_data[7] = src_data[7];
+								else if(src_data[3] == 255 && dst_data[3] == 255 && src_data[7] == 255 && dst_data[7] == 255)
+									_mm_storel_epi64(
+										reinterpret_cast<__m128i*>(dst_data),
+										SSE2_ABSDIFF_U8(
+											_mm_loadl_epi64(reinterpret_cast<const __m128i*>(dst_data)),
+											_mm_loadl_epi64(reinterpret_cast<const __m128i*>(src_data))
+										)
+									),
+									dst_data[3] = 255,
+									dst_data[7] = 255;
+								else{
+									__m128i a = SSE2_LOAD_U8_16(dst_data),
+										b = SSE2_SET2_U16(src_data[7], src_data[3]);
+									inv_alpha = src_data[3] ^ 0xFF,
+									inv_alpha2 = src_data[7] ^ 0xFF,
+									SSE2_STORE_16_U8(
+										dst_data,
+										_mm_add_epi16(
+											SSE2_DIV255_U16(
+												_mm_mullo_epi16(
+													SSE2_ABSDIFF_U8(
+														SSE2_DIV_U16(
+															SSE2_MUL255_U16_UNSAFE(
+																SSE2_LOAD_U8_16(dst_data)
+															),
+															SSE2_SET2_U16(dst_data[7], dst_data[3])
+														),
+														SSE2_DIV_U16(
+															SSE2_MUL255_U16_UNSAFE(
+																SSE2_LOAD_U8_16(src_data)
+															),
+															b
+														)
+													),
+													b
+												)
+											),
+											SSE2_DIV255_U16(
+												_mm_mullo_epi16(
+													a,
+													SSE2_SET2_U16(inv_alpha2, inv_alpha)
+												)
+											)
+										)
+									),
+									dst_data[3] = src_data[3] + dst_data[3] * inv_alpha / 255,
+									dst_data[7] = src_data[7] + dst_data[7] * inv_alpha2 / 255;
+								}
+							}
+							src_data += 8,
+							dst_data += 8;
+						}
+						if(src_width & 0x1){
+							if(src_data[3] > 0){
+								if(dst_data[3] == 0)
+									MMX_STORE_16_U8(
+										dst_data,
+										_mm_add_pi16(
+											MMX_LOAD_U8_16(src_data),
+											MMX_DIV255_U16(
+												_mm_mullo_pi16(
+													MMX_LOAD_U8_16(dst_data),
+													_mm_set1_pi16(src_data[3] ^ 0xFF)
+												)
+											)
+										)
+									),
+									dst_data[3] = src_data[3];
+								else if(src_data[3] == 255 && dst_data[3] == 255)
+									*reinterpret_cast<int*>(dst_data) = _mm_cvtsi64_si32(
+										MMX_ABSDIFF_U8(
+											_mm_cvtsi32_si64(*reinterpret_cast<const int*>(dst_data)),
+											_mm_cvtsi32_si64(*reinterpret_cast<const int*>(src_data))
+										)
+									),
+									dst_data[3] = 255;
+								else{
+									__m64 a = MMX_LOAD_U8_16(dst_data),
+										b = _mm_set1_pi16(src_data[3]);
+									inv_alpha = src_data[3] ^ 0xFF,
+									MMX_STORE_16_U8(
+										dst_data,
+										_mm_add_pi16(
+											MMX_DIV255_U16(
+												_mm_mullo_pi16(
+													MMX_ABSDIFF_U8(
+														MMX_DIV_U16(
+															MMX_MUL255_U16_UNSAFE(
+																MMX_LOAD_U8_16(dst_data)
+															),
+															_mm_set1_pi16(dst_data[3])
+														),
+														MMX_DIV_U16(
+															MMX_MUL255_U16_UNSAFE(
+																MMX_LOAD_U8_16(src_data)
+															),
+															b
+														)
+													),
+													b
+												)
+											),
+											MMX_DIV255_U16(
+												_mm_mullo_pi16(
+													a,
+													_mm_set1_pi16(inv_alpha)
+												)
+											)
+										)
+									),
+									dst_data[3] = src_data[3] + dst_data[3] * inv_alpha / 255;
+								}
+							}
+							src_data += 4,
+							dst_data += 4;
+						}
+#else
 						src_row_end = src_data + (src_width << 2);
 						while(src_data != src_row_end){
 							if(src_data[3] > 0){
@@ -804,6 +1107,7 @@ namespace GUtils{
 							src_data += 4,
 							dst_data += 4;
 						}
+#endif
 						src_data += src_offset,
 						dst_data += dst_offset;
 					}

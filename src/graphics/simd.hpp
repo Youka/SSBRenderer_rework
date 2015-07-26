@@ -30,7 +30,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 #define MMX_MUL255_U16_UNSAFE(x) _mm_sub_pi16(_mm_slli_pi16(x, 8), x) // x mustn't be >255 (shift operation may cut away relevant bits)
 #define MMX_ABSDIFF_U8(x1, x2) _mm_sub_pi8(_mm_max_pu8(x1, x2), _mm_min_pu8(x1, x2))
 #define MMX_DIV_U16(x1, x2) _mm_cvtps_pi16(_mm_div_ps(_mm_cvtpu16_ps(x1), _mm_cvtpu16_ps(x2)))
-#define MMX_INV_BYTE1_U16(x) _mm_xor_si64(x, _mm_set1_pi16(0xFF))
+#define MMX_INV_LBYTE_U16(x) _mm_xor_si64(x, _mm_set1_pi16(0xFF))
 
 #define SSE2_LOAD_U8_16(x) _mm_unpacklo_epi8(_mm_loadl_epi64(reinterpret_cast<const __m128i*>(x)), _mm_setzero_si128())
 #define SSE2_STORE_16_U8(mem, x) _mm_storel_epi64(reinterpret_cast<__m128i*>(mem), _mm_packus_epi16(x, _mm_setzero_si128()))
@@ -54,7 +54,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 			) \
 		) \
 	)
-#define SSE2_INV_BYTE1_U16(x) _mm_xor_si128(x, _mm_set1_epi16(0xFF))
+#define SSE2_INV_LBYTE_U16(x) _mm_xor_si128(x, _mm_set1_epi16(0xFF))
 
 /*
 Divide unsigned short by constant 255:
