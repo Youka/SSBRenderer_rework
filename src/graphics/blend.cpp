@@ -48,7 +48,7 @@ namespace GUtils{
 		const unsigned src_offset = src_stride - (src_with_alpha ? src_width << 2 : (src_width << 1) + src_width),
 			dst_offset = dst_stride - (dst_with_alpha ? src_width << 2 : (src_width << 1) + src_width);
 		// Often used temporaries
-		unsigned char inv_alpha,	// Inverted alpha
+		unsigned char inv_alpha, inv_alpha2,	// Inverted alpha
 			tmp[16],	// Storage for non-2^n unpack
 			*ptmp = tmp;	// Just to make the compiler stop crying about strict-aliasing
 		// Blend by operation
@@ -467,8 +467,72 @@ namespace GUtils{
 #ifdef __SSE2__
 						src_row_end = src_data + ((src_width & ~0x1) << 2);
 						while(src_data != src_row_end){
-
-
+							if(src_data[3] > 0 || src_data[7] > 0){
+								if(dst_data[3] == 0)
+									SSE2_STORE_16_U8(
+										dst_data,
+										SSE2_DIV255_U16(
+											_mm_mullo_epi16(
+												SSE2_LOAD_U8_16(dst_data),
+												SSE2_SET2_U16(src_data[7] ^ 0xFF, src_data[3] ^ 0xFF)
+											)
+										)
+									),
+									dst_data[3] = src_data[3],
+									dst_data[7] = src_data[7];
+								else if(src_data[3] == 255 && dst_data[3] == 255)
+									SSE2_STORE_16_U8(
+										dst_data,
+										SSE2_DIV255_U16(
+											_mm_mullo_epi16(
+												SSE2_LOAD_U8_16(dst_data),
+												SSE2_LOAD_U8_16(src_data)
+											)
+										)
+									);
+								else{
+									__m128i xmm0 = SSE2_LOAD_U8_16(dst_data),
+										xmm1 = SSE2_SET2_U16(src_data[7], src_data[3]);
+									inv_alpha = src_data[3] ^ 0xFF,
+									inv_alpha2 = src_data[7] ^ 0xFF,
+									SSE2_STORE_16_U8(
+										dst_data,
+										_mm_add_epi16(
+											SSE2_DIV255_U16(
+												_mm_mullo_epi16(
+													SSE2_DIV255_U16(
+														_mm_mullo_epi16(
+															SSE2_DIV_U16(
+																SSE2_MUL255_U16_UNSAFE(
+																	xmm0
+																),
+																SSE2_SET2_U16(dst_data[7], dst_data[3])
+															),
+															SSE2_DIV_U16(
+																SSE2_MUL255_U16_UNSAFE(
+																	SSE2_LOAD_U8_16(src_data)
+																),
+																xmm1
+															)
+														)
+													),
+													xmm1
+												)
+											),
+											SSE2_DIV255_U16(
+												_mm_mullo_epi16(
+													xmm0,
+													SSE2_SET2_U16(inv_alpha2, inv_alpha)
+												)
+											)
+										)
+									),
+									dst_data[3] = src_data[3] + dst_data[3] * inv_alpha / 255,
+									dst_data[7] = src_data[7] + dst_data[7] * inv_alpha2 / 255;
+								}
+							}
+							src_data += 8,
+							dst_data += 8;
 						}
 						if(src_width & 0x1){
 							if(src_data[3] > 0){
@@ -493,13 +557,44 @@ namespace GUtils{
 											)
 										)
 									);
-								else
-
-									MMX_MUL255_U16_UNSAFE(
-										MMX_LOAD_U8_16(dst_data)
-									);
-
-
+								else{
+									__m64 xmm0 = MMX_LOAD_U8_16(dst_data),
+										xmm1 = _mm_set1_pi16(src_data[3]);
+									inv_alpha = src_data[3] ^ 0xFF,
+									MMX_STORE_16_U8(
+										dst_data,
+										_mm_add_pi16(
+											MMX_DIV255_U16(
+												_mm_mullo_pi16(
+													MMX_DIV255_U16(
+														_mm_mullo_pi16(
+															MMX_DIV_U16(
+																MMX_MUL255_U16_UNSAFE(
+																	xmm0
+																),
+																_mm_set1_pi16(dst_data[3])
+															),
+															MMX_DIV_U16(
+																MMX_MUL255_U16_UNSAFE(
+																	MMX_LOAD_U8_16(src_data)
+																),
+																xmm1
+															)
+														)
+													),
+													xmm1
+												)
+											),
+											MMX_DIV255_U16(
+												_mm_mullo_pi16(
+													xmm0,
+													_mm_set1_pi16(inv_alpha)
+												)
+											)
+										)
+									),
+									dst_data[3] = src_data[3] + dst_data[3] * inv_alpha / 255;
+								}
 							}
 							src_data += 4,
 							dst_data += 4;
