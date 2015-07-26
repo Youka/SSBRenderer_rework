@@ -26,7 +26,7 @@ Permission is granted to anyone to use this software for any purpose, including 
         #include <unistd.h>
 #endif
 
-std::vector<float> create_gauss_kernel(float radius){
+std::vector<float> create_gauss_kernel(const float radius){
 	// Allocate kernel
 	const int radius_i = ::ceil(radius);
 	std::vector<float> kernel((radius_i << 1) + 1
@@ -34,22 +34,21 @@ std::vector<float> create_gauss_kernel(float radius){
 	, Align16Allocator<float>()
 #endif
 	);
-	// Generate gaussian kernel
-	float* pkernel = kernel.data();
+	// Generate gaussian kernel (first half)
+	auto kernel_iter = kernel.begin();
 	const float sigma = (radius * 2 + 1) / 3,
 		part1 = 1 / (sigma * ::sqrt(2 * M_PI)),
 		sqrsigma2 = 2 * sigma * sigma;
-	for(int x = -radius_i; x <= radius_i; ++x)
-		*pkernel++ = part1 * ::exp(-(x*x) / sqrsigma2);
-	// Smooth kernel edges
-	kernel.front() = kernel.back() *= 1 - (radius_i - radius);
+	for(int x = -radius_i; x <= 0; ++x)
+		*kernel_iter++ = part1 * ::exp(-(x*x) / sqrsigma2);
+	// Smooth kernel edge
+	kernel.front() *= 1 - (radius_i - radius);
+	// Complete kernel (second half)
+	std::copy(kernel.begin(), --kernel_iter, kernel.rbegin());
 	// Normalize kernel
-	float kernel_sum = std::accumulate(kernel.begin(), kernel.end(), 0.0f);
-	if(kernel_sum != 1){
-		kernel_sum = 1 / kernel_sum;
-		for(float& kernel_value : kernel)
-			kernel_value *= kernel_sum;
-	}
+	const float kernel_sum_inverse = 1 / std::accumulate(kernel.begin(), kernel.end(), 0.0f);
+	for(float& kernel_value : kernel)
+		kernel_value *= kernel_sum_inverse;
 	return kernel;
 }
 
