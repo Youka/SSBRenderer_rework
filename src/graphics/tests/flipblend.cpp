@@ -15,7 +15,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 #include "../gutils.hpp"
 #include "tga.hpp"
 #include "test_images.h"
-#include <memory>
+#include <vector>
 #include <stdexcept>
 
 int main(){
@@ -25,18 +25,16 @@ int main(){
 	if(!write_tga("original2.tga", test_image2.width, test_image2.height, test_image2.stride, test_image2.has_alpha, test_image2.data))
 		throw std::domain_error("Couldn't write to second original file!");
 	// Write flipped image2
-	std::unique_ptr<unsigned char> buffer(new unsigned char[test_image2.height * test_image2.stride]);
-	GUtils::flip(const_cast<const unsigned char*>(test_image2.data), test_image2.height, test_image2.stride, buffer.get());
-	if(!write_tga("flip2.tga", test_image2.width, test_image2.height, test_image2.stride, test_image2.has_alpha, buffer.get()))
+	std::vector<unsigned char> buffer(test_image2.data, test_image2.data + test_image2.height*test_image2.stride);
+	GUtils::flip(buffer.data(), test_image2.height, test_image2.stride);
+	if(!write_tga("flip2.tga", test_image2.width, test_image2.height, test_image2.stride, test_image2.has_alpha, buffer.data()))
 		throw std::domain_error("Couldn't write to flipped second file!");
 	// Write image2 blended on image1
-	const unsigned test_image1_size = test_image1.height * test_image1.stride;
-	buffer.reset(new unsigned char[test_image1_size]);
-	std::copy(test_image1.data, test_image1.data+test_image1_size, buffer.get());
+	buffer.assign(test_image1.data, test_image1.data + test_image1.height*test_image1.stride);
 	GUtils::blend(test_image2.data, test_image2.width, test_image2.height, test_image2.stride, test_image2.has_alpha,
-		buffer.get(), test_image1.width, test_image1.height, test_image1.stride, test_image1.has_alpha,
+		buffer.data(), test_image1.width, test_image1.height, test_image1.stride, test_image1.has_alpha,
 		100, 50, GUtils::BlendOp::DIFF);
-	if(!write_tga("blend.tga", test_image1.width, test_image1.height, test_image1.stride, test_image1.has_alpha, buffer.get()))
+	if(!write_tga("blend.tga", test_image1.width, test_image1.height, test_image1.stride, test_image1.has_alpha, buffer.data()))
 		throw std::domain_error("Couldn't write to blend result file!");
 	return 0;
 }

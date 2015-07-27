@@ -15,4 +15,8 @@ if(${TEST_GRAPHICS})
 	add_executable(ssbgraphics_flipblend tests/flipblend.cpp tests/tga.hpp tests/test_images.h)
 	target_link_libraries(ssbgraphics_flipblend ssbgraphics)
 	add_test(ssbgraphics_flipblend_test ssbgraphics_flipblend)
+	# Create blur test
+	add_executable(ssbgraphics_blur tests/blurred.cpp tests/tga.hpp tests/test_images.h)
+	target_link_libraries(ssbgraphics_blur ssbgraphics)
+	add_test(ssbgraphics_blur_test ssbgraphics_blur)
 endif()
