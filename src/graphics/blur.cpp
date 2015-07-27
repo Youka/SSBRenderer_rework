@@ -62,7 +62,8 @@ namespace GUtils{
 #ifdef __SSE2__
 	, 		AlignedAllocator<float,16>()
 #endif
-		), fdata2(fdata.size(), fdata.get_allocator());
+		), fdata2(kernel_h.empty() || kernel_v.empty() ? 0 : fdata.size()/* Don't waste memory when just one blur happens */, fdata.get_allocator());
+		// Copy data in first FP buffer
 		if(stride == trimmed_stride)
 			std::copy(data, data+fdata.size(), fdata.begin());
 		else{
@@ -76,64 +77,65 @@ namespace GUtils{
 		// Get threads number
 		const unsigned threads_n = stdex::hardware_concurrency(),
 			remote_threads_n = threads_n - 1;
-		// Create threads & run for horizontal blur
+		// Create blur threads storage
 		std::vector<std::thread> threads;
 		threads.reserve(remote_threads_n);
-		auto blur_h = [&](unsigned i){
+		// Run threads for horizontal blur
+		if(!kernel_h.empty()){
+			auto blur_h = [&](unsigned i){
+				switch(depth){
+					case ColorDepth::X1:
+						if(kernel_v.empty())
+							;// TODO
+						else
+							;// TODO
+						break;
+					case ColorDepth::X3:
 
-			// TODO: kernel check
+						// TODO
 
-			switch(depth){
-				case ColorDepth::X1:
+						break;
+					case ColorDepth::X4:
 
-					// TODO
+						// TODO
 
-					break;
-				case ColorDepth::X3:
+						break;
+				}
+			};
+			for(unsigned thread_i = 0; thread_i < remote_threads_n; ++thread_i)
+				threads.emplace_back(blur_h, thread_i);
+			blur_h(remote_threads_n);
+			for(std::thread& t : threads)
+				t.join();
+			threads.clear();
+		}
+		// Run threads for vertical blur
+		if(!kernel_v.empty()){
+			auto blur_v = [&](unsigned i){
+				switch(depth){
+					case ColorDepth::X1:
+						if(kernel_v.empty())
+							;// TODO
+						else
+							;// TODO
+						break;
+					case ColorDepth::X3:
 
-					// TODO
+						// TODO
 
-					break;
-				case ColorDepth::X4:
+						break;
+					case ColorDepth::X4:
 
-					// TODO
+						// TODO
 
-					break;
-			}
-		};
-		for(unsigned thread_i = 0; thread_i < remote_threads_n; ++thread_i)
-			threads.emplace_back(blur_h, thread_i);
-		blur_h(remote_threads_n);
-		for(std::thread& t : threads)
-			t.join();
-		// Recreate threads & run for vertical blur
-		threads.clear();
-		auto blur_v = [&](unsigned i){
-
-			// TODO: kernel check
-
-			switch(depth){
-				case ColorDepth::X1:
-
-					// TODO
-
-					break;
-				case ColorDepth::X3:
-
-					// TODO
-
-					break;
-				case ColorDepth::X4:
-
-					// TODO
-
-					break;
-			}
-		};
-		for(unsigned thread_i = 0; thread_i < remote_threads_n; ++thread_i)
-			threads.emplace_back(blur_v, thread_i);
-		blur_v(remote_threads_n);
-		for(std::thread& t : threads)
-			t.join();
+						break;
+				}
+			};
+			for(unsigned thread_i = 0; thread_i < remote_threads_n; ++thread_i)
+				threads.emplace_back(blur_v, thread_i);
+			blur_v(remote_threads_n);
+			for(std::thread& t : threads)
+				t.join();
+		}
 	}
 }
