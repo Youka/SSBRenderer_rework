@@ -11,4 +11,8 @@ if(${TEST_GRAPHICS})
 	add_executable(ssbgraphics_transform tests/transform.cpp)
 	target_link_libraries(ssbgraphics_transform ssbgraphics)
 	add_test(ssbgraphics_transform_test ssbgraphics_transform)
+	# Create flip & blend test
+	add_executable(ssbgraphics_flipblend tests/flipblend.cpp tests/tga.hpp tests/test_images.h)
+	target_link_libraries(ssbgraphics_flipblend ssbgraphics)
+	add_test(ssbgraphics_flipblend_test ssbgraphics_flipblend)
 endif()
