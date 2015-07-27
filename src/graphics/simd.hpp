@@ -66,10 +66,10 @@ Divide unsigned short by constant 255:
 #ifdef __cplusplus
 #include <memory>
 #include <malloc.h>
-template<typename T>
-struct Align16Allocator : public std::allocator<T>{
+template<typename T, unsigned ALIGN>
+struct AlignedAllocator : public std::allocator<T>{
 	T* allocate(std::size_t n, const void* = 0){
-		void* p = _mm_malloc(sizeof(T) * n, 16);
+		void* p = _mm_malloc(sizeof(T) * n, ALIGN);
 		if(!p) throw std::bad_alloc();
 		return p;
 	}

@@ -18,20 +18,14 @@ Permission is granted to anyone to use this software for any purpose, including 
 #define _USE_MATH_DEFINES
 #include <cmath>
 #include <algorithm>
-#include <thread>
-#ifdef _WIN32
-	#define WIN32_LEAN_AND_MEAN
-	#include <windows.h>
-#else
-        #include <unistd.h>
-#endif
+#include "threads.hpp"
 
 std::vector<float> create_gauss_kernel(const float radius){
 	// Allocate kernel
 	const int radius_i = ::ceil(radius);
 	std::vector<float> kernel((radius_i << 1) + 1
 #ifdef __SSE2__
-	, Align16Allocator<float>()
+	, AlignedAllocator<float,16>()
 #endif
 	);
 	// Generate gaussian kernel (first half)
@@ -55,7 +49,7 @@ std::vector<float> create_gauss_kernel(const float radius){
 namespace GUtils{
 	void blur(unsigned char* data, const unsigned width, const unsigned height, const unsigned stride, const ColorDepth depth,
 		const float strength_h, const float strength_v){
-		// Anything to do?
+		// Nothing to do?
 		if(strength_h <= 0 && strength_v <= 0)
 			return;
 		// Generate filter kernels
@@ -66,7 +60,7 @@ namespace GUtils{
 		const unsigned trimmed_stride = depth == ColorDepth::X1 ? width : (depth == ColorDepth::X3 ? width * 3 : width << 2/* X4 */);
 		std::vector<float> fdata(height * trimmed_stride
 #ifdef __SSE2__
-	, 		Align16Allocator<float>()
+	, 		AlignedAllocator<float,16>()
 #endif
 		), fdata2(fdata.size(), fdata.get_allocator());
 		if(stride == trimmed_stride)
@@ -74,30 +68,38 @@ namespace GUtils{
 		else{
 			const unsigned char* pdata = data;
 			float* pfdata = fdata.data();
-			for(unsigned y = 0; y < height; ++y)
+			const float* const pfdata_end = pfdata + fdata.size();
+			while(pfdata != pfdata_end)
 				pfdata = std::copy(pdata, pdata+trimmed_stride, pfdata),
 				pdata += stride;
 		}
 		// Get threads number
-                unsigned threads_n = std::thread::hardware_concurrency();
-                if(!threads_n)	// std::thread::hardware_concurrency is just a hint, means, no or bad implementations
-#ifdef _WIN32
-			{
-				SYSTEM_INFO si;
-				GetSystemInfo(&si);
-				threads_n = si.dwNumberOfProcessors;
-			}
-#else
-			threads_n = sysconf(_SC_NPROCESSORS_ONLN);
-#endif
-		const unsigned remote_threads_n = threads_n - 1;
+		const unsigned threads_n = stdex::hardware_concurrency(),
+			remote_threads_n = threads_n - 1;
 		// Create threads & run for horizontal blur
 		std::vector<std::thread> threads;
 		threads.reserve(remote_threads_n);
 		auto blur_h = [&](unsigned i){
 
-			// TODO: kernel check & horizontal blur
+			// TODO: kernel check
 
+			switch(depth){
+				case ColorDepth::X1:
+
+					// TODO
+
+					break;
+				case ColorDepth::X3:
+
+					// TODO
+
+					break;
+				case ColorDepth::X4:
+
+					// TODO
+
+					break;
+			}
 		};
 		for(unsigned thread_i = 0; thread_i < remote_threads_n; ++thread_i)
 			threads.emplace_back(blur_h, thread_i);
@@ -108,8 +110,25 @@ namespace GUtils{
 		threads.clear();
 		auto blur_v = [&](unsigned i){
 
-			// TODO: kernel check & vertical blur
+			// TODO: kernel check
 
+			switch(depth){
+				case ColorDepth::X1:
+
+					// TODO
+
+					break;
+				case ColorDepth::X3:
+
+					// TODO
+
+					break;
+				case ColorDepth::X4:
+
+					// TODO
+
+					break;
+			}
 		};
 		for(unsigned thread_i = 0; thread_i < remote_threads_n; ++thread_i)
 			threads.emplace_back(blur_v, thread_i);
