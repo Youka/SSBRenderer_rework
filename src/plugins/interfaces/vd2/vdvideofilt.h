@@ -341,7 +341,7 @@ public:
 
 class VDXFilterActivation {
 public:
-	const VDXFilterDefinition *filter;		// 
+	const VDXFilterDefinition *filter;		//
 	void *filter_data;
 	VDXFBitmap&	dst;
 	VDXFBitmap&	src;
@@ -454,10 +454,10 @@ class IVDXScriptInterpreter {
 public:
 	virtual	void _placeholder1() {}
 	virtual void _placeholder2(void *, void *) {}
-	virtual void _placeholder3(char *s) {}
+	virtual void _placeholder3(char *) {}
 
 	virtual void ScriptError(int e)=0;
-	virtual void _placeholder4(VDXScriptError& cse) {}
+	virtual void _placeholder4(VDXScriptError&) {}
 	virtual char** AllocTempString(long l)=0;
 
 	virtual void _placeholder5() {}
