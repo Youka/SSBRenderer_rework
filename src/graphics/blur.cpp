@@ -58,7 +58,7 @@ namespace GUtils{
 		if(strength_v > 0) kernel_v = strength_v == strength_h ? kernel_h : std::move(create_gauss_kernel(strength_v));
 		// Collect further data informations
 		const unsigned trimmed_stride = depth == ColorDepth::X1 ? width : (depth == ColorDepth::X3 ? width * 3 : width << 2/* X4 */);
-		const unsigned char* const data_end = data + height * stride;
+		const unsigned offset = stride - trimmed_stride;
 		// Setup buffers for data in floating point format (required for faster processing)
 		std::vector<float> fdata(height * trimmed_stride
 #ifdef __SSE2__
@@ -66,85 +66,128 @@ namespace GUtils{
 #endif
 		), fdata2(kernel_h.empty() || kernel_v.empty() ? 0 : fdata.size()/* Don't waste memory when just one blur happens */, fdata.get_allocator());
 		// Copy data in first FP buffer
-		if(stride == trimmed_stride)
-			fdata.assign(data, const_cast<decltype(data)>(data_end));
-		else{
-			auto fdata_iter = fdata.begin();
-			for(const unsigned char* pdata = data; pdata != data_end; pdata += stride)
-				fdata_iter = std::copy(pdata, pdata+trimmed_stride, fdata_iter);
-		}
+		if(offset){
+			const unsigned char* pdata = data;
+			for(auto fdata_iter = fdata.begin(); fdata_iter != fdata.end(); fdata_iter = std::copy(pdata, pdata+trimmed_stride, fdata_iter), pdata += stride);
+		}else
+			fdata.assign(data, data+fdata.size());
 		// Get threads number
 		const unsigned threads_n = stdex::hardware_concurrency(),
 			remote_threads_n = threads_n - 1;
-		// Create blur threads storage
+		// Create blur threads & task storage
 		std::vector<std::thread> threads;
 		threads.reserve(remote_threads_n);
+		std::function<void(const unsigned)> blur_task;
 		// Run threads for horizontal blur
+#define RUN_THREADED_TASK \
+	for(unsigned thread_i = 0; thread_i < remote_threads_n; ++thread_i) \
+		threads.emplace_back(blur_task, thread_i); \
+	blur_task(remote_threads_n); \
+	for(std::thread& t : threads) \
+		t.join(); \
+	threads.clear();
 		if(!kernel_h.empty()){
-			auto blur_h = [&](unsigned thread_i){
+			if(kernel_v.empty())
 				switch(depth){
 					case ColorDepth::X1:
-						if(kernel_v.empty()){
+						blur_task = [&](const unsigned thread_i){
 
 							// TODO
 
-						}else{
-
-							// TODO
-
-						}
+						};
 						break;
 					case ColorDepth::X3:
+						blur_task = [&](const unsigned thread_i){
 
-						// TODO
+							// TODO
 
+						};
 						break;
 					case ColorDepth::X4:
+						blur_task = [&](const unsigned thread_i){
 
-						// TODO
+							// TODO
 
+						};
 						break;
 				}
-			};
-			for(unsigned thread_i = 0; thread_i < remote_threads_n; ++thread_i)
-				threads.emplace_back(blur_h, thread_i);
-			blur_h(remote_threads_n);
-			for(std::thread& t : threads)
-				t.join();
-			threads.clear();
+			else
+				switch(depth){
+					case ColorDepth::X1:
+						blur_task = [&](const unsigned thread_i){
+
+							// TODO
+
+						};
+						break;
+					case ColorDepth::X3:
+						blur_task = [&](const unsigned thread_i){
+
+							// TODO
+
+						};
+						break;
+					case ColorDepth::X4:
+						blur_task = [&](const unsigned thread_i){
+
+							// TODO
+
+						};
+						break;
+				}
+			RUN_THREADED_TASK
 		}
 		// Run threads for vertical blur
 		if(!kernel_v.empty()){
-			auto blur_v = [&](unsigned thread_i){
+			if(kernel_h.empty())
 				switch(depth){
 					case ColorDepth::X1:
-						if(kernel_v.empty()){
+						blur_task = [&](const unsigned thread_i){
 
 							// TODO
 
-						}else{
-
-							// TODO
-
-						}
+						};
 						break;
 					case ColorDepth::X3:
+						blur_task = [&](const unsigned thread_i){
 
-						// TODO
+							// TODO
 
+						};
 						break;
 					case ColorDepth::X4:
+						blur_task = [&](const unsigned thread_i){
 
-						// TODO
+							// TODO
 
+						};
 						break;
 				}
-			};
-			for(unsigned thread_i = 0; thread_i < remote_threads_n; ++thread_i)
-				threads.emplace_back(blur_v, thread_i);
-			blur_v(remote_threads_n);
-			for(std::thread& t : threads)
-				t.join();
+			else
+				switch(depth){
+					case ColorDepth::X1:
+						blur_task = [&](const unsigned thread_i){
+
+							// TODO
+
+						};
+						break;
+					case ColorDepth::X3:
+						blur_task = [&](const unsigned thread_i){
+
+							// TODO
+
+						};
+						break;
+					case ColorDepth::X4:
+						blur_task = [&](const unsigned thread_i){
+
+							// TODO
+
+						};
+						break;
+				}
+			RUN_THREADED_TASK
 		}
 	}
 }
