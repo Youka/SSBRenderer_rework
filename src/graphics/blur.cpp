@@ -72,8 +72,7 @@ namespace GUtils{
 		}else
 			fdata.assign(data, data+fdata.size());
 		// Get threads number
-		const unsigned threads_n = stdex::hardware_concurrency(),
-			remote_threads_n = threads_n - 1;
+		const unsigned remote_threads_n = stdex::hardware_concurrency() - 1;
 		// Create blur threads & task storage
 		std::vector<std::thread> threads;
 		threads.reserve(remote_threads_n);
@@ -87,13 +86,26 @@ namespace GUtils{
 		t.join(); \
 	threads.clear();
 		if(!kernel_h.empty()){
-			if(kernel_v.empty())
+			// Helper values for faster processing in threads
+			const unsigned fdata_jump = remote_threads_n * trimmed_stride,
+				kernel_h_radius = (kernel_h.size() - 1) >> 1;
+			// Select proper horizontal blur function
+			if(kernel_v.empty()){
+				const unsigned data_jump = offset + remote_threads_n * stride;
 				switch(depth){
 					case ColorDepth::X1:
 						blur_task = [&](const unsigned thread_i){
-
-							// TODO
-
+							unsigned char* pdata = data + thread_i * stride;
+							for(decltype(fdata)::iterator fdata_iter = fdata.begin() + thread_i * trimmed_stride, fdata_iter_row_end, fdata_iter_row_first, fdata_iter_row_last;
+								fdata_iter < fdata.end();
+								fdata_iter += fdata_jump, pdata += data_jump)
+								for(fdata_iter_row_end = fdata_iter + trimmed_stride, fdata_iter_row_first = fdata_iter, fdata_iter_row_last = fdata_iter_row_end-1; fdata_iter != fdata_iter_row_end; ++fdata_iter)
+									*pdata++ = std::inner_product(
+										std::max(fdata_iter - kernel_h_radius, fdata_iter_row_first),
+										std::min(fdata_iter_row_last, fdata_iter + kernel_h_radius),
+										kernel_h.begin() - std::min(0, fdata_iter - kernel_h_radius - fdata_iter_row_first),
+										0.0f
+									);
 						};
 						break;
 					case ColorDepth::X3:
@@ -111,7 +123,7 @@ namespace GUtils{
 						};
 						break;
 				}
-			else
+			}else
 				switch(depth){
 					case ColorDepth::X1:
 						blur_task = [&](const unsigned thread_i){
@@ -139,6 +151,9 @@ namespace GUtils{
 		}
 		// Run threads for vertical blur
 		if(!kernel_v.empty()){
+			// Helper values for faster processing in threads
+			const unsigned kernel_v_radius = (kernel_v.size() - 1) >> 1;
+			// Select proper vertical blur function
 			if(kernel_h.empty())
 				switch(depth){
 					case ColorDepth::X1:
