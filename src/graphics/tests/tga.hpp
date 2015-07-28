@@ -52,11 +52,9 @@ inline bool write_tga(const std::string filename, const int width, const int hei
 #pragma pack(pop)
 	file.write(reinterpret_cast<const char*>(&header), sizeof(header));
 	// Write TGA image data
-	const unsigned char* const data_end = data + rheight * stride;
         const unsigned rowsize = has_alpha ? rwidth << 2 : rwidth * 3;
-	while(data != data_end)
-		file.write(reinterpret_cast<const char*>(data), rowsize),
-		data += stride;
+	for(const unsigned char* const data_end = data + rheight * stride; data != data_end; data += stride)
+		file.write(reinterpret_cast<const char*>(data), rowsize);
 	// Writing successful
 	return true;
 }
