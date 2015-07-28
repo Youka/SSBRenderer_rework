@@ -20,17 +20,13 @@ namespace GUtils{
 	void flip(unsigned char* data, const unsigned height, const unsigned stride){
 		std::unique_ptr<unsigned char> tmp(new unsigned char[stride]);
 		unsigned char* data_tail = data + (height-1) * stride;
-		const unsigned char* const data_stop = data + (height >> 1) * stride;
-		while(data != data_stop)
+		for(const unsigned char* const data_stop = data + (height >> 1) * stride; data != data_stop; data = std::copy(tmp.get(), tmp.get()+stride, data))
 			std::copy(data_tail, data_tail+stride, tmp.get()),
-			data_tail = std::copy(data, data+stride, data_tail) - (stride << 1),
-			data = std::copy(tmp.get(), tmp.get()+stride, data);
+			data_tail = std::copy(data, data+stride, data_tail) - (stride << 1);
 	}
 	void flip(const unsigned char* src_data, const unsigned height, const unsigned stride, unsigned char* dst_data){
 		dst_data += (height-1) * stride;
-		const unsigned char* const src_data_end = src_data + height * stride;
-		while(src_data != src_data_end)
-			dst_data = std::copy(src_data, src_data+stride, dst_data) - (stride << 1),
-			src_data += stride;
+		for(const unsigned char* const src_data_end = src_data + height * stride; src_data != src_data_end; src_data += stride)
+			dst_data = std::copy(src_data, src_data+stride, dst_data) - (stride << 1);
 	}
 }

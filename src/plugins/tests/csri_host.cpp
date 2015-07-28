@@ -73,8 +73,8 @@ int main(){
 	// Generate PPM image data
 	const unsigned width = 800, height = 450;	/* Caution!!! Too big image could exceed stack memory. */
 	unsigned x = 0, y = 0;
-	unsigned char data[width*height*3], *pdata = data, *pdata_end = data + sizeof(data);
-	while(pdata < pdata_end){
+	unsigned char data[width*height*3];
+	for(unsigned char* pdata = data, *data_end = data + sizeof(data); pdata != data_end;){
 		float gamma = static_cast<decltype(gamma)>(x+y) / (width+height);
 		*pdata++ = gamma * 255;
 		*pdata++ = (1-gamma) * 255;

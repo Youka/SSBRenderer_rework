@@ -56,8 +56,10 @@ namespace GUtils{
 		std::vector<float> kernel_h, kernel_v;
 		if(strength_h > 0) kernel_h = std::move(create_gauss_kernel(strength_h));
 		if(strength_v > 0) kernel_v = strength_v == strength_h ? kernel_h : std::move(create_gauss_kernel(strength_v));
-		// Setup buffers for data in floating point format (required for faster processing)
+		// Collect further data informations
 		const unsigned trimmed_stride = depth == ColorDepth::X1 ? width : (depth == ColorDepth::X3 ? width * 3 : width << 2/* X4 */);
+		const unsigned char* const data_end = data + height * stride;
+		// Setup buffers for data in floating point format (required for faster processing)
 		std::vector<float> fdata(height * trimmed_stride
 #ifdef __SSE2__
 	, 		AlignedAllocator<float,16>()
@@ -65,14 +67,11 @@ namespace GUtils{
 		), fdata2(kernel_h.empty() || kernel_v.empty() ? 0 : fdata.size()/* Don't waste memory when just one blur happens */, fdata.get_allocator());
 		// Copy data in first FP buffer
 		if(stride == trimmed_stride)
-			std::copy(data, data+fdata.size(), fdata.begin());
+			fdata.assign(data, const_cast<decltype(data)>(data_end));
 		else{
-			const unsigned char* pdata = data;
-			float* pfdata = fdata.data();
-			const float* const pfdata_end = pfdata + fdata.size();
-			while(pfdata != pfdata_end)
-				pfdata = std::copy(pdata, pdata+trimmed_stride, pfdata),
-				pdata += stride;
+			auto fdata_iter = fdata.begin();
+			for(const unsigned char* pdata = data; pdata != data_end; pdata += stride)
+				fdata_iter = std::copy(pdata, pdata+trimmed_stride, fdata_iter);
 		}
 		// Get threads number
 		const unsigned threads_n = stdex::hardware_concurrency(),
@@ -82,13 +81,18 @@ namespace GUtils{
 		threads.reserve(remote_threads_n);
 		// Run threads for horizontal blur
 		if(!kernel_h.empty()){
-			auto blur_h = [&](unsigned i){
+			auto blur_h = [&](unsigned thread_i){
 				switch(depth){
 					case ColorDepth::X1:
-						if(kernel_v.empty())
-							;// TODO
-						else
-							;// TODO
+						if(kernel_v.empty()){
+
+							// TODO
+
+						}else{
+
+							// TODO
+
+						}
 						break;
 					case ColorDepth::X3:
 
@@ -111,13 +115,18 @@ namespace GUtils{
 		}
 		// Run threads for vertical blur
 		if(!kernel_v.empty()){
-			auto blur_v = [&](unsigned i){
+			auto blur_v = [&](unsigned thread_i){
 				switch(depth){
 					case ColorDepth::X1:
-						if(kernel_v.empty())
-							;// TODO
-						else
-							;// TODO
+						if(kernel_v.empty()){
+
+							// TODO
+
+						}else{
+
+							// TODO
+
+						}
 						break;
 					case ColorDepth::X3:
 
