@@ -30,8 +30,9 @@ std::vector<float> create_gauss_kernel(const float radius){
 	);
 	// Generate gaussian kernel (first half)
 	auto kernel_iter = kernel.begin();
+	constexpr float sqrpi2 = ::sqrt(2 * M_PI);
 	const float sigma = (radius * 2 + 1) / 3,
-		part1 = 1 / (sigma * ::sqrt(2 * M_PI)),
+		part1 = 1 / (sigma * sqrpi2),
 		sqrsigma2 = 2 * sigma * sigma;
 	for(int x = -radius_i; x <= 0; ++x)
 		*kernel_iter++ = part1 * ::exp(-(x*x) / sqrsigma2);
@@ -96,13 +97,13 @@ namespace GUtils{
 					case ColorDepth::X1:
 						blur_task = [&](const unsigned thread_i){
 							unsigned char* pdata = data + thread_i * stride;
-							for(decltype(fdata)::iterator fdata_iter = fdata.begin() + thread_i * trimmed_stride, fdata_iter_row_end, fdata_iter_row_first, fdata_iter_row_last;
+							for(decltype(fdata)::iterator fdata_iter = fdata.begin() + thread_i * trimmed_stride, fdata_iter_row_first, fdata_iter_row_end;
 								fdata_iter < fdata.end();
 								fdata_iter += fdata_jump, pdata += data_jump)
-								for(fdata_iter_row_end = fdata_iter + trimmed_stride, fdata_iter_row_first = fdata_iter, fdata_iter_row_last = fdata_iter_row_end-1; fdata_iter != fdata_iter_row_end; ++fdata_iter)
+								for(fdata_iter_row_first = fdata_iter, fdata_iter_row_end = fdata_iter + trimmed_stride; fdata_iter != fdata_iter_row_end; ++fdata_iter)
 									*pdata++ = std::inner_product(
 										std::max(fdata_iter - kernel_h_radius, fdata_iter_row_first),
-										std::min(fdata_iter_row_last, fdata_iter + kernel_h_radius),
+										std::min(fdata_iter_row_end, fdata_iter + kernel_h_radius + 1),
 										kernel_h.begin() - std::min(0, fdata_iter - kernel_h_radius - fdata_iter_row_first),
 										0.0f
 									);
