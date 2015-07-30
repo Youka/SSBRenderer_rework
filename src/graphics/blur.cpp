@@ -94,7 +94,7 @@ namespace GUtils{
 				const unsigned data_jump = stride - trimmed_stride + remote_threads_n * stride;
 				switch(depth){
 					case ColorDepth::X1:
-						blur_task = [&](const unsigned thread_i){
+						blur_task = [&,data_jump](const unsigned thread_i){
 							unsigned char* pdata = data + thread_i * stride;
 							for(decltype(fdata)::iterator fdata_iter = fdata.begin() + thread_i * trimmed_stride, fdata_iter_row_first, fdata_iter_row_end;
 								fdata_iter < fdata.end();
@@ -109,7 +109,7 @@ namespace GUtils{
 						};
 						break;
 					case ColorDepth::X3:
-						blur_task = [&](const unsigned thread_i){
+						blur_task = [&,data_jump](const unsigned thread_i){
 							unsigned char* pdata = data + thread_i * stride;
 #ifdef __SSE2__
 							__m128 accum;
@@ -155,7 +155,7 @@ namespace GUtils{
 						};
 						break;
 					case ColorDepth::X4:
-						blur_task = [&](const unsigned thread_i){
+						blur_task = [&,data_jump](const unsigned thread_i){
 							unsigned char* pdata = data + thread_i * stride;
 #ifdef __SSE2__
 							__m128 accum;
@@ -308,7 +308,7 @@ namespace GUtils{
 				const int data_jump = -(height * stride) + (fdata_jump + fdata.size());
 				switch(depth){
 					case ColorDepth::X1:
-						blur_task = [&](const unsigned thread_i){
+						blur_task = [&,data_jump](const unsigned thread_i){
 							unsigned char* pdata = data + thread_i * block_size;
 							float accum;
 							for(decltype(fdata)::iterator fdata_iter = fdata.begin() + thread_i * block_size, fdata_iter_end = fdata.begin() + trimmed_stride, fdata_iter_col_first, fdata_iter_col_end, fdata_kernel_iter, fdata_kernel_iter_end, kernel_iter;
@@ -322,14 +322,14 @@ namespace GUtils{
 						};
 						break;
 					case ColorDepth::X3:
-						blur_task = [&](const unsigned thread_i){
+						blur_task = [&,data_jump](const unsigned thread_i){
 
 							// TODO
 
 						};
 						break;
 					case ColorDepth::X4:
-						blur_task = [&](const unsigned thread_i){
+						blur_task = [&,data_jump](const unsigned thread_i){
 
 							// TODO
 
