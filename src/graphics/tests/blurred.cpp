@@ -15,14 +15,18 @@ Permission is granted to anyone to use this software for any purpose, including 
 #include "../gutils.hpp"
 #include "tga.hpp"
 #include "test_images.h"
+#include <sstream>
 #include <vector>
 #include <stdexcept>
 
-int main(){
+int main(int argc, char** argv){
+	float blur_h, blur_v;
+	if(!(argc == 3 && std::istringstream(argv[1]) >> blur_h && std::istringstream(argv[2]) >> blur_v))
+		throw std::invalid_argument("Expected horizontal and vertical blur strength!");
 	if(!write_tga("original1.tga", test_image1.width, test_image1.height, test_image1.stride, test_image1.has_alpha, test_image1.data))
 		throw std::domain_error("Couldn't write to first original file!");
 	std::vector<unsigned char> buffer(test_image1.data, test_image1.data + test_image1.height*test_image1.stride);
-	GUtils::blur(buffer.data(), test_image1.width, test_image1.height, test_image1.stride, test_image1.has_alpha ? GUtils::ColorDepth::X4 : GUtils::ColorDepth::X3, 2.5, 8.2);
+	GUtils::blur(buffer.data(), test_image1.width, test_image1.height, test_image1.stride, test_image1.has_alpha ? GUtils::ColorDepth::X4 : GUtils::ColorDepth::X3, blur_h, blur_v);
 	if(!write_tga("blurred1.tga", test_image1.width, test_image1.height, test_image1.stride, test_image1.has_alpha, buffer.data()))
 		throw std::domain_error("Couldn't write to blurred first file!");
 	return 0;

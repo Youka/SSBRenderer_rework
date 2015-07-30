@@ -18,5 +18,5 @@ if(${TEST_GRAPHICS})
 	# Create blur test
 	add_executable(ssbgraphics_blur tests/blurred.cpp tests/tga.hpp tests/test_images.h)
 	target_link_libraries(ssbgraphics_blur ssbgraphics)
-	add_test(ssbgraphics_blur_test ssbgraphics_blur)
+	add_test(ssbgraphics_blur_test ssbgraphics_blur 2.5 8.2)
 endif()
