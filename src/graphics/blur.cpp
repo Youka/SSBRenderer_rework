@@ -300,18 +300,17 @@ namespace GUtils{
 		// Run threads for vertical blur
 		if(!kernel_v.empty()){
 			// Helper values for faster processing in threads
-			const unsigned block_size = trimmed_stride / width,
-				kernel_v_radius = ((kernel_v.size() - 1) >> 1) * trimmed_stride;
-			const int fdata_jump = -fdata.size() + (1 + remote_threads_n) * block_size;
+			const int fdata_jump = -fdata.size() + (1 + remote_threads_n) * (trimmed_stride / width);
+			const unsigned kernel_v_radius = ((kernel_v.size() - 1) >> 1) * trimmed_stride;
 			// Select proper vertical blur function
 			if(kernel_h.empty()){
 				const int data_jump = -(height * stride) + (fdata_jump + fdata.size());
 				switch(depth){
 					case ColorDepth::X1:
 						blur_task = [&,data_jump](const unsigned thread_i){
-							unsigned char* pdata = data + thread_i * block_size;
+							unsigned char* pdata = data + thread_i;
 							float accum;
-							for(decltype(fdata)::iterator fdata_iter = fdata.begin() + thread_i * block_size, fdata_iter_end = fdata.begin() + trimmed_stride, fdata_iter_col_first, fdata_iter_col_end, fdata_kernel_iter, fdata_kernel_iter_end, kernel_iter;
+							for(decltype(fdata)::iterator fdata_iter = fdata.begin() + thread_i, fdata_iter_end = fdata.begin() + trimmed_stride, fdata_iter_col_first, fdata_iter_col_end, fdata_kernel_iter, fdata_kernel_iter_end, kernel_iter;
 								fdata_iter < fdata_iter_end;
 								fdata_iter += fdata_jump, pdata += data_jump)
 								for(fdata_iter_col_first = fdata_iter, fdata_iter_col_end = fdata_iter + fdata.size(); fdata_iter != fdata_iter_col_end; fdata_iter += trimmed_stride, pdata += stride){
@@ -323,16 +322,89 @@ namespace GUtils{
 						break;
 					case ColorDepth::X3:
 						blur_task = [&,data_jump](const unsigned thread_i){
-
-							// TODO
-
+							unsigned char* pdata = data + thread_i * 3;
+#ifdef __SSE2__
+							__m128 accum;
+							unsigned char tmp[4];
+#else
+							float accum[3];
+#endif
+							for(decltype(fdata)::iterator fdata_iter = fdata.begin() + thread_i * 3, fdata_iter_end = fdata.begin() + trimmed_stride, fdata_iter_col_first, fdata_iter_col_end, fdata_kernel_iter, fdata_kernel_iter_end, kernel_iter;
+								fdata_iter < fdata_iter_end;
+								fdata_iter += fdata_jump, pdata += data_jump)
+								for(fdata_iter_col_first = fdata_iter, fdata_iter_col_end = fdata_iter + fdata.size(); fdata_iter != fdata_iter_col_end; fdata_iter += trimmed_stride, pdata += stride){
+									for(
+#ifdef __SSE2__
+										_mm_xor_ps(accum, accum),
+#else
+										accum[0] = accum[1] = accum[2] = 0,
+#endif
+										fdata_kernel_iter = std::max(fdata_iter - kernel_v_radius, fdata_iter_col_first), fdata_kernel_iter_end = std::min(fdata_iter_col_end, fdata_iter + kernel_v_radius + trimmed_stride), kernel_iter = kernel_v.begin() + std::max(0, fdata_iter_col_first - (fdata_iter - kernel_v_radius)) / trimmed_stride; fdata_kernel_iter != fdata_kernel_iter_end; fdata_kernel_iter += trimmed_stride, ++kernel_iter)
+#ifdef __SSE2__
+										accum = _mm_add_ps(
+											accum,
+											_mm_mul_ps(
+												_mm_movelh_ps(
+													_mm_castpd_ps(_mm_load_sd(reinterpret_cast<double*>(&(*fdata_kernel_iter)))),
+													_mm_load_ss(&fdata_kernel_iter[2])
+												),
+												_mm_set1_ps(*kernel_iter)
+											)
+										);
+									_mm_stream_si32(reinterpret_cast<int*>(tmp), _mm_cvtsi64_si32(_mm_cvtps_pi8(accum))),
+									pdata[0] = tmp[0],
+									pdata[1] = tmp[1],
+									pdata[2] = tmp[2];
+#else
+										accum[0] += fdata_kernel_iter[0] * *kernel_iter,
+										accum[1] += fdata_kernel_iter[1] * *kernel_iter,
+										accum[2] += fdata_kernel_iter[2] * *kernel_iter;
+									pdata[0] = accum[0],
+									pdata[1] = accum[1],
+									pdata[2] = accum[2];
+#endif
+								}
 						};
 						break;
 					case ColorDepth::X4:
 						blur_task = [&,data_jump](const unsigned thread_i){
-
-							// TODO
-
+							unsigned char* pdata = data + (thread_i << 2);
+#ifdef __SSE2__
+							__m128 accum;
+#else
+							float accum[4];
+#endif
+							for(decltype(fdata)::iterator fdata_iter = fdata.begin() + (thread_i << 2), fdata_iter_end = fdata.begin() + trimmed_stride, fdata_iter_col_first, fdata_iter_col_end, fdata_kernel_iter, fdata_kernel_iter_end, kernel_iter;
+								fdata_iter < fdata_iter_end;
+								fdata_iter += fdata_jump, pdata += data_jump)
+								for(fdata_iter_col_first = fdata_iter, fdata_iter_col_end = fdata_iter + fdata.size(); fdata_iter != fdata_iter_col_end; fdata_iter += trimmed_stride, pdata += stride){
+									for(
+#ifdef __SSE2__
+										_mm_xor_ps(accum, accum),
+#else
+										accum[0] = accum[1] = accum[2] = accum[3] = 0,
+#endif
+										fdata_kernel_iter = std::max(fdata_iter - kernel_v_radius, fdata_iter_col_first), fdata_kernel_iter_end = std::min(fdata_iter_col_end, fdata_iter + kernel_v_radius + trimmed_stride), kernel_iter = kernel_v.begin() + std::max(0, fdata_iter_col_first - (fdata_iter - kernel_v_radius)) / trimmed_stride; fdata_kernel_iter != fdata_kernel_iter_end; fdata_kernel_iter += trimmed_stride, ++kernel_iter)
+#ifdef __SSE2__
+										accum = _mm_add_ps(
+											accum,
+											_mm_mul_ps(
+												_mm_load_ps(&(*fdata_kernel_iter)),
+												_mm_set1_ps(*kernel_iter)
+											)
+										);
+									*reinterpret_cast<int*>(pdata) = _mm_cvtsi64_si32(_mm_cvtps_pi8(accum));
+#else
+										accum[0] += fdata_kernel_iter[0] * *kernel_iter,
+										accum[1] += fdata_kernel_iter[1] * *kernel_iter,
+										accum[2] += fdata_kernel_iter[2] * *kernel_iter,
+										accum[3] += fdata_kernel_iter[3] * *kernel_iter;
+									pdata[0] = accum[0],
+									pdata[1] = accum[1],
+									pdata[2] = accum[2],
+									pdata[3] = accum[3];
+#endif
+								}
 						};
 						break;
 				}
