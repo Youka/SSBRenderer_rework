@@ -57,21 +57,20 @@ namespace GUtils{
 		std::vector<float> kernel_h, kernel_v;
 		if(strength_h > 0) kernel_h = std::move(create_gauss_kernel(strength_h));
 		if(strength_v > 0) kernel_v = strength_v == strength_h ? kernel_h : std::move(create_gauss_kernel(strength_v));
-		// Collect further data informations
-		const unsigned trimmed_stride = depth == ColorDepth::X1 ? width : (depth == ColorDepth::X3 ? width * 3 : width << 2/* X4 */);
-		const unsigned offset = stride - trimmed_stride;
 		// Setup buffers for data in floating point format (required for faster processing)
+		const unsigned trimmed_stride = depth == ColorDepth::X1 ? width : (depth == ColorDepth::X3 ? width * 3 : width << 2/* X4 */);
 		std::vector<float> fdata(height * trimmed_stride
 #ifdef __SSE2__
 	, 		AlignedAllocator<float,16>()
 #endif
 		), fdata2(kernel_h.empty() || kernel_v.empty() ? 0 : fdata.size()/* Don't waste memory when just one blur happens */, fdata.get_allocator());
 		// Copy data in first FP buffer
-		if(offset){
+		if(stride == trimmed_stride)
+			fdata.assign(data, data+fdata.size());
+		else{
 			const unsigned char* pdata = data;
 			for(auto fdata_iter = fdata.begin(); fdata_iter != fdata.end(); fdata_iter = std::copy(pdata, pdata+trimmed_stride, fdata_iter), pdata += stride);
-		}else
-			fdata.assign(data, data+fdata.size());
+		}
 		// Get threads number
 		const unsigned remote_threads_n = stdex::hardware_concurrency() - 1;
 		// Create blur threads & task storage
@@ -92,7 +91,7 @@ namespace GUtils{
 				kernel_h_radius = (kernel_h.size() - 1) >> 1;
 			// Select proper horizontal blur function
 			if(kernel_v.empty()){
-				const unsigned data_jump = offset + remote_threads_n * stride;
+				const unsigned data_jump = stride - trimmed_stride + remote_threads_n * stride;
 				switch(depth){
 					case ColorDepth::X1:
 						blur_task = [&](const unsigned thread_i){
@@ -301,15 +300,25 @@ namespace GUtils{
 		// Run threads for vertical blur
 		if(!kernel_v.empty()){
 			// Helper values for faster processing in threads
-			const unsigned kernel_v_radius = (kernel_v.size() - 1) >> 1;
+			const unsigned block_size = trimmed_stride / width,
+				kernel_v_radius = ((kernel_v.size() - 1) >> 1) * trimmed_stride;
+			const int fdata_jump = -fdata.size() + (1 + remote_threads_n) * block_size;
 			// Select proper vertical blur function
-			if(kernel_h.empty())
+			if(kernel_h.empty()){
+				const int data_jump = -(height * stride) + (fdata_jump + fdata.size());
 				switch(depth){
 					case ColorDepth::X1:
 						blur_task = [&](const unsigned thread_i){
-
-							// TODO
-
+							unsigned char* pdata = data + thread_i * block_size;
+							float accum;
+							for(decltype(fdata)::iterator fdata_iter = fdata.begin() + thread_i * block_size, fdata_iter_end = fdata.begin() + trimmed_stride, fdata_iter_col_first, fdata_iter_col_end, fdata_kernel_iter, fdata_kernel_iter_end, kernel_iter;
+								fdata_iter < fdata_iter_end;
+								fdata_iter += fdata_jump, pdata += data_jump)
+								for(fdata_iter_col_first = fdata_iter, fdata_iter_col_end = fdata_iter + fdata.size(); fdata_iter != fdata_iter_col_end; fdata_iter += trimmed_stride, pdata += stride){
+									for(accum = 0, fdata_kernel_iter = std::max(fdata_iter - kernel_v_radius, fdata_iter_col_first), fdata_kernel_iter_end = std::min(fdata_iter_col_end, fdata_iter + kernel_v_radius + trimmed_stride), kernel_iter = kernel_v.begin() + std::max(0, fdata_iter_col_first - (fdata_iter - kernel_v_radius)) / trimmed_stride; fdata_kernel_iter != fdata_kernel_iter_end; fdata_kernel_iter += trimmed_stride, ++kernel_iter)
+										accum += *fdata_kernel_iter * *kernel_iter;
+									*pdata = accum;
+								}
 						};
 						break;
 					case ColorDepth::X3:
@@ -327,7 +336,7 @@ namespace GUtils{
 						};
 						break;
 				}
-			else
+			}else
 				switch(depth){
 					case ColorDepth::X1:
 						blur_task = [&](const unsigned thread_i){
