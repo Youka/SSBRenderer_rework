@@ -19,6 +19,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 #include <cmath>
 #include <algorithm>
 #include "threads.hpp"
+#include "../../deps/libdivide/libdivide.h"
 
 static std::vector<float> create_gauss_kernel(const float radius){
 	// Allocate kernel
@@ -299,6 +300,7 @@ namespace GUtils{
 			const int fdata_jump = -fdata.size() + (1 + remote_threads_n) * (trimmed_stride / width),
 				data_jump = -(height * stride) + (fdata_jump + fdata.size());
 			const unsigned kernel_v_radius = ((kernel_v.size() - 1) >> 1) * trimmed_stride;
+			libdivide::divider<int> trimmed_stride_div(trimmed_stride);
 			// Select proper vertical blur function
 			decltype(fdata)& fdatax = kernel_h.empty() ? fdata : fdata2;
 			switch(depth){
@@ -310,7 +312,7 @@ namespace GUtils{
 							fdata_iter < fdata_iter_end;
 							fdata_iter += fdata_jump, pdata += data_jump)
 							for(fdata_iter_col_first = fdata_iter, fdata_iter_col_end = fdata_iter + fdatax.size(); fdata_iter != fdata_iter_col_end; fdata_iter += trimmed_stride, pdata += stride){
-								for(accum = 0, fdata_kernel_iter = std::max(fdata_iter - kernel_v_radius, fdata_iter_col_first), fdata_kernel_iter_end = std::min(fdata_iter_col_end, fdata_iter + kernel_v_radius + trimmed_stride), kernel_iter = kernel_v.begin() + std::max(0, fdata_iter_col_first - (fdata_iter - kernel_v_radius)) / trimmed_stride; fdata_kernel_iter != fdata_kernel_iter_end; fdata_kernel_iter += trimmed_stride, ++kernel_iter)
+								for(accum = 0, fdata_kernel_iter = std::max(fdata_iter - kernel_v_radius, fdata_iter_col_first), fdata_kernel_iter_end = std::min(fdata_iter_col_end, fdata_iter + kernel_v_radius + trimmed_stride), kernel_iter = kernel_v.begin() + std::max(0, fdata_iter_col_first - (fdata_iter - kernel_v_radius)) / trimmed_stride_div; fdata_kernel_iter != fdata_kernel_iter_end; fdata_kernel_iter += trimmed_stride, ++kernel_iter)
 									accum += *fdata_kernel_iter * *kernel_iter;
 								*pdata = accum;
 							}
@@ -335,7 +337,7 @@ namespace GUtils{
 #else
 									accum[0] = accum[1] = accum[2] = 0,
 #endif
-									fdata_kernel_iter = std::max(fdata_iter - kernel_v_radius, fdata_iter_col_first), fdata_kernel_iter_end = std::min(fdata_iter_col_end, fdata_iter + kernel_v_radius + trimmed_stride), kernel_iter = kernel_v.begin() + std::max(0, fdata_iter_col_first - (fdata_iter - kernel_v_radius)) / trimmed_stride; fdata_kernel_iter != fdata_kernel_iter_end; fdata_kernel_iter += trimmed_stride, ++kernel_iter)
+									fdata_kernel_iter = std::max(fdata_iter - kernel_v_radius, fdata_iter_col_first), fdata_kernel_iter_end = std::min(fdata_iter_col_end, fdata_iter + kernel_v_radius + trimmed_stride), kernel_iter = kernel_v.begin() + std::max(0, fdata_iter_col_first - (fdata_iter - kernel_v_radius)) / trimmed_stride_div; fdata_kernel_iter != fdata_kernel_iter_end; fdata_kernel_iter += trimmed_stride, ++kernel_iter)
 #ifdef __SSE2__
 									accum = _mm_add_ps(
 										accum,
@@ -380,7 +382,7 @@ namespace GUtils{
 #else
 									accum[0] = accum[1] = accum[2] = accum[3] = 0,
 #endif
-									fdata_kernel_iter = std::max(fdata_iter - kernel_v_radius, fdata_iter_col_first), fdata_kernel_iter_end = std::min(fdata_iter_col_end, fdata_iter + kernel_v_radius + trimmed_stride), kernel_iter = kernel_v.begin() + std::max(0, fdata_iter_col_first - (fdata_iter - kernel_v_radius)) / trimmed_stride; fdata_kernel_iter != fdata_kernel_iter_end; fdata_kernel_iter += trimmed_stride, ++kernel_iter)
+									fdata_kernel_iter = std::max(fdata_iter - kernel_v_radius, fdata_iter_col_first), fdata_kernel_iter_end = std::min(fdata_iter_col_end, fdata_iter + kernel_v_radius + trimmed_stride), kernel_iter = kernel_v.begin() + std::max(0, fdata_iter_col_first - (fdata_iter - kernel_v_radius)) / trimmed_stride_div; fdata_kernel_iter != fdata_kernel_iter_end; fdata_kernel_iter += trimmed_stride, ++kernel_iter)
 #ifdef __SSE2__
 									accum = _mm_add_ps(
 										accum,

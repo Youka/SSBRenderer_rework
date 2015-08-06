@@ -7,3 +7,6 @@
 [submodule "deps/pango"]
 	path = deps/pango
 	url = https://github.com/GNOME/pango
+[submodule "deps/libdivide"]
+	path = deps/libdivide
+	url = https://github.com/ridiculousfish/libdivide
