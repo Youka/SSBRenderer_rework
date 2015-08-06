@@ -300,16 +300,16 @@ namespace GUtils{
 				data_jump = -(height * stride) + (fdata_jump + fdata.size());
 			const unsigned kernel_v_radius = ((kernel_v.size() - 1) >> 1) * trimmed_stride;
 			// Select proper vertical blur function
-			decltype(fdata)& fdata = kernel_h.empty() ? fdata : fdata2;
+			decltype(fdata)& fdatax = kernel_h.empty() ? fdata : fdata2;
 			switch(depth){
 				case ColorDepth::X1:
 					blur_task = [&](const unsigned thread_i){
 						unsigned char* pdata = data + thread_i;
 						float accum;
-						for(decltype(fdata.begin()) fdata_iter = fdata.begin() + thread_i, fdata_iter_end = fdata.begin() + trimmed_stride, fdata_iter_col_first, fdata_iter_col_end, fdata_kernel_iter, fdata_kernel_iter_end, kernel_iter;
+						for(decltype(fdatax.begin()) fdata_iter = fdatax.begin() + thread_i, fdata_iter_end = fdatax.begin() + trimmed_stride, fdata_iter_col_first, fdata_iter_col_end, fdata_kernel_iter, fdata_kernel_iter_end, kernel_iter;
 							fdata_iter < fdata_iter_end;
 							fdata_iter += fdata_jump, pdata += data_jump)
-							for(fdata_iter_col_first = fdata_iter, fdata_iter_col_end = fdata_iter + fdata.size(); fdata_iter != fdata_iter_col_end; fdata_iter += trimmed_stride, pdata += stride){
+							for(fdata_iter_col_first = fdata_iter, fdata_iter_col_end = fdata_iter + fdatax.size(); fdata_iter != fdata_iter_col_end; fdata_iter += trimmed_stride, pdata += stride){
 								for(accum = 0, fdata_kernel_iter = std::max(fdata_iter - kernel_v_radius, fdata_iter_col_first), fdata_kernel_iter_end = std::min(fdata_iter_col_end, fdata_iter + kernel_v_radius + trimmed_stride), kernel_iter = kernel_v.begin() + std::max(0, fdata_iter_col_first - (fdata_iter - kernel_v_radius)) / trimmed_stride; fdata_kernel_iter != fdata_kernel_iter_end; fdata_kernel_iter += trimmed_stride, ++kernel_iter)
 									accum += *fdata_kernel_iter * *kernel_iter;
 								*pdata = accum;
@@ -325,10 +325,10 @@ namespace GUtils{
 #else
 						float accum[3];
 #endif
-						for(decltype(fdata.begin()) fdata_iter = fdata.begin() + thread_i * 3, fdata_iter_end = fdata.begin() + trimmed_stride, fdata_iter_col_first, fdata_iter_col_end, fdata_kernel_iter, fdata_kernel_iter_end, kernel_iter;
+						for(decltype(fdatax.begin()) fdata_iter = fdatax.begin() + thread_i * 3, fdata_iter_end = fdatax.begin() + trimmed_stride, fdata_iter_col_first, fdata_iter_col_end, fdata_kernel_iter, fdata_kernel_iter_end, kernel_iter;
 							fdata_iter < fdata_iter_end;
 							fdata_iter += fdata_jump, pdata += data_jump)
-							for(fdata_iter_col_first = fdata_iter, fdata_iter_col_end = fdata_iter + fdata.size(); fdata_iter != fdata_iter_col_end; fdata_iter += trimmed_stride, pdata += stride){
+							for(fdata_iter_col_first = fdata_iter, fdata_iter_col_end = fdata_iter + fdatax.size(); fdata_iter != fdata_iter_col_end; fdata_iter += trimmed_stride, pdata += stride){
 								for(
 #ifdef __SSE2__
 									accum = _mm_xor_ps(accum, accum),
@@ -370,10 +370,10 @@ namespace GUtils{
 #else
 						float accum[4];
 #endif
-						for(decltype(fdata.begin()) fdata_iter = fdata.begin() + (thread_i << 2), fdata_iter_end = fdata.begin() + trimmed_stride, fdata_iter_col_first, fdata_iter_col_end, fdata_kernel_iter, fdata_kernel_iter_end, kernel_iter;
+						for(decltype(fdatax.begin()) fdata_iter = fdatax.begin() + (thread_i << 2), fdata_iter_end = fdatax.begin() + trimmed_stride, fdata_iter_col_first, fdata_iter_col_end, fdata_kernel_iter, fdata_kernel_iter_end, kernel_iter;
 							fdata_iter < fdata_iter_end;
 							fdata_iter += fdata_jump, pdata += data_jump)
-							for(fdata_iter_col_first = fdata_iter, fdata_iter_col_end = fdata_iter + fdata.size(); fdata_iter != fdata_iter_col_end; fdata_iter += trimmed_stride, pdata += stride){
+							for(fdata_iter_col_first = fdata_iter, fdata_iter_col_end = fdata_iter + fdatax.size(); fdata_iter != fdata_iter_col_end; fdata_iter += trimmed_stride, pdata += stride){
 								for(
 #ifdef __SSE2__
 									accum = _mm_xor_ps(accum, accum),
