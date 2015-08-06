@@ -55,6 +55,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 		) \
 	)
 #define SSE2_INV_LBYTE_U16(x) _mm_xor_si128(x, _mm_set1_epi16(0xFF))
+#define SSE2_STORE_PS_U8(mem, x) _mm_store_ss(reinterpret_cast<float*>(mem), _mm_castsi128_ps(_mm_packus_epi16(_mm_packs_epi32(_mm_cvtps_epi32(x), _mm_setzero_si128()), _mm_setzero_si128())))
 
 /*
 Divide unsigned short by constant 255:

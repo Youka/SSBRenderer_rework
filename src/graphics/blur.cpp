@@ -119,11 +119,11 @@ namespace GUtils{
 								for(fdata_iter_row_first = fdata_iter, fdata_iter_row_end = fdata_iter + trimmed_stride; fdata_iter != fdata_iter_row_end; fdata_iter += 3, pdata += 3){
 									for(
 #ifdef __SSE2__
-										_mm_xor_ps(accum, accum),
+										accum = _mm_xor_ps(accum, accum),
 #else
 										accum[0] = accum[1] = accum[2] = 0,
 #endif
-										fdata_kernel_iter = std::max(fdata_iter - kernel_h_radius * 3, fdata_iter_row_first), fdata_kernel_iter_end = std::min(fdata_iter_row_end, fdata_iter + (kernel_h_radius + 1) * 3), kernel_iter = kernel_h.begin() + std::max(0, fdata_iter_row_first - (fdata_iter - kernel_h_radius * 3)); fdata_kernel_iter != fdata_kernel_iter_end; fdata_kernel_iter += 3, ++kernel_iter)
+										fdata_kernel_iter = std::max(fdata_iter - kernel_h_radius * 3, fdata_iter_row_first), fdata_kernel_iter_end = std::min(fdata_iter_row_end, fdata_iter + (kernel_h_radius + 1) * 3), kernel_iter = kernel_h.begin() + std::max(0, fdata_iter_row_first - (fdata_iter - kernel_h_radius * 3)) / 3; fdata_kernel_iter != fdata_kernel_iter_end; fdata_kernel_iter += 3, ++kernel_iter)
 #ifdef __SSE2__
 										accum = _mm_add_ps(
 											accum,
@@ -135,7 +135,7 @@ namespace GUtils{
 												_mm_set1_ps(*kernel_iter)
 											)
 										);
-									_mm_stream_si32(reinterpret_cast<int*>(tmp), _mm_cvtsi64_si32(_mm_cvtps_pi8(accum))),
+									SSE2_STORE_PS_U8(tmp, accum),
 									pdata[0] = tmp[0],
 									pdata[1] = tmp[1],
 									pdata[2] = tmp[2];
@@ -164,11 +164,11 @@ namespace GUtils{
 								for(fdata_iter_row_first = fdata_iter, fdata_iter_row_end = fdata_iter + trimmed_stride; fdata_iter != fdata_iter_row_end; fdata_iter += 4, pdata += 4){
 									for(
 #ifdef __SSE2__
-										_mm_xor_ps(accum, accum),
+										accum = _mm_xor_ps(accum, accum),
 #else
 										accum[0] = accum[1] = accum[2] = accum[3] = 0,
 #endif
-										fdata_kernel_iter = std::max(fdata_iter - (kernel_h_radius << 2), fdata_iter_row_first), fdata_kernel_iter_end = std::min(fdata_iter_row_end, fdata_iter + ((kernel_h_radius + 1) << 2)), kernel_iter = kernel_h.begin() + std::max(0, fdata_iter_row_first - (fdata_iter - (kernel_h_radius << 2))); fdata_kernel_iter != fdata_kernel_iter_end; fdata_kernel_iter += 4, ++kernel_iter)
+										fdata_kernel_iter = std::max(fdata_iter - (kernel_h_radius << 2), fdata_iter_row_first), fdata_kernel_iter_end = std::min(fdata_iter_row_end, fdata_iter + ((kernel_h_radius + 1) << 2)), kernel_iter = kernel_h.begin() + (std::max(0, fdata_iter_row_first - (fdata_iter - (kernel_h_radius << 2))) >> 2); fdata_kernel_iter != fdata_kernel_iter_end; fdata_kernel_iter += 4, ++kernel_iter)
 #ifdef __SSE2__
 										accum = _mm_add_ps(
 											accum,
@@ -177,7 +177,7 @@ namespace GUtils{
 												_mm_set1_ps(*kernel_iter)
 											)
 										);
-									*reinterpret_cast<int*>(pdata) = _mm_cvtsi64_si32(_mm_cvtps_pi8(accum));
+									SSE2_STORE_PS_U8(pdata, accum);
 #else
 										accum[0] += fdata_kernel_iter[0] * *kernel_iter,
 										accum[1] += fdata_kernel_iter[1] * *kernel_iter,
@@ -221,11 +221,11 @@ namespace GUtils{
 								for(fdata_iter_row_first = fdata_iter, fdata_iter_row_end = fdata_iter + trimmed_stride; fdata_iter != fdata_iter_row_end; fdata_iter += 3, fdata2_iter += 3){
 									for(
 #ifdef __SSE2__
-										_mm_xor_ps(accum, accum),
+										accum = _mm_xor_ps(accum, accum),
 #else
 										accum[0] = accum[1] = accum[2] = 0,
 #endif
-										fdata_kernel_iter = std::max(fdata_iter - kernel_h_radius * 3, fdata_iter_row_first), fdata_kernel_iter_end = std::min(fdata_iter_row_end, fdata_iter + (kernel_h_radius + 1) * 3), kernel_iter = kernel_h.begin() + std::max(0, fdata_iter_row_first - (fdata_iter - kernel_h_radius * 3)); fdata_kernel_iter != fdata_kernel_iter_end; fdata_kernel_iter += 3, ++kernel_iter)
+										fdata_kernel_iter = std::max(fdata_iter - kernel_h_radius * 3, fdata_iter_row_first), fdata_kernel_iter_end = std::min(fdata_iter_row_end, fdata_iter + (kernel_h_radius + 1) * 3), kernel_iter = kernel_h.begin() + std::max(0, fdata_iter_row_first - (fdata_iter - kernel_h_radius * 3)) / 3; fdata_kernel_iter != fdata_kernel_iter_end; fdata_kernel_iter += 3, ++kernel_iter)
 #ifdef __SSE2__
 										accum = _mm_add_ps(
 											accum,
@@ -263,11 +263,11 @@ namespace GUtils{
 								for(fdata_iter_row_first = fdata_iter, fdata_iter_row_end = fdata_iter + trimmed_stride; fdata_iter != fdata_iter_row_end; fdata_iter += 4, fdata2_iter += 4){
 									for(
 #ifdef __SSE2__
-										_mm_xor_ps(accum, accum),
+										accum = _mm_xor_ps(accum, accum),
 #else
 										accum[0] = accum[1] = accum[2] = accum[3] = 0,
 #endif
-										fdata_kernel_iter = std::max(fdata_iter - (kernel_h_radius << 2), fdata_iter_row_first), fdata_kernel_iter_end = std::min(fdata_iter_row_end, fdata_iter + ((kernel_h_radius + 1) << 2)), kernel_iter = kernel_h.begin() + std::max(0, fdata_iter_row_first - (fdata_iter - (kernel_h_radius << 2))); fdata_kernel_iter != fdata_kernel_iter_end; fdata_kernel_iter += 4, ++kernel_iter)
+										fdata_kernel_iter = std::max(fdata_iter - (kernel_h_radius << 2), fdata_iter_row_first), fdata_kernel_iter_end = std::min(fdata_iter_row_end, fdata_iter + ((kernel_h_radius + 1) << 2)), kernel_iter = kernel_h.begin() + (std::max(0, fdata_iter_row_first - (fdata_iter - (kernel_h_radius << 2))) >> 2); fdata_kernel_iter != fdata_kernel_iter_end; fdata_kernel_iter += 4, ++kernel_iter)
 #ifdef __SSE2__
 										accum = _mm_add_ps(
 											accum,
@@ -331,7 +331,7 @@ namespace GUtils{
 							for(fdata_iter_col_first = fdata_iter, fdata_iter_col_end = fdata_iter + fdata.size(); fdata_iter != fdata_iter_col_end; fdata_iter += trimmed_stride, pdata += stride){
 								for(
 #ifdef __SSE2__
-									_mm_xor_ps(accum, accum),
+									accum = _mm_xor_ps(accum, accum),
 #else
 									accum[0] = accum[1] = accum[2] = 0,
 #endif
@@ -347,7 +347,7 @@ namespace GUtils{
 											_mm_set1_ps(*kernel_iter)
 										)
 									);
-								_mm_stream_si32(reinterpret_cast<int*>(tmp), _mm_cvtsi64_si32(_mm_cvtps_pi8(accum))),
+								SSE2_STORE_PS_U8(tmp, accum),
 								pdata[0] = tmp[0],
 								pdata[1] = tmp[1],
 								pdata[2] = tmp[2];
@@ -376,7 +376,7 @@ namespace GUtils{
 							for(fdata_iter_col_first = fdata_iter, fdata_iter_col_end = fdata_iter + fdata.size(); fdata_iter != fdata_iter_col_end; fdata_iter += trimmed_stride, pdata += stride){
 								for(
 #ifdef __SSE2__
-									_mm_xor_ps(accum, accum),
+									accum = _mm_xor_ps(accum, accum),
 #else
 									accum[0] = accum[1] = accum[2] = accum[3] = 0,
 #endif
@@ -389,7 +389,7 @@ namespace GUtils{
 											_mm_set1_ps(*kernel_iter)
 										)
 									);
-								*reinterpret_cast<int*>(pdata) = _mm_cvtsi64_si32(_mm_cvtps_pi8(accum));
+								SSE2_STORE_PS_U8(pdata, accum);
 #else
 									accum[0] += fdata_kernel_iter[0] * *kernel_iter,
 									accum[1] += fdata_kernel_iter[1] * *kernel_iter,
