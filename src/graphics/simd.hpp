@@ -35,6 +35,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 #define SSE2_LOAD_U8_16(x) _mm_unpacklo_epi8(_mm_loadl_epi64(reinterpret_cast<const __m128i*>(x)), _mm_setzero_si128())
 #define SSE2_STORE_16_U8(mem, x) _mm_storel_epi64(reinterpret_cast<__m128i*>(mem), _mm_packus_epi16(x, _mm_setzero_si128()))
 #define SSE2_STORE_2X16_U8(mem, x1, x2) _mm_storeu_si128(reinterpret_cast<__m128i*>(mem), _mm_packus_epi16(x1, x2))
+#define SSE2_STORE_PS_U8(mem, x) _mm_store_ss(reinterpret_cast<float*>(mem), _mm_castsi128_ps(_mm_packus_epi16(_mm_packs_epi32(_mm_cvtps_epi32(x), _mm_setzero_si128()), _mm_setzero_si128())))
 #define SSE2_SET2_U16(x2, x1) _mm_shufflehi_epi16(_mm_shufflelo_epi16(_mm_set_epi32(0, x2, 0, x1), 0x0), 0x0)
 #define SSE2_DIV255_U16(x) _mm_srli_epi16(_mm_mulhi_epu16(x, _mm_set1_epi16(static_cast<short>(0x8081))), 7)
 #define SSE2_MUL255_U16_UNSAFE(x) _mm_sub_epi16(_mm_slli_epi16(x, 8), x) // x mustn't be >255 (shift operation may cut away relevant bits)
@@ -55,7 +56,6 @@ Permission is granted to anyone to use this software for any purpose, including 
 		) \
 	)
 #define SSE2_INV_LBYTE_U16(x) _mm_xor_si128(x, _mm_set1_epi16(0xFF))
-#define SSE2_STORE_PS_U8(mem, x) _mm_store_ss(reinterpret_cast<float*>(mem), _mm_castsi128_ps(_mm_packus_epi16(_mm_packs_epi32(_mm_cvtps_epi32(x), _mm_setzero_si128()), _mm_setzero_si128())))
 
 /*
 Divide unsigned short by constant 255:

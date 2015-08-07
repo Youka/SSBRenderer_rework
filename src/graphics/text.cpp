@@ -57,6 +57,36 @@ namespace GUtils{
 			DeleteObject(this->font),
 			DeleteDC(this->dc);
 	}
+	Font::Font(const Font& other){
+		if(!other.dc)
+			this->dc = NULL, this->font = NULL, this->old_font = NULL;
+		else{
+			this->dc = CreateCompatibleDC(NULL),
+			SetMapMode(this->dc, MM_TEXT),
+			SetBkMode(this->dc, TRANSPARENT),
+			SetTextAlign(this->dc, GetTextAlign(other.dc));
+			LOGFONTW lf;	// I trust in Spongebob that it has 4-byte boundary like required by GetObject
+			GetObjectW(other.font, sizeof(lf), &lf),
+			this->font = CreateFontIndirectW(&lf),
+			this->old_font = SelectObject(this->dc, this->font);
+		}
+	}
+	Font& Font::operator=(const Font& other){
+		this->~Font();
+		if(!other.dc)
+			this->dc = NULL, this->font = NULL, this->old_font = NULL;
+		else{
+			this->dc = CreateCompatibleDC(NULL),
+			SetMapMode(this->dc, MM_TEXT),
+			SetBkMode(this->dc, TRANSPARENT),
+			SetTextAlign(this->dc, GetTextAlign(other.dc));
+			LOGFONTW lf;
+			GetObjectW(other.font, sizeof(lf), &lf),
+			this->font = CreateFontIndirectW(&lf),
+			this->old_font = SelectObject(this->dc, this->font);
+		}
+		return *this;
+	}
 #else
 	Font::Font() : surface(nullptr), context(nullptr), layout(nullptr){}
 	Font::Font(std::string family, float size, bool bold, bool italic, bool underline, bool strikeout, bool rtl){
@@ -80,6 +110,26 @@ namespace GUtils{
 			g_object_unref(this->layout),
 			cairo_destroy(this->context),
 			cairo_surface_destroy(this->surface);
+	}
+	Font::Font(const Font& other){
+		if(!other.surface)
+			this->surface = this->context = this->layout = nullptr;
+		else
+			this->layout = pango_cairo_create_layout(this->context = cairo_create(this->surface = cairo_image_surface_create(CAIRO_FORMAT_A1, 1, 1))),
+			pango_layout_set_font_description(this->layout, pango_layout_get_font_description(other.layout)),
+			pango_layout_set_attributes(this->layout, pango_layout_get_attributes(other.layout)),
+			pango_layout_set_auto_dir(this->layout, pango_layout_get_auto_dir(other.layout));
+	}
+	Font& Font::operator=(const Font& other){
+		this->~Font();
+		if(!other.surface)
+			this->surface = this->context = this->layout = nullptr;
+		else
+			this->layout = pango_cairo_create_layout(this->context = cairo_create(this->surface = cairo_image_surface_create(CAIRO_FORMAT_A1, 1, 1))),
+			pango_layout_set_font_description(this->layout, pango_layout_get_font_description(other.layout)),
+			pango_layout_set_attributes(this->layout, pango_layout_get_attributes(other.layout)),
+			pango_layout_set_auto_dir(this->layout, pango_layout_get_auto_dir(other.layout));
+		return *this;
 	}
 #endif
 }

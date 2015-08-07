@@ -104,10 +104,10 @@ namespace GUtils{
 			Font(std::wstring family, float size = 12, bool bold = false, bool italic = false, bool underline = false, bool strikeout = false, bool rtl = false);
 #endif
 			~Font();
-			Font(const Font&);
-			Font& operator=(const Font&);
+			Font(const Font& other);
+			Font& operator=(const Font& other);
 			Font(Font&& other);
-			Font& operator=(Font&&);
+			Font& operator=(Font&& other);
 			// Getters
 			std::string get_family();
 #ifdef _WIN32
@@ -130,6 +130,8 @@ namespace GUtils{
 			void set_underline(bool underline);
 			void set_strikeout(bool strikeout);
 			void set_rtl(bool rtl);
+			// Check state
+			operator bool() const;
 			// Font metrics
 			struct Metrics{
 				double height, ascent, descent, internal_leading, external_leading;
