@@ -58,6 +58,7 @@ namespace SSB{
 				TAG,
 				GEOMETRY
 			} const type;
+			virtual ~Object() = default;
 		protected:
 			Object(Type type) : type(type){}
 	};
@@ -122,7 +123,6 @@ namespace SSB{
 		public:
 			std::string family;
 			FontFamily(std::string family) : Tag(Tag::Type::FONT_FAMILY), family(family){}
-			virtual ~FontFamily() = default;
 	};
 
 	// Font style state
@@ -175,7 +175,6 @@ namespace SSB{
 			Coord offset;
 			std::vector<Coord> dashes;
 			LineDash(Coord offset, std::vector<Coord> dashes) : Tag(Tag::Type::LINE_DASH), offset(offset), dashes(dashes){}
-			virtual ~LineDash() = default;
 	};
 
 	// Painting mode state
@@ -190,7 +189,6 @@ namespace SSB{
 		public:
 			std::string formula_x, formula_y;
 			Deform(std::string formula_x, std::string formula_y) : Tag(Tag::Type::DEFORM), formula_x(formula_x), formula_y(formula_y){}
-			virtual ~Deform() = default;
 	};
 
 	// Position state
@@ -339,7 +337,6 @@ namespace SSB{
 		public:
 			std::string filename;
 			Texture(std::string filename) : Tag(Tag::Type::TEXTURE), filename(filename){}
-			virtual ~Texture() = default;
 	};
 
 	// Texture fill state
@@ -408,7 +405,6 @@ namespace SSB{
 			std::string progress_formula;   // 'Unset' in case of emtpiness
 			std::vector<std::shared_ptr<Object>> objects;
 			Animate(Duration start, Duration end, std::string progress_formula, std::vector<std::shared_ptr<Object>> objects) : Tag(Tag::Type::ANIMATE), start(start), end(end), progress_formula(progress_formula), objects(objects){}
-			virtual ~Animate() = default;
 	};
 
 	// Karaoke time state
@@ -438,7 +434,6 @@ namespace SSB{
 		public:
 			std::vector<Point> points;
 			Points(std::vector<Point> points) : Geometry(Geometry::Type::POINTS), points(points){}
-			virtual ~Points() = default;
 	};
 
 	// Path geometry
@@ -454,7 +449,6 @@ namespace SSB{
 			};
 			std::vector<Segment> segments;
 			Path(std::vector<Segment> segments) : Geometry(Geometry::Type::PATH), segments(segments){}
-			virtual ~Path() = default;
 	};
 
 	// Text geometry
@@ -462,7 +456,6 @@ namespace SSB{
 		public:
 			std::string text;
 			Text(std::string text) : Geometry(Geometry::Type::TEXT), text(text){}
-			virtual ~Text() = default;
 	};
 
 	// Meta informations (no effect on rendering)
