@@ -1,6 +1,6 @@
 /*
 Project: SSBRenderer
-File: text.cpp
+File: config.h.in
 
 Copyright (c) 2015, Christoph "Youka" Spanknebel
 
@@ -12,8 +12,4 @@ Permission is granted to anyone to use this software for any purpose, including 
     3. This notice may not be removed or altered from any source distribution.
 */
 
-#include "gutils.hpp"
-#include "config.h"
-
-namespace GUtils{
-}
+#define FONT_UPSCALE @BUILD_FONT_PRECISION@

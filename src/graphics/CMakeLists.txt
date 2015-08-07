@@ -1,9 +1,19 @@
 # Request build options from user
+set(BUILD_FONT_PRECISION 64 CACHE STRING "Internal font up- & downscale for better calculation results." FORCE)
 option(TEST_GRAPHICS "Build graphics tests?" OFF)
+
+# Generate configuration header
+configure_file(
+	${CMAKE_CURRENT_SOURCE_DIR}/config.h.in
+	${CMAKE_CURRENT_BINARY_DIR}/config.h
+)
 
 # Plan static library compiling
 file(GLOB GRAPHICS_SOURCES *.cpp *.hpp)
 add_library(ssbgraphics STATIC ${GRAPHICS_SOURCES})
+
+# Add library include directories
+target_include_directories(ssbgraphics PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
 # Add functionality tests
 if(${TEST_GRAPHICS})
