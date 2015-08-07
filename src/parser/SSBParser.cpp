@@ -19,7 +19,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 
 // Parses SSB time and converts to milliseconds
 template<typename T>
-inline bool parse_time(std::string& s, T& t){
+static inline bool parse_time(std::string& s, T& t){
 	// Check for empty timestamp
 	if(s.empty())
 		return false;
@@ -126,9 +126,9 @@ inline bool parse_time(std::string& s, T& t){
 
 // Parser implementations
 #define ADD_OBJECT(obj) event.objects.push_back(std::shared_ptr<SSB::Object>(new obj))
-#define THROW_STRONG_ERROR(msg) if(this->level != SSB::Parser::Level::OFF) throw std::string(msg)
-#define THROW_WEAK_ERROR(msg) if(this->level == SSB::Parser::Level::ALL) throw std::string(msg)
-void SSB::Parser::parse_geometry(std::string& geometry, SSB::Geometry::Type geometry_type, SSB::Event& event) throw(std::string){
+#define THROW_STRONG_ERROR(msg) if(this->level != SSB::Parser::Level::OFF) throw SSB::Exception(msg)
+#define THROW_WEAK_ERROR(msg) if(this->level == SSB::Parser::Level::ALL) throw SSB::Exception(msg)
+void SSB::Parser::parse_geometry(std::string& geometry, SSB::Geometry::Type geometry_type, SSB::Event& event) throw(SSB::Exception){
 	switch(geometry_type){
 		case SSB::Geometry::Type::POINTS:{
 				// Points buffer
@@ -228,7 +228,7 @@ void SSB::Parser::parse_geometry(std::string& geometry, SSB::Geometry::Type geom
 	}
 }
 
-void SSB::Parser::parse_tags(std::string& tags, SSB::Geometry::Type& geometry_type, SSB::Event& event) throw(std::string){
+void SSB::Parser::parse_tags(std::string& tags, SSB::Geometry::Type& geometry_type, SSB::Event& event) throw(SSB::Exception){
 	// Iterate through tags
 	std::istringstream tags_stream(tags);
 	std::string tags_token;
@@ -762,7 +762,7 @@ void SSB::Parser::parse_tags(std::string& tags, SSB::Geometry::Type& geometry_ty
 				THROW_WEAK_ERROR("Invalid tag \"" + tags_token + '\"');
 }
 
-void SSB::Parser::parse_script(SSB::Data& data, std::istream& script) throw(std::string){
+void SSB::Parser::parse_script(SSB::Data& data, std::istream& script) throw(SSB::Exception){
 	// Skip UTF-8 byte-order-mask
 	unsigned char BOM[3];
 	script.read(reinterpret_cast<char*>(BOM), 3);
@@ -786,13 +786,13 @@ void SSB::Parser::parse_script(SSB::Data& data, std::istream& script) throw(std:
 			// Parse the current stream line
 			this->parse_line(data, line);
 		}
-	}catch(std::string error_message){
+	}catch(SSB::Exception e){
 		// Rethrow error message with additional line number
-                throw std::to_string(line_number) + ": " + error_message;
+		throw SSB::Exception(std::to_string(line_number) + ": " + e.what());
 	}
 }
 
-void SSB::Parser::parse_line(SSB::Data& data, std::string& line) throw(std::string){
+void SSB::Parser::parse_line(SSB::Data& data, std::string& line) throw(SSB::Exception){
 	// No empty or comment line = no skip
 	if(!line.empty() && line.compare(0, 2, "//") != 0){
 		// Section header line

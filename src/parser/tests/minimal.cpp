@@ -23,8 +23,8 @@ int main(){
 	try{
 		parser.parse_line(data, line);
 		std::cout << "SUCCESS!!!" << std::endl;
-	}catch(std::string msg){
-		throw std::logic_error(msg);
+	}catch(SSB::Exception e){
+		throw std::logic_error(e.what());
 	}
 	return 0;
 }

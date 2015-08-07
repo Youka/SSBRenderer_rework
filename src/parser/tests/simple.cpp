@@ -32,8 +32,8 @@ int main(int argc, char** argv){
 		std::for_each(data.styles.begin(), data.styles.end(), [](std::pair<std::string,std::string> style){std::cout << "\n" << style.first << ": " << style.second;});
 		std::cout << "\n\n#EVENTS";
 		std::for_each(data.events.begin(), data.events.end(), [](SSB::Event& event){std::cout << "\n" << event.start_ms << " - " << event.end_ms << " | " << event.objects.size() << " objects " << (event.static_tags ? "(static)" : "(dynamic)");});
-	}catch(std::string msg){
-		throw std::logic_error(msg);
+	}catch(SSB::Exception e){
+		throw std::logic_error(e.what());
 	}
 	return 0;
 }
