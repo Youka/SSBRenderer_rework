@@ -18,7 +18,7 @@ See [examples](examples) or seach online for user videos & scripts.
 Just whisper <b>Youka</b> on <a href="http://en.wikipedia.org/wiki/IRC">IRC</a> servers [freenode](https://www.freenode.net/) or [rizon](http://rizon.net/), open an issue on github or write a PM in [doom9 forum](http://forum.doom9.org/member.php?u=197060).
 
 ### Contributing
-Every help is welcome, just contact me and tell me what you want to do.<br>Tutorials, more detailed documentations, bug fixes, source code improvements, ideas for the future, ...
+So far no need. But maybe later help is welcome.<br>Tutorials, more detailed documentations, bug fixes, source code improvements, ideas for the future, ...
 
 ### License
 This software is under zlib license. For details, read <b>LICENSE.txt<b>.
