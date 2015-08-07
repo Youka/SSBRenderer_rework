@@ -13,7 +13,6 @@ Permission is granted to anyone to use this software for any purpose, including 
 */
 
 #include "gutils.hpp"
-#include <vector>
 #include "simd.hpp"
 #define _USE_MATH_DEFINES
 #include <cmath>
@@ -300,7 +299,7 @@ namespace GUtils{
 			const int fdata_jump = -fdata.size() + (1 + remote_threads_n) * (trimmed_stride / width),
 				data_jump = -(height * stride) + (fdata_jump + fdata.size());
 			const unsigned kernel_v_radius = ((kernel_v.size() - 1) >> 1) * trimmed_stride;
-			libdivide::divider<int> trimmed_stride_div(trimmed_stride);
+			const libdivide::divider<int> trimmed_stride_div(trimmed_stride);
 			// Select proper vertical blur function
 			decltype(fdata)& fdatax = kernel_h.empty() ? fdata : fdata2;
 			switch(depth){

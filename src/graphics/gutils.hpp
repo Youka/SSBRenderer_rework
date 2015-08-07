@@ -15,6 +15,14 @@ Permission is granted to anyone to use this software for any purpose, including 
 #pragma once
 
 #include <type_traits>
+#ifdef _WIN32
+	#include <windef.h>
+#else
+	#include <cairo.h>
+	#include <pango/pango-layout.h>
+#endif
+#include <string>
+#include <vector>
 
 namespace GUtils{
 	class Matrix4x4d{
@@ -76,4 +84,70 @@ namespace GUtils{
 	enum class ColorDepth{X1/* A */, X3/* RGB */, X4/* RGBA */};
 	void blur(unsigned char* data, const unsigned width, const unsigned height, const unsigned stride, const ColorDepth depth,
 		const float strength_h, const float strength_v);
+
+	class Font{
+		private:
+#ifdef _WIN32
+			HDC dc;
+			HFONT font;
+			HGDIOBJ old_font;
+#else
+			cairo_surface_t* surface;
+			cairo_t* context;
+			PangoLayout* layout;
+#endif
+		public:
+			// Rule-of-five
+			Font();
+			Font(std::string family, float size = 12, bool bold = false, bool italic = false, bool underline = false, bool strikeout = false, bool rtl = false);
+#ifdef _WIN32
+			Font(std::wstring family, float size = 12, bool bold = false, bool italic = false, bool underline = false, bool strikeout = false, bool rtl = false);
+#endif
+			~Font();
+			Font(const Font&);
+			Font& operator=(const Font&);
+			Font(Font&& other);
+			Font& operator=(Font&&);
+			// Getters
+			std::string get_family();
+#ifdef _WIN32
+			std::string get_family_unicode();
+#endif
+			float get_size();
+			bool get_bold();
+			bool get_italic();
+			bool get_underline();
+			bool get_strikeout();
+			bool get_rtl();
+			// Setters
+			void set_family(std::string family);
+#ifdef _WIN32
+			void set_family(std::wstring family);
+#endif
+			void set_size(float size);
+			void set_bold(bool bold);
+			void set_italic(bool italic);
+			void set_underline(bool underline);
+			void set_strikeout(bool strikeout);
+			void set_rtl(bool rtl);
+			// Font metrics
+			struct Metrics{
+				double height, ascent, descent, internal_leading, external_leading;
+			};
+			Metrics metrics();
+			// Text width by extents (height from metrics)
+			double text_width(std::string text);
+#ifdef _WIN32
+			double text_width(std::wstring text);
+#endif
+			// Text to graphical path
+			struct PathSegment{
+				enum class Type{MOVE, LINE, CURVE, CLOSE} type;
+				double x, y;
+			};
+			std::vector<PathSegment> text_path(std::string text);
+#ifdef _WIN32
+			std::vector<PathSegment> text_path(std::wstring text);
+#endif
+	};
 }
