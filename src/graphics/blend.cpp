@@ -67,25 +67,18 @@ namespace GUtils{
 						dst_data += dst_stride;
 				else if(src_with_alpha && !dst_with_alpha)
 					while(src_data != src_data_end){
-						src_row_end = src_data + (src_width << 2);
-						while(src_data != src_row_end)
+						for(src_row_end = src_data + (src_width << 2); src_data != src_row_end; src_data += 4, dst_data += 3)
 							*reinterpret_cast<int16_t*>(dst_data) = *reinterpret_cast<const int16_t*>(src_data),
-							src_data += 2,
-							dst_data += 2,
-							*dst_data++ = *src_data,
-							src_data += 2;
+							dst_data[2] = src_data[2];
 						src_data += src_offset,
 						dst_data += dst_offset;
 					}
 				else
 					while(src_data != src_data_end){
-						src_row_end = src_data + (src_width << 1) + src_width;
-						while(src_data != src_row_end)
+						for(src_row_end = src_data + (src_width << 1) + src_width; src_data != src_row_end; src_data += 3, dst_data += 4)
 							*reinterpret_cast<int16_t*>(dst_data) = *reinterpret_cast<const int16_t*>(src_data),
-							src_data += 2,
-							dst_data += 2,
-							*dst_data++ = *src_data++,
-							*dst_data++ = 255;
+							dst_data[2] = src_data[2],
+							dst_data[3] = 255;
 						src_data += src_offset,
 						dst_data += dst_offset;
 					}
@@ -95,8 +88,7 @@ namespace GUtils{
 				if(src_with_alpha && dst_with_alpha)
 					while(src_data != src_data_end){
 #ifdef __SSE2__
-						src_row_end = src_data + ((src_width & ~0x3) << 2);
-						while(src_data != src_row_end){
+						for(src_row_end = src_data + ((src_width & ~0x3) << 2); src_data != src_row_end; src_data += 16, dst_data += 16)
 							if(src_data[3] == 255 && src_data[7] == 255 && src_data[11] == 255 && src_data[15] == 255)
 								_mm_storeu_si128(reinterpret_cast<__m128i*>(dst_data), _mm_loadu_si128(reinterpret_cast<const __m128i*>(src_data)));
 							else if(src_data[3] > 0 || src_data[7] > 0 || src_data[11] > 0 || src_data[15] > 0){
@@ -124,9 +116,6 @@ namespace GUtils{
 									)
 								);
 							}
-							src_data += 16,
-							dst_data += 16;
-						}
 						if(src_width & 0x2){
 							if(src_data[3] == 255 && src_data[7] == 255)
 								*reinterpret_cast<int64_t*>(dst_data) = *reinterpret_cast<const int64_t*>(src_data);
@@ -166,8 +155,7 @@ namespace GUtils{
 							dst_data += 4;
 						}
 #else
-						src_row_end = src_data + (src_width << 2);
-						while(src_data != src_row_end){
+						for(src_row_end = src_data + (src_width << 2); src_data != src_row_end; src_data += 4, dst_data += 4)
 							if(src_data[3] == 255)
 								*reinterpret_cast<int32_t*>(dst_data) = *reinterpret_cast<const int32_t*>(src_data);
 							else if(src_data[3] > 0)
@@ -176,9 +164,6 @@ namespace GUtils{
 								dst_data[1] = src_data[1] + dst_data[1] * inv_alpha / 255,
 								dst_data[2] = src_data[2] + dst_data[2] * inv_alpha / 255,
 								dst_data[3] = src_data[3] + dst_data[3] * inv_alpha / 255;
-							src_data += 4,
-							dst_data += 4;
-						}
 #endif
 						src_data += src_offset,
 						dst_data += dst_offset;
@@ -191,8 +176,7 @@ namespace GUtils{
 				else if(src_with_alpha && !dst_with_alpha)
 					while(src_data != src_data_end){
 #ifdef __SSE2__
-						src_row_end = src_data + ((src_width & ~0x1) << 2);
-						while(src_data != src_row_end){
+						for(src_row_end = src_data + ((src_width & ~0x1) << 2); src_data != src_row_end; src_data += 8, dst_data += 6)
 							if(src_data[3] == 255 && src_data[7] == 255)
 								*reinterpret_cast<int16_t*>(dst_data) = *reinterpret_cast<const int16_t*>(src_data),
 								dst_data[2] = src_data[2],
@@ -215,9 +199,6 @@ namespace GUtils{
 								dst_data[2] = tmp[2],
 								*reinterpret_cast<int16_t*>(dst_data+3) = *reinterpret_cast<const int16_t*>(ptmp+4),
 								dst_data[5] = tmp[6];
-							src_data += 8,
-							dst_data += 6;
-						}
 						if(src_width & 0x1){
 							if(src_data[3] == 255)
 								*reinterpret_cast<int16_t*>(dst_data) = *reinterpret_cast<const int16_t*>(src_data),
@@ -241,8 +222,7 @@ namespace GUtils{
 							dst_data += 3;
 						}
 #else
-						src_row_end = src_data + (src_width << 2);
-						while(src_data != src_row_end){
+						for(src_row_end = src_data + (src_width << 2); src_data != src_row_end; src_data += 4, dst_data += 3)
 							if(src_data[3] == 255)
 								*reinterpret_cast<int16_t*>(dst_data) = *reinterpret_cast<const int16_t*>(src_data),
 								dst_data[2] = src_data[2];
@@ -251,22 +231,16 @@ namespace GUtils{
 								dst_data[0] = src_data[0] + dst_data[0] * inv_alpha / 255,
 								dst_data[1] = src_data[1] + dst_data[1] * inv_alpha / 255,
 								dst_data[2] = src_data[2] + dst_data[2] * inv_alpha / 255;
-							src_data += 4,
-							dst_data += 3;
-						}
 #endif
 						src_data += src_offset,
 						dst_data += dst_offset;
 					}
 				else
 					while(src_data != src_data_end){
-						src_row_end = src_data + (src_width << 1) + src_width;
-						while(src_data != src_row_end)
+						for(src_row_end = src_data + (src_width << 1) + src_width; src_data != src_row_end; src_data += 3, dst_data += 4)
 							*reinterpret_cast<int16_t*>(dst_data) = *reinterpret_cast<const int16_t*>(src_data),
-							src_data += 2,
-							dst_data += 2,
-							*dst_data++ = *src_data++,
-							*dst_data++ = 255;
+							dst_data[2] = src_data[2],
+							dst_data[3] = 255;
 						src_data += src_offset,
 						dst_data += dst_offset;
 					}
@@ -276,8 +250,7 @@ namespace GUtils{
 				if(src_with_alpha && dst_with_alpha)
 					while(src_data != src_data_end){
 #ifdef __SSE2__
-						src_row_end = src_data + ((src_width & ~0x3) << 2);
-						while(src_data != src_row_end){
+						for(src_row_end = src_data + ((src_width & ~0x3) << 2); src_data != src_row_end; src_data += 16, dst_data += 16)
 							if(src_data[3] > 0 || src_data[7] > 0)
 								_mm_storeu_si128(
 									reinterpret_cast<__m128i*>(dst_data),
@@ -286,9 +259,6 @@ namespace GUtils{
 										_mm_loadu_si128(reinterpret_cast<const __m128i*>(src_data))
 									)
 								);
-							src_data += 16,
-							dst_data += 16;
-						}
 						if(src_width & 0x2){
 							if(src_data[3] > 0)
 								*reinterpret_cast<__m64*>(dst_data) = _mm_adds_pu8(
@@ -310,56 +280,42 @@ namespace GUtils{
 							dst_data += 4;
 						}
 #else
-						src_row_end = src_data + (src_width << 2);
-						while(src_data != src_row_end){
+						for(src_row_end = src_data + (src_width << 2); src_data != src_row_end; src_data += 4, dst_data += 4)
 							if(src_data[3] > 0)
 								dst_data[0] = std::min(255, dst_data[0] + src_data[0]),
 								dst_data[1] = std::min(255, dst_data[1] + src_data[1]),
 								dst_data[2] = std::min(255, dst_data[2] + src_data[2]),
 								dst_data[3] = std::min(255, dst_data[3] + src_data[3]);
-							src_data += 4,
-							dst_data += 4;
-						}
 #endif
 						src_data += src_offset,
 						dst_data += dst_offset;
 					}
 				else if(!src_with_alpha && !dst_with_alpha)
 					while(src_data != src_data_end){
-						src_row_end = src_data + (src_width << 1) + src_width;
-						while(src_data != src_row_end)
+						for(src_row_end = src_data + (src_width << 1) + src_width; src_data != src_row_end; src_data += 3, dst_data += 3)
 							dst_data[0] = std::min(255, dst_data[0] + src_data[0]),
 							dst_data[1] = std::min(255, dst_data[1] + src_data[1]),
-							dst_data[2] = std::min(255, dst_data[2] + src_data[2]),
-							src_data += 3,
-							dst_data += 3;
+							dst_data[2] = std::min(255, dst_data[2] + src_data[2]);
 						src_data += src_offset,
 						dst_data += dst_offset;
 					}
 				else if(src_with_alpha && !dst_with_alpha)
 					while(src_data != src_data_end){
-						src_row_end = src_data + (src_width << 2);
-						while(src_data != src_row_end){
+						for(src_row_end = src_data + (src_width << 2); src_data != src_row_end; src_data += 4, dst_data += 3)
 							if(src_data[3] > 0)
 								dst_data[0] = std::min(255, dst_data[0] + src_data[0]),
 								dst_data[1] = std::min(255, dst_data[1] + src_data[1]),
 								dst_data[2] = std::min(255, dst_data[2] + src_data[2]);
-							src_data += 4,
-							dst_data += 3;
-						}
 						src_data += src_offset,
 						dst_data += dst_offset;
 					}
 				else
 					while(src_data != src_data_end){
-						src_row_end = src_data + (src_width << 1) + src_width;
-						while(src_data != src_row_end)
+						for(src_row_end = src_data + (src_width << 1) + src_width; src_data != src_row_end; src_data += 3, dst_data += 4)
 							dst_data[0] = std::min(255, dst_data[0] + src_data[0]),
 							dst_data[1] = std::min(255, dst_data[1] + src_data[1]),
 							dst_data[2] = std::min(255, dst_data[2] + src_data[2]),
-							dst_data[3] = 255,
-							src_data += 3,
-							dst_data += 4;
+							dst_data[3] = 255;
 						src_data += src_offset,
 						dst_data += dst_offset;
 					}
@@ -369,8 +325,7 @@ namespace GUtils{
 				if(src_with_alpha && dst_with_alpha)
 					while(src_data != src_data_end){
 #ifdef __SSE2__
-						src_row_end = src_data + ((src_width & ~0x3) << 2);
-						while(src_data != src_row_end){
+						for(src_row_end = src_data + ((src_width & ~0x3) << 2); src_data != src_row_end; src_data += 16, dst_data += 16)
 							if(src_data[3] > 0 || src_data[7] > 0)
 								_mm_storeu_si128(
 									reinterpret_cast<__m128i*>(dst_data),
@@ -379,9 +334,6 @@ namespace GUtils{
 										_mm_loadu_si128(reinterpret_cast<const __m128i*>(src_data))
 									)
 								);
-							src_data += 16,
-							dst_data += 16;
-						}
 						if(src_width & 0x2){
 							if(src_data[3] > 0)
 								*reinterpret_cast<__m64*>(dst_data) = _mm_subs_pu8(
@@ -403,56 +355,42 @@ namespace GUtils{
 							dst_data += 4;
 						}
 #else
-						src_row_end = src_data + (src_width << 2);
-						while(src_data != src_row_end){
+						for(src_row_end = src_data + (src_width << 2); src_data != src_row_end; src_data += 4, dst_data += 4)
 							if(src_data[3] > 0)
 								dst_data[0] = std::max(0, dst_data[0] - src_data[0]),
 								dst_data[1] = std::max(0, dst_data[1] - src_data[1]),
 								dst_data[2] = std::max(0, dst_data[2] - src_data[2]),
 								dst_data[3] = std::max(0, dst_data[3] - src_data[3]);
-							src_data += 4,
-							dst_data += 4;
-						}
 #endif
 						src_data += src_offset,
 						dst_data += dst_offset;
 					}
 				else if(!src_with_alpha && !dst_with_alpha)
 					while(src_data != src_data_end){
-						src_row_end = src_data + (src_width << 1) + src_width;
-						while(src_data != src_row_end)
+						for(src_row_end = src_data + (src_width << 1) + src_width; src_data != src_row_end; src_data += 3, dst_data += 3)
 							dst_data[0] = std::max(0, dst_data[0] - src_data[0]),
 							dst_data[1] = std::max(0, dst_data[1] - src_data[1]),
-							dst_data[2] = std::max(0, dst_data[2] - src_data[2]),
-							src_data += 3,
-							dst_data += 3;
+							dst_data[2] = std::max(0, dst_data[2] - src_data[2]);
 						src_data += src_offset,
 						dst_data += dst_offset;
 					}
 				else if(src_with_alpha && !dst_with_alpha)
 					while(src_data != src_data_end){
-						src_row_end = src_data + (src_width << 2);
-						while(src_data != src_row_end){
+						for(src_row_end = src_data + (src_width << 2); src_data != src_row_end; src_data += 4, dst_data += 3)
 							if(src_data[3] > 0)
 								dst_data[0] = std::max(0, dst_data[0] - src_data[0]),
 								dst_data[1] = std::max(0, dst_data[1] - src_data[1]),
 								dst_data[2] = std::max(0, dst_data[2] - src_data[2]);
-							src_data += 4,
-							dst_data += 3;
-						}
 						src_data += src_offset,
 						dst_data += dst_offset;
 					}
 				else
 					while(src_data != src_data_end){
-						src_row_end = src_data + (src_width << 1) + src_width;
-						while(src_data != src_row_end)
+						for(src_row_end = src_data + (src_width << 1) + src_width; src_data != src_row_end; src_data += 3, dst_data += 4)
 							dst_data[0] = std::max(0, dst_data[0] - src_data[0]),
 							dst_data[1] = std::max(0, dst_data[1] - src_data[1]),
 							dst_data[2] = std::max(0, dst_data[2] - src_data[2]),
-							dst_data[3] = 0,
-							src_data += 3,
-							dst_data += 4;
+							dst_data[3] = 0;
 						src_data += src_offset,
 						dst_data += dst_offset;
 					}
@@ -465,8 +403,7 @@ namespace GUtils{
 				if(src_with_alpha && dst_with_alpha)
 					while(src_data != src_data_end){
 #ifdef __SSE2__
-						src_row_end = src_data + ((src_width & ~0x1) << 2);
-						while(src_data != src_row_end){
+						for(src_row_end = src_data + ((src_width & ~0x1) << 2); src_data != src_row_end; src_data += 8, dst_data += 8)
 							if(src_data[3] > 0 || src_data[7] > 0){
 								if(dst_data[3] == 0 && dst_data[7] == 0)
 									SSE2_STORE_16_U8(
@@ -531,9 +468,6 @@ namespace GUtils{
 									dst_data[7] = src_data[7] + dst_data[7] * inv_alpha2 / 255;
 								}
 							}
-							src_data += 8,
-							dst_data += 8;
-						}
 						if(src_width & 0x1){
 							if(src_data[3] > 0){
 								if(dst_data[3] == 0)
@@ -600,8 +534,7 @@ namespace GUtils{
 							dst_data += 4;
 						}
 #else
-						src_row_end = src_data + (src_width << 2);
-						while(src_data != src_row_end){
+						for(src_row_end = src_data + (src_width << 2); src_data != src_row_end; src_data += 4, dst_data += 4)
 							if(src_data[3] > 0){
 								if(dst_data[3] == 0)
 									inv_alpha = src_data[3] ^ 0xFF,
@@ -620,29 +553,22 @@ namespace GUtils{
 									dst_data[2] = (dst_data[2] * 255 / dst_data[3]) * (src_data[2] * 255 / src_data[3]) * src_data[3] / 65025 + dst_data[2] * inv_alpha / 255,
 									dst_data[3] = src_data[3] + dst_data[3] * inv_alpha / 255;
 							}
-							src_data += 4,
-							dst_data += 4;
-						}
 #endif
 						src_data += src_offset,
 						dst_data += dst_offset;
 					}
 				else if(!src_with_alpha && !dst_with_alpha)
 					while(src_data != src_data_end){
-						src_row_end = src_data + (src_width << 1) + src_width;
-						while(src_data != src_row_end)
+						for(src_row_end = src_data + (src_width << 1) + src_width; src_data != src_row_end; src_data += 3, dst_data += 3)
 							dst_data[0] = dst_data[0] * src_data[0] / 255,
 							dst_data[1] = dst_data[1] * src_data[1] / 255,
-							dst_data[2] = dst_data[2] * src_data[2] / 255,
-							src_data += 3,
-							dst_data += 3;
+							dst_data[2] = dst_data[2] * src_data[2] / 255;
 						src_data += src_offset,
 						dst_data += dst_offset;
 					}
 				else if(src_with_alpha && !dst_with_alpha)
 					while(src_data != src_data_end){
-						src_row_end = src_data + (src_width << 2);
-						while(src_data != src_row_end){
+						for(src_row_end = src_data + (src_width << 2); src_data != src_row_end; src_data += 4, dst_data += 3)
 							if(src_data[3] > 0){
 								if(src_data[3] == 255)
 									dst_data[0] = dst_data[0] * src_data[0] / 255,
@@ -654,16 +580,12 @@ namespace GUtils{
 									dst_data[1] = dst_data[1] * (src_data[1] * 255 / src_data[3]) * src_data[3] / 65025 + dst_data[1] * inv_alpha / 255,
 									dst_data[2] = dst_data[2] * (src_data[2] * 255 / src_data[3]) * src_data[3] / 65025 + dst_data[2] * inv_alpha / 255;
 							}
-							src_data += 4,
-							dst_data += 3;
-						}
 						src_data += src_offset,
 						dst_data += dst_offset;
 					}
 				else
 					while(src_data != src_data_end){
-						src_row_end = src_data + (src_width << 1) + src_width;
-						while(src_data != src_row_end){
+						for(src_row_end = src_data + (src_width << 1) + src_width; src_data != src_row_end; src_data += 3, dst_data += 4)
 							if(dst_data[3] == 0)
 								*reinterpret_cast<int16_t*>(dst_data) = 0,
 								dst_data[2] = 0,
@@ -677,9 +599,6 @@ namespace GUtils{
 								dst_data[1] = (dst_data[1] * 255 / dst_data[3]) * src_data[1] / 255,
 								dst_data[2] = (dst_data[2] * 255 / dst_data[3]) * src_data[2] / 255,
 								dst_data[3] = 255;
-							src_data += 3,
-							dst_data += 4;
-						}
 						src_data += src_offset,
 						dst_data += dst_offset;
 					}
@@ -692,8 +611,7 @@ namespace GUtils{
 				if(src_with_alpha && dst_with_alpha)
 					while(src_data != src_data_end){
 #ifdef __SSE2__
-						src_row_end = src_data + ((src_width & ~0x1) << 2);
-						while(src_data != src_row_end){
+						for(src_row_end = src_data + ((src_width & ~0x1) << 2); src_data != src_row_end; src_data += 8, dst_data += 8)
 							if(src_data[3] > 0 || dst_data[7] > 0){
 								if(dst_data[3] == 0 && dst_data[7] == 0)
 									SSE2_STORE_16_U8(
@@ -773,9 +691,6 @@ namespace GUtils{
 									dst_data[7] = src_data[7] + dst_data[7] * inv_alpha2 / 255;
 								}
 							}
-							src_data += 8,
-							dst_data += 8;
-						}
 						if(src_width & 0x1){
 							if(src_data[3] > 0){
 								if(dst_data[3] == 0)
@@ -857,8 +772,7 @@ namespace GUtils{
 							dst_data += 4;
 						}
 #else
-						src_row_end = src_data + (src_width << 2);
-						while(src_data != src_row_end){
+						for(src_row_end = src_data + (src_width << 2); src_data != src_row_end; src_data += 4, dst_data += 4)
 							if(src_data[3] > 0){
 								if(dst_data[3] == 0)
 									inv_alpha = src_data[3] ^ 0xFF,
@@ -877,29 +791,22 @@ namespace GUtils{
 									dst_data[2] = ((dst_data[2] * 255 / dst_data[3] ^ 0xFF) * (src_data[2] * 255 / src_data[3] ^ 0xFF) / 255 ^ 0xFF) * src_data[3] / 255 + dst_data[2] * inv_alpha / 255,
 									dst_data[3] = src_data[3] + dst_data[3] * inv_alpha / 255;
 							}
-							src_data += 4,
-							dst_data += 4;
-						}
 #endif
 						src_data += src_offset,
 						dst_data += dst_offset;
 					}
 				else if(!src_with_alpha && !dst_with_alpha)
 					while(src_data != src_data_end){
-						src_row_end = src_data + (src_width << 1) + src_width;
-						while(src_data != src_row_end)
+						for(src_row_end = src_data + (src_width << 1) + src_width; src_data != src_row_end; src_data += 3, dst_data += 3)
 							dst_data[0] = (dst_data[0] ^ 0xFF) * (src_data[0] ^ 0xFF) / 255 ^ 0xFF,
 							dst_data[1] = (dst_data[1] ^ 0xFF) * (src_data[1] ^ 0xFF) / 255 ^ 0xFF,
-							dst_data[2] = (dst_data[2] ^ 0xFF) * (src_data[2] ^ 0xFF) / 255 ^ 0xFF,
-							src_data += 3,
-							dst_data += 3;
+							dst_data[2] = (dst_data[2] ^ 0xFF) * (src_data[2] ^ 0xFF) / 255 ^ 0xFF;
 						src_data += src_offset,
 						dst_data += dst_offset;
 					}
 				else if(src_with_alpha && !dst_with_alpha)
 					while(src_data != src_data_end){
-						src_row_end = src_data + (src_width << 2);
-						while(src_data != src_row_end)
+						for(src_row_end = src_data + (src_width << 2); src_data != src_row_end; src_data += 4, dst_data += 3)
 							if(src_data[3] > 0){
 								if(src_data[3] == 255)
 									dst_data[0] = (dst_data[0] ^ 0xFF) * (src_data[0] ^ 0xFF) / 255 ^ 0xFF,
@@ -911,15 +818,12 @@ namespace GUtils{
 									dst_data[1] = ((dst_data[1] ^ 0xFF) * (src_data[1] * 255 / src_data[3] ^ 0xFF) / 255 ^ 0xFF) * src_data[3] / 255 + dst_data[1] * inv_alpha / 255,
 									dst_data[2] = ((dst_data[2] ^ 0xFF) * (src_data[2] * 255 / src_data[3] ^ 0xFF) / 255 ^ 0xFF) * src_data[3] / 255 + dst_data[2] * inv_alpha / 255;
 							}
-							src_data += 4,
-							dst_data += 3;
 						src_data += src_offset,
 						dst_data += dst_offset;
 					}
 				else
 					while(src_data != src_data_end){
-						src_row_end = src_data + (src_width << 1) + src_width;
-						while(src_data != src_row_end){
+						for(src_row_end = src_data + (src_width << 1) + src_width; src_data != src_row_end; src_data += 3, dst_data += 4)
 							if(dst_data[3] == 0)
 								*reinterpret_cast<int16_t*>(dst_data) = *reinterpret_cast<const int16_t*>(src_data),
 								dst_data[2] = src_data[2],
@@ -934,9 +838,6 @@ namespace GUtils{
 								dst_data[1] = (dst_data[1] * 255 / dst_data[3] ^ 0xFF) * (src_data[1] ^ 0xFF) / 255 ^ 0xFF,
 								dst_data[2] = (dst_data[2] * 255 / dst_data[3] ^ 0xFF) * (src_data[2] ^ 0xFF) / 255 ^ 0xFF,
 								dst_data[3] = 255;
-							src_data += 3,
-							dst_data += 4;
-						}
 						src_data += src_offset,
 						dst_data += dst_offset;
 					}
@@ -949,8 +850,7 @@ namespace GUtils{
 				if(src_with_alpha && dst_with_alpha)
 					while(src_data != src_data_end){
 #ifdef __SSE2__
-						src_row_end = src_data + ((src_width & ~0x1) << 2);
-						while(src_data != src_row_end){
+						for(src_row_end = src_data + ((src_width & ~0x1) << 2); src_data != src_row_end; src_data += 8, dst_data += 8)
 							if(src_data[3] > 0 || src_data[7] > 0){
 								if(dst_data[3] == 0 && dst_data[7] == 0)
 									SSE2_STORE_16_U8(
@@ -1016,9 +916,6 @@ namespace GUtils{
 									dst_data[7] = src_data[7] + dst_data[7] * inv_alpha2 / 255;
 								}
 							}
-							src_data += 8,
-							dst_data += 8;
-						}
 						if(src_width & 0x1){
 							if(src_data[3] > 0){
 								if(dst_data[3] == 0)
@@ -1084,8 +981,7 @@ namespace GUtils{
 							dst_data += 4;
 						}
 #else
-						src_row_end = src_data + (src_width << 2);
-						while(src_data != src_row_end){
+						for(src_row_end = src_data + (src_width << 2); src_data != src_row_end; src_data += 4, dst_data += 4)
 							if(src_data[3] > 0){
 								if(dst_data[3] == 0)
 									inv_alpha = src_data[3] ^ 0xFF,
@@ -1104,29 +1000,22 @@ namespace GUtils{
 									dst_data[2] = ::abs(dst_data[2] * 255 / dst_data[3] - src_data[2] * 255 / src_data[3]) * src_data[3] / 255 + dst_data[2] * inv_alpha / 255,
 									dst_data[3] = src_data[3] + dst_data[3] * inv_alpha / 255;
 							}
-							src_data += 4,
-							dst_data += 4;
-						}
 #endif
 						src_data += src_offset,
 						dst_data += dst_offset;
 					}
 				else if(!src_with_alpha && !dst_with_alpha)
 					while(src_data != src_data_end){
-						src_row_end = src_data + (src_width << 1) + src_width;
-						while(src_data != src_row_end)
+						for(src_row_end = src_data + (src_width << 1) + src_width; src_data != src_row_end; src_data += 3, dst_data += 3)
 							dst_data[0] = ::abs(dst_data[0] - src_data[0]),
 							dst_data[1] = ::abs(dst_data[1] - src_data[1]),
-							dst_data[2] = ::abs(dst_data[2] - src_data[2]),
-							src_data += 3,
-							dst_data += 3;
+							dst_data[2] = ::abs(dst_data[2] - src_data[2]);
 						src_data += src_offset,
 						dst_data += dst_offset;
 					}
 				else if(src_with_alpha && !dst_with_alpha)
 					while(src_data != src_data_end){
-						src_row_end = src_data + (src_width << 2);
-						while(src_data != src_row_end){
+						for(src_row_end = src_data + (src_width << 2); src_data != src_row_end; src_data += 4, dst_data += 3)
 							if(src_data[3] > 0){
 								if(src_data[3] == 255)
 									dst_data[0] = ::abs(dst_data[0] - src_data[0]),
@@ -1138,16 +1027,12 @@ namespace GUtils{
 									dst_data[1] = ::abs(dst_data[1] - src_data[1] * 255 / src_data[3]) * src_data[3] / 255 + dst_data[1] * inv_alpha / 255,
 									dst_data[2] = ::abs(dst_data[2] - src_data[2] * 255 / src_data[3]) * src_data[3] / 255 + dst_data[2] * inv_alpha / 255;
 							}
-							src_data += 4,
-							dst_data += 3;
-						}
 						src_data += src_offset,
 						dst_data += dst_offset;
 					}
 				else
 					while(src_data != src_data_end){
-						src_row_end = src_data + (src_width << 1) + src_width;
-						while(src_data != src_row_end){
+						for(src_row_end = src_data + (src_width << 1) + src_width; src_data != src_row_end; src_data += 3, dst_data += 4)
 							if(dst_data[3] == 0)
 								*reinterpret_cast<int16_t*>(dst_data) = *reinterpret_cast<const int16_t*>(src_data),
 								dst_data[2] = src_data[2],
@@ -1162,9 +1047,6 @@ namespace GUtils{
 								dst_data[1] = ::abs(dst_data[1] * 255 / dst_data[3] - src_data[1]),
 								dst_data[2] = ::abs(dst_data[2] * 255 / dst_data[3] - src_data[2]),
 								dst_data[3] = 255;
-							src_data += 3,
-							dst_data += 4;
-						}
 						src_data += src_offset,
 						dst_data += dst_offset;
 					}
