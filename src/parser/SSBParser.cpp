@@ -125,7 +125,7 @@ static inline bool parse_time(std::string& s, T& t){
 }
 
 // Parser implementations
-#define ADD_OBJECT(obj) event.objects.push_back(std::shared_ptr<SSB::Object>(new obj))
+#define ADD_OBJECT(obj) event.objects.emplace_back(new obj)
 #define THROW_STRONG_ERROR(msg) if(this->level != SSB::Parser::Level::OFF) throw SSB::Exception(msg)
 #define THROW_WEAK_ERROR(msg) if(this->level == SSB::Parser::Level::ALL) throw SSB::Exception(msg)
 void SSB::Parser::parse_geometry(std::string& geometry, SSB::Geometry::Type geometry_type, SSB::Event& event) throw(SSB::Exception){
@@ -684,12 +684,12 @@ void SSB::Parser::parse_tags(std::string& tags, SSB::Geometry::Type& geometry_ty
 						// Extend animation stream to get all animated tags
 						while(animate_token.back() != ')' && std::getline(tags_stream, tags_token, ';'))
 							animate_token += ';' + tags_token;
-						animate_tokens.push_back(animate_token);
+						animate_tokens.push_back(std::move(animate_token));
 						// Finish collecting after last possible token
 						break;
 					// Get first tokens (times & formula)
 					}else
-						animate_tokens.push_back(animate_token);
+						animate_tokens.push_back(std::move(animate_token));
 				// Check for enough animation tokens and last token for brackets
 				if(animate_tokens.size() > 0 && animate_tokens.back().length() >= 2 && animate_tokens.back().front() == '(' && animate_tokens.back().back() == ')'){
 					// Get animation values
@@ -934,7 +934,7 @@ void SSB::Parser::parse_line(SSB::Data& data, std::string& line) throw(SSB::Exce
 							in_tags = !in_tags;
 						}while(pos_start < text.length());
 						// Event complete -> commit to data
-						data.events.push_back(event);
+						data.events.push_back(std::move(event));
 					}
 					break;
 				case SSB::Data::Section::NONE:
