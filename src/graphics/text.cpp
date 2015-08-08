@@ -160,6 +160,28 @@ namespace GUtils{
 	bool Font::get_rtl(){
 		return GetTextAlign(this->dc) == TA_RTLREADING;
 	}
+	Font::operator bool() const{
+		return this->dc;
+	}
+	Font::Metrics Font::metrics(){
+		TEXTMETRICW metrics;
+		GetTextMetricsW(this->dc, &metrics);
+		return {
+			static_cast<double>(metrics.tmHeight) / FONT_UPSCALE,
+			static_cast<double>(metrics.tmAscent) / FONT_UPSCALE,
+			static_cast<double>(metrics.tmDescent) / FONT_UPSCALE,
+			static_cast<double>(metrics.tmInternalLeading) / FONT_UPSCALE,
+			static_cast<double>(metrics.tmExternalLeading) / FONT_UPSCALE
+		};
+	}
+	double Font::text_width(std::string text){
+		return this->text_width(utf8_to_utf16(text));
+	}
+	double Font::text_width(std::wstring text){
+		SIZE sz;
+		GetTextExtentPoint32W(this->dc, text.data(), text.length(), &sz);
+		return static_cast<double>(sz.cx) / FONT_UPSCALE;
+	}
 #else
 	Font::Font() : surface(nullptr), context(nullptr), layout(nullptr){}
 	Font::Font(std::string family, float size, bool bold, bool italic, bool underline, bool strikeout, bool rtl){
@@ -255,6 +277,26 @@ namespace GUtils{
 	}
 	bool Font::get_rtl(){
 		return pango_layout_get_auto_dir(this->layout);
+	}
+	Font::operator bool() const{
+		return this->surface;
+	}
+	Font::Metrics Font::metrics(){
+		FontMetrics result;
+		PangoFontMetrics* metrics = pango_context_get_metrics(pango_layout_get_context(this->layout), pango_layout_get_font_description(this->layout), NULL);
+		result.ascent = static_cast<double>(pango_font_metrics_get_ascent(metrics)) / PANGO_SCALE / FONT_UPSCALE,
+		result.descent = static_cast<double>(pango_font_metrics_get_descent(metrics)) / PANGO_SCALE / FONT_UPSCALE,
+		result.height = result.ascent + result.descent,
+		result.internal_lead = 0, // HEIGHT - ASCENT - DESCENT
+		result.external_lead = static_cast<double>(pango_layout_get_spacing(this->layout)) / PANGO_SCALE / FONT_UPSCALE,
+		pango_font_metrics_unref(metrics);
+		return result;
+	}
+	double Font::text_width(std::string text){
+		pango_layout_set_text(this->layout, text.data(), text.length());
+		PangoRectangle rect;
+		pango_layout_get_pixel_extents(this->layout, NULL, &rect);
+		return static_cast<double>(rect.width) / FONT_UPSCALE;
 	}
 #endif
 }
