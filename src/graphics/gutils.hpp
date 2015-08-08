@@ -22,6 +22,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 	#include <pango/pango-layout.h>
 #endif
 #include <string>
+#include <exception>
 #include <vector>
 
 namespace GUtils{
@@ -85,6 +86,14 @@ namespace GUtils{
 	void blur(unsigned char* data, const unsigned width, const unsigned height, const unsigned stride, const ColorDepth depth,
 		const float strength_h, const float strength_v);
 
+	class FontException : public std::exception{
+		private:
+			std::string message;
+		public:
+			FontException(std::string message) : message(message){}
+			const char* what() const noexcept override{return this->message.c_str();}
+	};
+
 	class Font{
 		private:
 #ifdef _WIN32
@@ -100,15 +109,17 @@ namespace GUtils{
 		public:
 			// Rule-of-five
 			Font();
-			Font(std::string family, float size = 12, bool bold = false, bool italic = false, bool underline = false, bool strikeout = false, double spacing = 0.0, bool rtl = false);
+			Font(std::string family, float size = 12, bool bold = false, bool italic = false, bool underline = false, bool strikeout = false, double spacing = 0.0, bool rtl = false) throw(FontException);
 #ifdef _WIN32
-			Font(std::wstring family, float size = 12, bool bold = false, bool italic = false, bool underline = false, bool strikeout = false, double spacing = 0.0, bool rtl = false);
+			Font(std::wstring family, float size = 12, bool bold = false, bool italic = false, bool underline = false, bool strikeout = false, double spacing = 0.0, bool rtl = false) throw(FontException);
 #endif
 			~Font();
 			Font(const Font& other);
 			Font& operator=(const Font& other);
 			Font(Font&& other);
 			Font& operator=(Font&& other);
+			// Check state
+			operator bool() const;
 			// Getters
 			std::string get_family();
 #ifdef _WIN32
@@ -121,8 +132,6 @@ namespace GUtils{
 			bool get_strikeout();
 			double get_spacing();
 			bool get_rtl();
-			// Check state
-			operator bool() const;
 			// Font metrics
 			struct Metrics{
 				double height, ascent, descent, internal_leading, external_leading;
@@ -138,9 +147,9 @@ namespace GUtils{
 				enum class Type{MOVE, LINE, CURVE/*Cubic bezier*/, CLOSE} type;
 				double x, y;
 			};
-			std::vector<PathSegment> text_path(std::string text);
+			std::vector<PathSegment> text_path(std::string text) throw(FontException);
 #ifdef _WIN32
-			std::vector<PathSegment> text_path(std::wstring text);
+			std::vector<PathSegment> text_path(std::wstring text) throw(FontException);
 #endif
 	};
 }

@@ -35,10 +35,15 @@ Permission is granted to anyone to use this software for any purpose, including 
 namespace GUtils{
 #ifdef _WIN32
 	Font::Font() : dc(NULL), font(NULL), old_font(NULL), spacing(0){}
-	Font::Font(std::string family, float size, bool bold, bool italic, bool underline, bool strikeout, double spacing, bool rtl)
+	Font::Font(std::string family, float size, bool bold, bool italic, bool underline, bool strikeout, double spacing, bool rtl) throw(FontException)
 	: Font(utf8_to_utf16(family), size, bold, italic, underline, strikeout, spacing, rtl){}
-	Font::Font(std::wstring family, float size, bool bold, bool italic, bool underline, bool strikeout, double spacing, bool rtl) : spacing(spacing){
-		this->dc = CreateCompatibleDC(NULL),
+	Font::Font(std::wstring family, float size, bool bold, bool italic, bool underline, bool strikeout, double spacing, bool rtl) throw(FontException) : spacing(spacing){
+		if(family.length() > 31)	// See LOGFONT limitation
+			throw FontException("Family length exceeds 31");
+		if(size < 0)
+			throw FontException("Size <0");
+		if(!(this->dc = CreateCompatibleDC(NULL)))
+			throw FontException("Couldn't create context");
 		SetMapMode(this->dc, MM_TEXT),
 		SetBkMode(this->dc, TRANSPARENT);
 		if(rtl)
@@ -52,8 +57,11 @@ namespace GUtils{
 		lf.lfCharSet = DEFAULT_CHARSET,
 		lf.lfOutPrecision = OUT_TT_PRECIS,
 		lf.lfQuality = ANTIALIASED_QUALITY,
-		lf.lfFaceName[family.copy(lf.lfFaceName, LF_FACESIZE - 1)] = L'\0',
-		this->font = CreateFontIndirectW(&lf),
+		lf.lfFaceName[family.copy(lf.lfFaceName, LF_FACESIZE - 1)] = L'\0';
+		if(!(this->font = CreateFontIndirectW(&lf))){
+			DeleteDC(this->dc);
+			throw FontException("Couldn't create font");
+		}
 		this->old_font = SelectObject(this->dc, this->font);
 	}
 	Font::~Font(){
@@ -134,6 +142,9 @@ namespace GUtils{
 			other.spacing = 0;
 		return *this;
 	}
+	Font::operator bool() const{
+		return this->dc;
+	}
 	std::string Font::get_family(){
 		return utf16_to_utf8(this->get_family_unicode());
 	}
@@ -173,9 +184,6 @@ namespace GUtils{
 	bool Font::get_rtl(){
 		return GetTextAlign(this->dc) == TA_RTLREADING;
 	}
-	Font::operator bool() const{
-		return this->dc;
-	}
 	Font::Metrics Font::metrics(){
 		TEXTMETRICW metrics;
 		GetTextMetricsW(this->dc, &metrics);
@@ -195,18 +203,30 @@ namespace GUtils{
 		GetTextExtentPoint32W(this->dc, text.data(), text.length(), &sz);
 		return static_cast<double>(sz.cx) / FONT_UPSCALE + text.length() * this->spacing;
 	}
-	std::vector<Font::PathSegment> Font::text_path(std::string text){
+	std::vector<Font::PathSegment> Font::text_path(std::string text) throw(FontException){
 		this->text_path(utf8_to_utf16(text));
 	}
-	std::vector<Font::PathSegment> Font::text_path(std::wstring text){
+	std::vector<Font::PathSegment> Font::text_path(std::wstring text) throw(FontException){
 
 		// TODO
 
 	}
 #else
 	Font::Font() : surface(nullptr), context(nullptr), layout(nullptr){}
-	Font::Font(std::string family, float size, bool bold, bool italic, bool underline, bool strikeout, double spacing, bool rtl){
-		this->layout = pango_cairo_create_layout(this->context = cairo_create(this->surface = cairo_image_surface_create(CAIRO_FORMAT_A1, 1, 1)));
+	Font::Font(std::string family, float size, bool bold, bool italic, bool underline, bool strikeout, double spacing, bool rtl) throw(FontException){
+		if(size < 0)
+			throw FontException("Size <0");
+		if(!(this->surface = cairo_image_surface_create(CAIRO_FORMAT_A1, 1, 1)))
+			throw FontException("Couldn't create surface");
+		if(!(this->context = cairo_create(this->surface))){
+			cairo_surface_destroy(this->surface);
+			throw FontException("Couldn't create context");
+		}
+		if(!(this->layout = pango_cairo_create_layout(this->context))){
+			cairo_destroy(this->context),
+			cairo_surface_destroy(this->surface);
+			throw FontException("Couldn't create layout");
+		}
 		PangoFontDescription *font = pango_font_description_new();
 		pango_font_description_set_family(font, family.c_str()),
 		pango_font_description_set_weight(font, bold ? PANGO_WEIGHT_BOLD : PANGO_WEIGHT_NORMAL),
@@ -269,6 +289,9 @@ namespace GUtils{
 			other.surface = other.context = other.layout = nullptr;
 		return *this;
 	}
+	Font::operator bool() const{
+		return this->surface;
+	}
 	std::string Font::get_family(){
 		return pango_font_description_get_family(pango_layout_get_font_description(this->layout));
 	}
@@ -302,9 +325,6 @@ namespace GUtils{
 	bool Font::get_rtl(){
 		return pango_layout_get_auto_dir(this->layout);
 	}
-	Font::operator bool() const{
-		return this->surface;
-	}
 	Font::Metrics Font::metrics(){
 		FontMetrics result;
 		PangoFontMetrics* metrics = pango_context_get_metrics(pango_layout_get_context(this->layout), pango_layout_get_font_description(this->layout), NULL);
@@ -322,7 +342,7 @@ namespace GUtils{
 		pango_layout_get_pixel_extents(this->layout, NULL, &rect);
 		return static_cast<double>(rect.width) / FONT_UPSCALE;
 	}
-	std::vector<Font::PathSegment> Font::text_path(std::string text){
+	std::vector<Font::PathSegment> Font::text_path(std::string text) throw(FontException){
 
 		// TODO
 
