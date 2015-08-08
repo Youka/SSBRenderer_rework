@@ -59,7 +59,9 @@ namespace GUtils{
 	}
 	Font::Font(const Font& other){
 		if(!other.dc)
-			this->dc = NULL, this->font = NULL, this->old_font = NULL;
+			this->dc = NULL,
+			this->font = NULL,
+			this->old_font = NULL;
 		else{
 			this->dc = CreateCompatibleDC(NULL),
 			SetMapMode(this->dc, MM_TEXT),
@@ -74,7 +76,9 @@ namespace GUtils{
 	Font& Font::operator=(const Font& other){
 		this->~Font();
 		if(!other.dc)
-			this->dc = NULL, this->font = NULL, this->old_font = NULL;
+			this->dc = NULL,
+			this->font = NULL,
+			this->old_font = NULL;
 		else{
 			this->dc = CreateCompatibleDC(NULL),
 			SetMapMode(this->dc, MM_TEXT),
@@ -85,6 +89,34 @@ namespace GUtils{
 			this->font = CreateFontIndirectW(&lf),
 			this->old_font = SelectObject(this->dc, this->font);
 		}
+		return *this;
+	}
+	Font::Font(Font&& other){
+		if(!other.dc)
+			this->dc = NULL,
+			this->font = NULL,
+			this->old_font = NULL;
+		else
+			this->dc = other.dc,
+			this->font = other.font,
+			this->old_font = other.old_font,
+			other.dc = NULL,
+			other.font = NULL,
+			other.old_font = NULL;
+	}
+	Font& Font::operator=(Font&& other){
+		this->~Font();
+		if(!other.dc)
+			this->dc = NULL,
+			this->font = NULL,
+			this->old_font = NULL;
+		else
+			this->dc = other.dc,
+			this->font = other.font,
+			this->old_font = other.old_font,
+			other.dc = NULL,
+			other.font = NULL,
+			other.old_font = NULL;
 		return *this;
 	}
 #else
@@ -129,6 +161,27 @@ namespace GUtils{
 			pango_layout_set_font_description(this->layout, pango_layout_get_font_description(other.layout)),
 			pango_layout_set_attributes(this->layout, pango_layout_get_attributes(other.layout)),
 			pango_layout_set_auto_dir(this->layout, pango_layout_get_auto_dir(other.layout));
+		return *this;
+	}
+	}
+	Font::Font(Font&& other){
+		if(!other.surface)
+			this->surface = this->context = this->layout = nullptr;
+		else
+			this->surface = other.surface,
+			this->context = other.context,
+			this->layout = other.layout,
+			other.surface = other.context = other.layout = nullptr;
+	}
+	Font& Font::operator=(Font&& other){
+		this->~Font();
+		if(!other.surface)
+			this->surface = this->context = this->layout = nullptr;
+		else
+			this->surface = other.surface,
+			this->context = other.context,
+			this->layout = other.layout,
+			other.surface = other.context = other.layout = nullptr;
 		return *this;
 	}
 #endif
