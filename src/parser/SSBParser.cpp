@@ -228,450 +228,615 @@ void SSB::Parser::parse_geometry(std::string& geometry, SSB::Geometry::Type geom
 	}
 }
 
-#define STR_LIT_EQU_FIRST(s, s2) (s.compare(0, sizeof(s2)-1, s2) == 0)
 void SSB::Parser::parse_tags(std::string& tags, SSB::Geometry::Type& geometry_type, SSB::Event& event) throw(SSB::Exception){
-	// Iterate through tags
+	// Stream for tags
 	std::istringstream tags_stream(tags);
-	std::string tags_token;
-	while(std::getline(tags_stream, tags_token, ';'))
-		// Evaluate single tags
-		if(STR_LIT_EQU_FIRST(tags_token, "ff="))
-			ADD_OBJECT(SSB::FontFamily(tags_token.substr(3)));
-		else if(STR_LIT_EQU_FIRST(tags_token, "fst=")){
-			bool bold = false, italic = false, underline = false, strikeout = false;
-			for(char c : tags_token.substr(4))
-				if(c == 'b' && !bold)
-					bold = true;
-				else if(c == 'i' && !italic)
-					italic = true;
-				else if(c == 'u' && !underline)
-					underline = true;
-				else if(c == 's' && !strikeout)
-					strikeout = true;
-				else
-					THROW_WEAK_ERROR("Invalid font style");
-			ADD_OBJECT(SSB::FontStyle(bold, italic, underline, strikeout));
-		}else if(STR_LIT_EQU_FIRST(tags_token, "fs=")){
-			decltype(SSB::FontSize::size) size;
-			if(string_to_number(tags_token.substr(3), size) && size >= 0)
-				ADD_OBJECT(SSB::FontSize(size));
-			else
-				THROW_WEAK_ERROR("Invalid font size");
-		}else if(STR_LIT_EQU_FIRST(tags_token, "fsp=")){
-			decltype(SSB::FontSpace::x) x, y;
-			if(string_to_number(tags_token.substr(4), x, y))
-				ADD_OBJECT(SSB::FontSpace(x, y));
-			else
-				THROW_WEAK_ERROR("Invalid font spaces");
-		}else if(STR_LIT_EQU_FIRST(tags_token, "fsph=")){
-			decltype(SSB::FontSpace::x) x;
-			if(string_to_number(tags_token.substr(5), x))
-				ADD_OBJECT(SSB::FontSpace(SSB::FontSpace::Type::HORIZONTAL, x));
-			else
-				THROW_WEAK_ERROR("Invalid horizontal font space");
-		}else if(STR_LIT_EQU_FIRST(tags_token, "fspv=")){
-			decltype(SSB::FontSpace::y) y;
-			if(string_to_number(tags_token.substr(5), y))
-				ADD_OBJECT(SSB::FontSpace(SSB::FontSpace::Type::VERTICAL, y));
-			else
-				THROW_WEAK_ERROR("Invalid vertical font space");
-		}else if(STR_LIT_EQU_FIRST(tags_token, "lw=")){
-			decltype(SSB::LineWidth::width) width;
-			if(string_to_number(tags_token.substr(3), width) && width >= 0)
-				ADD_OBJECT(SSB::LineWidth(width));
-			else
-				THROW_WEAK_ERROR("Invalid line width");
-		}else if(STR_LIT_EQU_FIRST(tags_token, "lst=")){
-			std::string tag_value = tags_token.substr(4);
-			std::string::size_type pos;
-			if((pos = tag_value.find(',')) != std::string::npos){
-				std::string join_string = tag_value.substr(0, pos), cap_string = tag_value.substr(pos+1);
-				SSB::LineStyle::Join join = SSB::LineStyle::Join::ROUND;
-				if(join_string == "r")
-					join = SSB::LineStyle::Join::ROUND;
-				else if(join_string == "b")
-					join = SSB::LineStyle::Join::BEVEL;
-				else
-					THROW_WEAK_ERROR("Invalid line style join");
-				SSB::LineStyle::Cap cap = SSB::LineStyle::Cap::ROUND;
-				if(cap_string == "r")
-					cap = SSB::LineStyle::Cap::ROUND;
-				else if(cap_string == "f")
-					cap = SSB::LineStyle::Cap::FLAT;
-				else
-					THROW_WEAK_ERROR("Invalid line style cap");
-				ADD_OBJECT(SSB::LineStyle(join, cap));
-			}else
-				THROW_WEAK_ERROR("Invalid line style");
-		}else if(STR_LIT_EQU_FIRST(tags_token, "ld=")){
-			decltype(SSB::LineDash::offset) offset;
-			std::istringstream dash_stream(tags_token.substr(3));
-			std::string dash_token;
-			if(std::getline(dash_stream, dash_token, ',') && string_to_number(dash_token, offset) && offset >= 0){
-				decltype(SSB::LineDash::dashes) dashes;
-				decltype(SSB::LineDash::offset) dash;
-				while(std::getline(dash_stream, dash_token, ','))
-					if(string_to_number(dash_token, dash) && dash >= 0)
-						dashes.push_back(dash);
+	// Registered tags + handler
+	static const std::vector<std::pair<std::string, std::function<void(std::string)>>> tags_register = {
+		{
+			"ff=",
+			[&event](std::string tag_values){
+				ADD_OBJECT(SSB::FontFamily(tag_values));
+			}
+		},
+		{
+			"fst=",
+			[&event,this](std::string tag_values){
+				bool bold = false, italic = false, underline = false, strikeout = false;
+				for(char c : tag_values)
+					if(c == 'b' && !bold)
+						bold = true;
+					else if(c == 'i' && !italic)
+						italic = true;
+					else if(c == 'u' && !underline)
+						underline = true;
+					else if(c == 's' && !strikeout)
+						strikeout = true;
 					else
-						THROW_WEAK_ERROR("Invalid line dash");
-				if(static_cast<size_t>(std::count(dashes.begin(), dashes.end(), 0)) != dashes.size())	// Not all dashes should be zero
-					ADD_OBJECT(SSB::LineDash(offset, dashes));
+						THROW_WEAK_ERROR("Invalid font style");
+				ADD_OBJECT(SSB::FontStyle(bold, italic, underline, strikeout));
+			}
+		},
+		{
+			"fs=",
+			[&event,this](std::string tag_values){
+				decltype(SSB::FontSize::size) size;
+				if(string_to_number(tag_values, size) && size >= 0)
+					ADD_OBJECT(SSB::FontSize(size));
 				else
-					THROW_WEAK_ERROR("Dashes must not be only 0");
-			}else
-				THROW_WEAK_ERROR("Invalid line dashes");
-		}else if(STR_LIT_EQU_FIRST(tags_token, "gm=")){
-			std::string tag_value = tags_token.substr(3);
-			if(tag_value == "pt")
-				geometry_type = SSB::Geometry::Type::POINTS;
-			else if(tag_value == "p")
-				geometry_type = SSB::Geometry::Type::PATH;
-			else if(tag_value == "t")
-				geometry_type = SSB::Geometry::Type::TEXT;
-			else
-				THROW_WEAK_ERROR("Invalid geometry");
-		}else if(STR_LIT_EQU_FIRST(tags_token, "md=")){
-			std::string tag_value = tags_token.substr(3);
-			if(tag_value == "f")
-				ADD_OBJECT(SSB::Mode(SSB::Mode::Method::FILL));
-			else if(tag_value == "w")
-				ADD_OBJECT(SSB::Mode(SSB::Mode::Method::WIRE));
-			else if(tag_value == "b")
-				ADD_OBJECT(SSB::Mode(SSB::Mode::Method::BOXED));
-			else
-				THROW_WEAK_ERROR("Invalid mode");
-		}else if(STR_LIT_EQU_FIRST(tags_token, "df=")){
-			std::string tag_value = tags_token.substr(3);
-			std::string::size_type pos;
-			if((pos = tag_value.find(',')) != std::string::npos && tag_value.find(',', pos+1) == std::string::npos)
-				ADD_OBJECT(SSB::Deform(tag_value.substr(0, pos), tag_value.substr(pos+1)));
-			else
-				THROW_WEAK_ERROR("Invalid deform");
-		}else if(STR_LIT_EQU_FIRST(tags_token, "pos=")){
-			std::string tag_value = tags_token.substr(4);
-			decltype(SSB::Position::x) x, y;
-			constexpr decltype(x) max_pos = std::numeric_limits<decltype(x)>::max();
-			if(tag_value.empty())
-				ADD_OBJECT(SSB::Position(max_pos, max_pos));
-			else if(string_to_number(tag_value, x, y))
-				ADD_OBJECT(SSB::Position(x, y));
-			else
-				THROW_WEAK_ERROR("Invalid position");
-		}else if(STR_LIT_EQU_FIRST(tags_token, "an=")){
-			std::string tag_value = tags_token.substr(3);
-			if(tag_value.length() == 1 && tag_value[0] >= '1' && tag_value[0] <= '9')
-				ADD_OBJECT(SSB::Align(static_cast<SSB::Align::Position>(tag_value[0] - '0')));
-			else
-				THROW_WEAK_ERROR("Invalid alignment");
-		}else if(STR_LIT_EQU_FIRST(tags_token, "mg=")){
-			std::string tag_value = tags_token.substr(3);
-			decltype(SSB::Margin::x) x, y;
-			if(string_to_number(tag_value, x))
-				ADD_OBJECT(SSB::Margin(SSB::Margin::Type::BOTH, x));
-			else if(string_to_number(tag_value, x, y))
-				ADD_OBJECT(SSB::Margin(x, y));
-			else
-				THROW_WEAK_ERROR("Invalid margin");
-		}else if(STR_LIT_EQU_FIRST(tags_token, "mgh=")){
-			decltype(SSB::Margin::x) x;
-			if(string_to_number(tags_token.substr(4), x))
-				ADD_OBJECT(SSB::Margin(SSB::Margin::Type::HORIZONTAL, x));
-			else
-				THROW_WEAK_ERROR("Invalid horizontal margin");
-		}else if(STR_LIT_EQU_FIRST(tags_token, "mgv=")){
-			decltype(SSB::Margin::y) y;
-			if(string_to_number(tags_token.substr(4), y))
-				ADD_OBJECT(SSB::Margin(SSB::Margin::Type::VERTICAL, y));
-			else
-				THROW_WEAK_ERROR("Invalid vertical margin");
-		}else if(STR_LIT_EQU_FIRST(tags_token, "dir=")){
-			std::string tag_value = tags_token.substr(4);
-			if(tag_value == "ltr")
-				ADD_OBJECT(SSB::Direction(SSB::Direction::Mode::LTR));
-			else if(tag_value == "rtl")
-				ADD_OBJECT(SSB::Direction(SSB::Direction::Mode::RTL));
-			else if(tag_value == "ttb")
-				ADD_OBJECT(SSB::Direction(SSB::Direction::Mode::TTB));
-			else
-				THROW_WEAK_ERROR("Invalid direction");
-		}else if(tags_token == "id")
-			ADD_OBJECT(SSB::Identity());
-		else if(STR_LIT_EQU_FIRST(tags_token, "tl=")){
-			decltype(SSB::Translate::x) x, y;
-			if(string_to_number(tags_token.substr(3), x, y))
-				ADD_OBJECT(SSB::Translate(x, y));
-			else
-				THROW_WEAK_ERROR("Invalid translation");
-		}else if(STR_LIT_EQU_FIRST(tags_token, "tlx=")){
-			decltype(SSB::Translate::x) x;
-			if(string_to_number(tags_token.substr(4), x))
-				ADD_OBJECT(SSB::Translate(SSB::Translate::Type::HORIZONTAL, x));
-			else
-				THROW_WEAK_ERROR("Invalid horizontal translation");
-		}else if(STR_LIT_EQU_FIRST(tags_token, "tly=")){
-			decltype(SSB::Translate::y) y;
-			if(string_to_number(tags_token.substr(4), y))
-				ADD_OBJECT(SSB::Translate(SSB::Translate::Type::VERTICAL, y));
-			else
-				THROW_WEAK_ERROR("Invalid vertical translation");
-		}else if(STR_LIT_EQU_FIRST(tags_token, "sc=")){
-			std::string tag_value = tags_token.substr(3);
-			decltype(SSB::Scale::x) x, y;
-			if(string_to_number(tag_value, x))
-				ADD_OBJECT(SSB::Scale(SSB::Scale::Type::BOTH, x));
-			else if(string_to_number(tag_value, x, y))
-				ADD_OBJECT(SSB::Scale(x, y));
-			else
-				THROW_WEAK_ERROR("Invalid scale");
-		}else if(STR_LIT_EQU_FIRST(tags_token, "scx=")){
-			decltype(SSB::Scale::x) x;
-			if(string_to_number(tags_token.substr(4), x))
-				ADD_OBJECT(SSB::Scale(SSB::Scale::Type::HORIZONTAL, x));
-			else
-				THROW_WEAK_ERROR("Invalid horizontal scale");
-		}else if(STR_LIT_EQU_FIRST(tags_token, "scy=")){
-			decltype(SSB::Scale::y) y;
-			if(string_to_number(tags_token.substr(4), y))
-				ADD_OBJECT(SSB::Scale(SSB::Scale::Type::VERTICAL, y));
-			else
-				THROW_WEAK_ERROR("Invalid vertical scale");
-		}else if(STR_LIT_EQU_FIRST(tags_token, "rxy=")){
-			decltype(SSB::Rotate::angle1) angle1, angle2;
-			if(string_to_number(tags_token.substr(4), angle1, angle2))
-				ADD_OBJECT(SSB::Rotate(SSB::Rotate::Axis::XY, angle1, angle2));
-			else
-				THROW_WEAK_ERROR("Invalid rotation on x axis");
-		}else if(STR_LIT_EQU_FIRST(tags_token, "ryx=")){
-			decltype(SSB::Rotate::angle1) angle1, angle2;
-			if(string_to_number(tags_token.substr(4), angle1, angle2))
-				ADD_OBJECT(SSB::Rotate(SSB::Rotate::Axis::YX, angle1, angle2));
-			else
-				THROW_WEAK_ERROR("Invalid rotation on y axis");
-		}else if(STR_LIT_EQU_FIRST(tags_token, "rz=")){
-			decltype(SSB::Rotate::angle1) angle;
-			if(string_to_number(tags_token.substr(3), angle))
-				ADD_OBJECT(SSB::Rotate(angle));
-			else
-				THROW_WEAK_ERROR("Invalid rotation on z axis");
-		}else if(STR_LIT_EQU_FIRST(tags_token, "sh=")){
-			decltype(SSB::Shear::x) x, y;
-			if(string_to_number(tags_token.substr(3), x, y))
-				ADD_OBJECT(SSB::Shear(x, y));
-			else
-				THROW_WEAK_ERROR("Invalid shear");
-		}else if(STR_LIT_EQU_FIRST(tags_token, "shx=")){
-			decltype(SSB::Shear::x) x;
-			if(string_to_number(tags_token.substr(4), x))
-				ADD_OBJECT(SSB::Shear(SSB::Shear::Type::HORIZONTAL, x));
-			else
-				THROW_WEAK_ERROR("Invalid horizontal shear");
-		}else if(STR_LIT_EQU_FIRST(tags_token, "shy")){
-			decltype(SSB::Shear::y) y;
-			if(string_to_number(tags_token.substr(4), y))
-				ADD_OBJECT(SSB::Shear(SSB::Shear::Type::VERTICAL, y));
-			else
-				THROW_WEAK_ERROR("Invalid vertical shear");
-		}else if(STR_LIT_EQU_FIRST(tags_token, "tf=")){
-			decltype(SSB::Transform::xx) xx, yx, xy, yy, x0, y0;
-			std::istringstream matrix_stream(tags_token.substr(3));
-			std::string matrix_token;
-			if(std::getline(matrix_stream, matrix_token, ',') && string_to_number(matrix_token, xx) &&
-					std::getline(matrix_stream, matrix_token, ',') && string_to_number(matrix_token, yx) &&
-					std::getline(matrix_stream, matrix_token, ',') && string_to_number(matrix_token, xy) &&
-					std::getline(matrix_stream, matrix_token, ',') && string_to_number(matrix_token, yy) &&
-					std::getline(matrix_stream, matrix_token, ',') && string_to_number(matrix_token, x0) &&
-					std::getline(matrix_stream, matrix_token, ',') && string_to_number(matrix_token, y0) &&
-					matrix_stream.eof()
-				)
-				ADD_OBJECT(SSB::Transform(xx, yx, xy, yy, x0, y0));
-			else
-				THROW_WEAK_ERROR("Invalid transform");
-		}else if(STR_LIT_EQU_FIRST(tags_token, "cl=")){
-			std::string tag_value = tags_token.substr(3);
-			unsigned long rgb[4];
-			if(hex_string_to_number(tag_value, rgb[0]) &&
-				rgb[0] <= 0xffffff)
-				ADD_OBJECT(SSB::Color(
-								static_cast<decltype(SSB::RGB::r)>(rgb[0] >> 16) / 0xff,
-								static_cast<decltype(SSB::RGB::g)>(rgb[0] >> 8 & 0xff) / 0xff,
-								static_cast<decltype(SSB::RGB::b)>(rgb[0] & 0xff) / 0xff
-							));
-			else if(hex_string_to_number(tag_value, rgb[0], rgb[1]) &&
-					rgb[0] <= 0xffffff && rgb[1] <= 0xffffff)
-				ADD_OBJECT(SSB::Color(
-								static_cast<decltype(SSB::RGB::r)>(rgb[0] >> 16) / 0xff,
-								static_cast<decltype(SSB::RGB::g)>(rgb[0] >> 8 & 0xff) / 0xff,
-								static_cast<decltype(SSB::RGB::b)>(rgb[0] & 0xff) / 0xff,
-								static_cast<decltype(SSB::RGB::r)>(rgb[1] >> 16) / 0xff,
-								static_cast<decltype(SSB::RGB::g)>(rgb[1] >> 8 & 0xff) / 0xff,
-								static_cast<decltype(SSB::RGB::b)>(rgb[1] & 0xff) / 0xff
-							));
-			else if(hex_string_to_number(tag_value, rgb[0], rgb[1], rgb[2], rgb[3]) &&
-					rgb[0] <= 0xffffff && rgb[1] <= 0xffffff && rgb[2] <= 0xffffff && rgb[3] <= 0xffffff)
-				ADD_OBJECT(SSB::Color(
-								static_cast<decltype(SSB::RGB::r)>(rgb[0] >> 16) / 0xff,
-								static_cast<decltype(SSB::RGB::g)>(rgb[0] >> 8 & 0xff) / 0xff,
-								static_cast<decltype(SSB::RGB::b)>(rgb[0] & 0xff) / 0xff,
-								static_cast<decltype(SSB::RGB::r)>(rgb[1] >> 16) / 0xff,
-								static_cast<decltype(SSB::RGB::g)>(rgb[1] >> 8 & 0xff) / 0xff,
-								static_cast<decltype(SSB::RGB::b)>(rgb[1] & 0xff) / 0xff,
-								static_cast<decltype(SSB::RGB::r)>(rgb[2] >> 16) / 0xff,
-								static_cast<decltype(SSB::RGB::g)>(rgb[2] >> 8 & 0xff) / 0xff,
-								static_cast<decltype(SSB::RGB::b)>(rgb[2] & 0xff) / 0xff,
-								static_cast<decltype(SSB::RGB::r)>(rgb[3] >> 16) / 0xff,
-								static_cast<decltype(SSB::RGB::g)>(rgb[3] >> 8 & 0xff) / 0xff,
-								static_cast<decltype(SSB::RGB::b)>(rgb[3] & 0xff) / 0xff
-							));
-			else
-				THROW_WEAK_ERROR("Invalid color");
-		}else if(STR_LIT_EQU_FIRST(tags_token, "lcl=")){
-			unsigned long rgb;
-			if(hex_string_to_number(tags_token.substr(4), rgb) &&
-					rgb <= 0xffffff)
-				ADD_OBJECT(SSB::LineColor(
-								static_cast<decltype(SSB::RGB::r)>(rgb >> 16) / 0xff,
-								static_cast<decltype(SSB::RGB::g)>(rgb >> 8 & 0xff) / 0xff,
-								static_cast<decltype(SSB::RGB::b)>(rgb & 0xff) / 0xff
-							));
-			else
-				THROW_WEAK_ERROR("Invalid line color");
-		}else if(STR_LIT_EQU_FIRST(tags_token, "al=")){
-			std::string tag_value = tags_token.substr(3);
-			unsigned short a[4];
-			if(hex_string_to_number(tag_value, a[0]) &&
-					a[0] <= 0xff)
-				ADD_OBJECT(SSB::Alpha(static_cast<decltype(SSB::RGB::r)>(a[0]) / 0xff));
-			else if(hex_string_to_number(tag_value, a[0], a[1]) &&
-					a[0] <= 0xff && a[1] <= 0xff)
-				ADD_OBJECT(SSB::Alpha(
-								static_cast<decltype(SSB::RGB::r)>(a[0]) / 0xff,
-								static_cast<decltype(SSB::RGB::r)>(a[1]) / 0xff
-							));
-			else if(hex_string_to_number(tag_value, a[0], a[1], a[2], a[3]) &&
-					a[0] <= 0xff && a[1] <= 0xff && a[2] <= 0xff && a[3] <= 0xff)
-				ADD_OBJECT(SSB::Alpha(
-								static_cast<decltype(SSB::RGB::r)>(a[0]) / 0xff,
-								static_cast<decltype(SSB::RGB::r)>(a[1]) / 0xff,
-								static_cast<decltype(SSB::RGB::r)>(a[2]) / 0xff,
-								static_cast<decltype(SSB::RGB::r)>(a[3]) / 0xff
-							));
-			else
-				THROW_WEAK_ERROR("Invalid alpha");
-		}else if(STR_LIT_EQU_FIRST(tags_token, "lal=")){
-			unsigned short a;
-			if(hex_string_to_number(tags_token.substr(4), a) &&
-					a <= 0xff)
-				ADD_OBJECT(SSB::LineAlpha(static_cast<decltype(SSB::RGB::r)>(a) / 0xff));
-			else
-				THROW_WEAK_ERROR("Invalid line alpha");
-		}else if(STR_LIT_EQU_FIRST(tags_token, "tex=")){
-			ADD_OBJECT(SSB::Texture(tags_token.substr(4)));
-		}else if(STR_LIT_EQU_FIRST(tags_token, "texf=")){
-			std::string tag_value = tags_token.substr(5);
-			decltype(SSB::TexFill::x) x, y;
-			std::string::size_type pos1, pos2;
-			if((pos1 = tag_value.find(',')) != std::string::npos &&
-					string_to_number(tag_value.substr(0, pos1), x) &&
-					(pos2 = tag_value.find(',', pos1+1)) != std::string::npos &&
-					string_to_number(tag_value.substr(pos1+1, pos2-(pos1+1)), y)){
-				std::string wrap = tag_value.substr(pos2+1);
-				if(wrap == "c")
-					ADD_OBJECT(SSB::TexFill(x, y, SSB::TexFill::WrapStyle::CLAMP));
-				else if(wrap == "r")
-					ADD_OBJECT(SSB::TexFill(x, y, SSB::TexFill::WrapStyle::REPEAT));
-				else if(wrap == "m")
-					ADD_OBJECT(SSB::TexFill(x, y, SSB::TexFill::WrapStyle::MIRROR));
-				else if(wrap == "f")
-					ADD_OBJECT(SSB::TexFill(x, y, SSB::TexFill::WrapStyle::FLOW));
+					THROW_WEAK_ERROR("Invalid font size");
+			}
+		},
+		{
+			"fsp=",
+			[&event,this](std::string tag_values){
+				decltype(SSB::FontSpace::x) x, y;
+				if(string_to_number(tag_values, x, y))
+					ADD_OBJECT(SSB::FontSpace(x, y));
 				else
-					THROW_WEAK_ERROR("Invalid texture filling wrap style");
-			}else
-				THROW_WEAK_ERROR("Invalid texture filling");
-		}else if(STR_LIT_EQU_FIRST(tags_token, "bld=")){
-			std::string tag_value = tags_token.substr(4);
-			if(tag_value == "over")
-				ADD_OBJECT(SSB::Blend(SSB::Blend::Mode::OVER));
-			else if(tag_value == "add")
-				ADD_OBJECT(SSB::Blend(SSB::Blend::Mode::ADDITION));
-			else if(tag_value == "sub")
-				ADD_OBJECT(SSB::Blend(SSB::Blend::Mode::SUBTRACT));
-			else if(tag_value == "mult")
-				ADD_OBJECT(SSB::Blend(SSB::Blend::Mode::MULTIPLY));
-			else if(tag_value == "scr")
-				ADD_OBJECT(SSB::Blend(SSB::Blend::Mode::SCREEN));
-			else if(tag_value == "diff")
-				ADD_OBJECT(SSB::Blend(SSB::Blend::Mode::DIFFERENCES));
-			else
-				THROW_WEAK_ERROR("Invalid blending");
-		}else if(STR_LIT_EQU_FIRST(tags_token, "bl=")){
-			std::string tag_value = tags_token.substr(3);
-			decltype(SSB::Blur::x) x, y;
-			if(string_to_number(tag_value, x) && x >= 0)
-				ADD_OBJECT(SSB::Blur(SSB::Blur::Type::BOTH, x));
-			else if(string_to_number(tag_value, x, y) && x >= 0 && y >= 0)
-				ADD_OBJECT(SSB::Blur(x, y));
-			else
-				THROW_WEAK_ERROR("Invalid blur");
-		}else if(STR_LIT_EQU_FIRST(tags_token, "blh=")){
-			decltype(SSB::Blur::x) x;
-			if(string_to_number(tags_token.substr(4), x) && x >= 0)
-				ADD_OBJECT(SSB::Blur(SSB::Blur::Type::HORIZONTAL, x));
-			else
-				THROW_WEAK_ERROR("Invalid horizontal blur");
-		}else if(STR_LIT_EQU_FIRST(tags_token, "blv=")){
-			decltype(SSB::Blur::y) y;
-			if(string_to_number(tags_token.substr(4), y) && y >= 0)
-				ADD_OBJECT(SSB::Blur(SSB::Blur::Type::VERTICAL, y));
-			else
-				THROW_WEAK_ERROR("Invalid vertical blur");
-		}else if(STR_LIT_EQU_FIRST(tags_token, "stc=")){
-			std::string tag_value = tags_token.substr(4);
-			if(tag_value == "off")
-				ADD_OBJECT(SSB::Stencil(SSB::Stencil::Mode::OFF));
-			else if(tag_value == "set")
-				ADD_OBJECT(SSB::Stencil(SSB::Stencil::Mode::SET));
-			else if(tag_value == "uset")
-				ADD_OBJECT(SSB::Stencil(SSB::Stencil::Mode::UNSET));
-			else if(tag_value == "in")
-				ADD_OBJECT(SSB::Stencil(SSB::Stencil::Mode::INSIDE));
-			else if(tag_value == "out")
-				ADD_OBJECT(SSB::Stencil(SSB::Stencil::Mode::OUTSIDE));
-			else
-				THROW_WEAK_ERROR("Invalid stencil mode");
-		}else if(STR_LIT_EQU_FIRST(tags_token, "aa=")){
-			std::string tag_value = tags_token.substr(3);
-			if(tag_value == "on")
-				ADD_OBJECT(SSB::AntiAliasing(true));
-			else if(tag_value == "off")
-				ADD_OBJECT(SSB::AntiAliasing(false));
-			else
-				THROW_WEAK_ERROR("Invalid anti-aliasing mode");
-		}else if(STR_LIT_EQU_FIRST(tags_token, "fad=")){
-			std::string tag_value = tags_token.substr(4);
-			decltype(SSB::Fade::in) in, out;
-			if(string_to_number(tag_value, in))
-				ADD_OBJECT(SSB::Fade(SSB::Fade::Type::BOTH, in));
-			else if(string_to_number(tag_value, in, out))
-				ADD_OBJECT(SSB::Fade(in, out));
-			else
-				THROW_WEAK_ERROR("Invalid fade");
-		}else if(STR_LIT_EQU_FIRST(tags_token, "fadi=")){
-			decltype(SSB::Fade::in) in;
-			if(string_to_number(tags_token.substr(5), in))
-				ADD_OBJECT(SSB::Fade(SSB::Fade::Type::INFADE, in));
-			else
-				THROW_WEAK_ERROR("Invalid infade");
-		}else if(STR_LIT_EQU_FIRST(tags_token, "fado=")){
-			decltype(SSB::Fade::out) out;
-			if(string_to_number(tags_token.substr(5), out))
-				ADD_OBJECT(SSB::Fade(SSB::Fade::Type::OUTFADE, out));
-			else
-				THROW_WEAK_ERROR("Invalid outfade");
-		}else if(STR_LIT_EQU_FIRST(tags_token, "ani=")){
+					THROW_WEAK_ERROR("Invalid font spaces");
+			}
+		},
+		{
+			"fsph=",
+			[&event,this](std::string tag_values){
+				decltype(SSB::FontSpace::x) x;
+				if(string_to_number(tag_values, x))
+					ADD_OBJECT(SSB::FontSpace(SSB::FontSpace::Type::HORIZONTAL, x));
+				else
+					THROW_WEAK_ERROR("Invalid horizontal font space");
+			}
+		},
+		{
+			"fspv=",
+			[&event,this](std::string tag_values){
+				decltype(SSB::FontSpace::y) y;
+				if(string_to_number(tag_values, y))
+					ADD_OBJECT(SSB::FontSpace(SSB::FontSpace::Type::VERTICAL, y));
+				else
+					THROW_WEAK_ERROR("Invalid vertical font space");
+			}
+		},
+		{
+			"lw=",
+			[&event,this](std::string tag_values){
+				decltype(SSB::LineWidth::width) width;
+				if(string_to_number(tag_values, width) && width >= 0)
+					ADD_OBJECT(SSB::LineWidth(width));
+				else
+					THROW_WEAK_ERROR("Invalid line width");
+			}
+		},
+		{
+			"lst=",
+			[&event,this](std::string tag_values){
+				std::string::size_type pos;
+				if((pos = tag_values.find(',')) != std::string::npos){
+					std::string join_string = tag_values.substr(0, pos), cap_string = tag_values.substr(pos+1);
+					SSB::LineStyle::Join join = SSB::LineStyle::Join::ROUND;
+					if(join_string == "r")
+						join = SSB::LineStyle::Join::ROUND;
+					else if(join_string == "b")
+						join = SSB::LineStyle::Join::BEVEL;
+					else
+						THROW_WEAK_ERROR("Invalid line style join");
+					SSB::LineStyle::Cap cap = SSB::LineStyle::Cap::ROUND;
+					if(cap_string == "r")
+						cap = SSB::LineStyle::Cap::ROUND;
+					else if(cap_string == "f")
+						cap = SSB::LineStyle::Cap::FLAT;
+					else
+						THROW_WEAK_ERROR("Invalid line style cap");
+					ADD_OBJECT(SSB::LineStyle(join, cap));
+				}else
+					THROW_WEAK_ERROR("Invalid line style");
+			}
+		},
+		{
+			"ld=",
+			[&event,this](std::string tag_values){
+				decltype(SSB::LineDash::offset) offset;
+				std::istringstream dash_stream(tag_values);
+				std::string dash_token;
+				if(std::getline(dash_stream, dash_token, ',') && string_to_number(dash_token, offset) && offset >= 0){
+					decltype(SSB::LineDash::dashes) dashes;
+					decltype(SSB::LineDash::offset) dash;
+					while(std::getline(dash_stream, dash_token, ','))
+						if(string_to_number(dash_token, dash) && dash >= 0)
+							dashes.push_back(dash);
+						else
+							THROW_WEAK_ERROR("Invalid line dash");
+					if(static_cast<size_t>(std::count(dashes.begin(), dashes.end(), 0)) != dashes.size())	// Not all dashes should be zero
+						ADD_OBJECT(SSB::LineDash(offset, dashes));
+					else
+						THROW_WEAK_ERROR("Dashes must not be only 0");
+				}else
+					THROW_WEAK_ERROR("Invalid line dashes");
+			}
+		},
+		{
+			"gm=",
+			[&event,this,&geometry_type](std::string tag_values){
+				if(tag_values == "pt")
+					geometry_type = SSB::Geometry::Type::POINTS;
+				else if(tag_values == "p")
+					geometry_type = SSB::Geometry::Type::PATH;
+				else if(tag_values == "t")
+					geometry_type = SSB::Geometry::Type::TEXT;
+				else
+					THROW_WEAK_ERROR("Invalid geometry");
+			}
+		},
+		{
+			"md=",
+			[&event,this](std::string tag_values){
+				if(tag_values == "f")
+					ADD_OBJECT(SSB::Mode(SSB::Mode::Method::FILL));
+				else if(tag_values == "w")
+					ADD_OBJECT(SSB::Mode(SSB::Mode::Method::WIRE));
+				else if(tag_values == "b")
+					ADD_OBJECT(SSB::Mode(SSB::Mode::Method::BOXED));
+				else
+					THROW_WEAK_ERROR("Invalid mode");
+			}
+		},
+		{
+			"df=",
+			[&event,this](std::string tag_values){
+				std::string::size_type pos;
+				if((pos = tag_values.find(',')) != std::string::npos && tag_values.find(',', pos+1) == std::string::npos)
+					ADD_OBJECT(SSB::Deform(tag_values.substr(0, pos), tag_values.substr(pos+1)));
+				else
+					THROW_WEAK_ERROR("Invalid deform");
+			}
+		},
+		{
+			"pos=",
+			[&event,this](std::string tag_values){
+				decltype(SSB::Position::x) x, y;
+				constexpr decltype(x) max_pos = std::numeric_limits<decltype(x)>::max();
+				if(tag_values.empty())
+					ADD_OBJECT(SSB::Position(max_pos, max_pos));
+				else if(string_to_number(tag_values, x, y))
+					ADD_OBJECT(SSB::Position(x, y));
+				else
+					THROW_WEAK_ERROR("Invalid position");
+			}
+		},
+		{
+			"an=",
+			[&event,this](std::string tag_values){
+				if(tag_values.length() == 1 && tag_values[0] >= '1' && tag_values[0] <= '9')
+					ADD_OBJECT(SSB::Align(static_cast<SSB::Align::Position>(tag_values[0] - '0')));
+				else
+					THROW_WEAK_ERROR("Invalid alignment");
+			}
+		},
+		{
+			"mg=",
+			[&event,this](std::string tag_values){
+				decltype(SSB::Margin::x) x, y;
+				if(string_to_number(tag_values, x))
+					ADD_OBJECT(SSB::Margin(SSB::Margin::Type::BOTH, x));
+				else if(string_to_number(tag_values, x, y))
+					ADD_OBJECT(SSB::Margin(x, y));
+				else
+					THROW_WEAK_ERROR("Invalid margin");
+			}
+		},
+		{
+			"mgh=",
+			[&event,this](std::string tag_values){
+				decltype(SSB::Margin::x) x;
+				if(string_to_number(tag_values, x))
+					ADD_OBJECT(SSB::Margin(SSB::Margin::Type::HORIZONTAL, x));
+				else
+					THROW_WEAK_ERROR("Invalid horizontal margin");
+			}
+		},
+		{
+			"mgv=",
+			[&event,this](std::string tag_values){
+				decltype(SSB::Margin::y) y;
+				if(string_to_number(tag_values, y))
+					ADD_OBJECT(SSB::Margin(SSB::Margin::Type::VERTICAL, y));
+				else
+					THROW_WEAK_ERROR("Invalid vertical margin");
+			}
+		},
+		{
+			"dir=",
+			[&event,this](std::string tag_values){
+				if(tag_values == "ltr")
+					ADD_OBJECT(SSB::Direction(SSB::Direction::Mode::LTR));
+				else if(tag_values == "rtl")
+					ADD_OBJECT(SSB::Direction(SSB::Direction::Mode::RTL));
+				else if(tag_values == "ttb")
+					ADD_OBJECT(SSB::Direction(SSB::Direction::Mode::TTB));
+				else
+					THROW_WEAK_ERROR("Invalid direction");
+			}
+		},
+		{
+			"tl=",
+			[&event,this](std::string tag_values){
+				decltype(SSB::Translate::x) x, y;
+				if(string_to_number(tag_values, x, y))
+					ADD_OBJECT(SSB::Translate(x, y));
+				else
+					THROW_WEAK_ERROR("Invalid translation");
+			}
+		},
+		{
+			"tlx=",
+			[&event,this](std::string tag_values){
+				decltype(SSB::Translate::x) x;
+				if(string_to_number(tag_values, x))
+					ADD_OBJECT(SSB::Translate(SSB::Translate::Type::HORIZONTAL, x));
+				else
+					THROW_WEAK_ERROR("Invalid horizontal translation");
+			}
+		},
+		{
+			"tly=",
+			[&event,this](std::string tag_values){
+				decltype(SSB::Translate::y) y;
+				if(string_to_number(tag_values, y))
+					ADD_OBJECT(SSB::Translate(SSB::Translate::Type::VERTICAL, y));
+				else
+					THROW_WEAK_ERROR("Invalid vertical translation");
+			}
+		},
+		{
+			"sc=",
+			[&event,this](std::string tag_values){
+				decltype(SSB::Scale::x) x, y;
+				if(string_to_number(tag_values, x))
+					ADD_OBJECT(SSB::Scale(SSB::Scale::Type::BOTH, x));
+				else if(string_to_number(tag_values, x, y))
+					ADD_OBJECT(SSB::Scale(x, y));
+				else
+					THROW_WEAK_ERROR("Invalid scale");
+			}
+		},
+		{
+			"scx=",
+			[&event,this](std::string tag_values){
+				decltype(SSB::Scale::x) x;
+				if(string_to_number(tag_values, x))
+					ADD_OBJECT(SSB::Scale(SSB::Scale::Type::HORIZONTAL, x));
+				else
+					THROW_WEAK_ERROR("Invalid horizontal scale");
+			}
+		},
+		{
+			"scy=",
+			[&event,this](std::string tag_values){
+				decltype(SSB::Scale::y) y;
+				if(string_to_number(tag_values, y))
+					ADD_OBJECT(SSB::Scale(SSB::Scale::Type::VERTICAL, y));
+				else
+					THROW_WEAK_ERROR("Invalid vertical scale");
+			}
+		},
+		{
+			"rxy=",
+			[&event,this](std::string tag_values){
+				decltype(SSB::Rotate::angle1) angle1, angle2;
+				if(string_to_number(tag_values, angle1, angle2))
+					ADD_OBJECT(SSB::Rotate(SSB::Rotate::Axis::XY, angle1, angle2));
+				else
+					THROW_WEAK_ERROR("Invalid rotation on x axis");
+			}
+		},
+		{
+			"ryx=",
+			[&event,this](std::string tag_values){
+				decltype(SSB::Rotate::angle1) angle1, angle2;
+				if(string_to_number(tag_values, angle1, angle2))
+					ADD_OBJECT(SSB::Rotate(SSB::Rotate::Axis::YX, angle1, angle2));
+				else
+					THROW_WEAK_ERROR("Invalid rotation on y axis");
+			}
+		},
+		{
+			"rz=",
+			[&event,this](std::string tag_values){
+				decltype(SSB::Rotate::angle1) angle;
+				if(string_to_number(tag_values, angle))
+					ADD_OBJECT(SSB::Rotate(angle));
+				else
+					THROW_WEAK_ERROR("Invalid rotation on z axis");
+			}
+		},
+		{
+			"sh=",
+			[&event,this](std::string tag_values){
+				decltype(SSB::Shear::x) x, y;
+				if(string_to_number(tag_values, x, y))
+					ADD_OBJECT(SSB::Shear(x, y));
+				else
+					THROW_WEAK_ERROR("Invalid shear");
+			}
+		},
+		{
+			"shx=",
+			[&event,this](std::string tag_values){
+				decltype(SSB::Shear::x) x;
+				if(string_to_number(tag_values, x))
+					ADD_OBJECT(SSB::Shear(SSB::Shear::Type::HORIZONTAL, x));
+				else
+					THROW_WEAK_ERROR("Invalid horizontal shear");
+			}
+		},
+		{
+			"shy",
+			[&event,this](std::string tag_values){
+				decltype(SSB::Shear::y) y;
+				if(string_to_number(tag_values, y))
+					ADD_OBJECT(SSB::Shear(SSB::Shear::Type::VERTICAL, y));
+				else
+					THROW_WEAK_ERROR("Invalid vertical shear");
+			}
+		},
+		{
+			"tf=",
+			[&event,this](std::string tag_values){
+				decltype(SSB::Transform::xx) xx, yx, xy, yy, x0, y0;
+				std::istringstream matrix_stream(tag_values);
+				std::string matrix_token;
+				if(std::getline(matrix_stream, matrix_token, ',') && string_to_number(matrix_token, xx) &&
+						std::getline(matrix_stream, matrix_token, ',') && string_to_number(matrix_token, yx) &&
+						std::getline(matrix_stream, matrix_token, ',') && string_to_number(matrix_token, xy) &&
+						std::getline(matrix_stream, matrix_token, ',') && string_to_number(matrix_token, yy) &&
+						std::getline(matrix_stream, matrix_token, ',') && string_to_number(matrix_token, x0) &&
+						std::getline(matrix_stream, matrix_token, ',') && string_to_number(matrix_token, y0) &&
+						matrix_stream.eof()
+					)
+					ADD_OBJECT(SSB::Transform(xx, yx, xy, yy, x0, y0));
+				else
+					THROW_WEAK_ERROR("Invalid transform");
+			}
+		},
+		{
+			"cl=",
+			[&event,this](std::string tag_values){
+				unsigned long rgb[4];
+				if(hex_string_to_number(tag_values, rgb[0]) &&
+					rgb[0] <= 0xffffff)
+					ADD_OBJECT(SSB::Color(
+									static_cast<decltype(SSB::RGB::r)>(rgb[0] >> 16) / 0xff,
+									static_cast<decltype(SSB::RGB::g)>(rgb[0] >> 8 & 0xff) / 0xff,
+									static_cast<decltype(SSB::RGB::b)>(rgb[0] & 0xff) / 0xff
+								));
+				else if(hex_string_to_number(tag_values, rgb[0], rgb[1]) &&
+						rgb[0] <= 0xffffff && rgb[1] <= 0xffffff)
+					ADD_OBJECT(SSB::Color(
+									static_cast<decltype(SSB::RGB::r)>(rgb[0] >> 16) / 0xff,
+									static_cast<decltype(SSB::RGB::g)>(rgb[0] >> 8 & 0xff) / 0xff,
+									static_cast<decltype(SSB::RGB::b)>(rgb[0] & 0xff) / 0xff,
+									static_cast<decltype(SSB::RGB::r)>(rgb[1] >> 16) / 0xff,
+									static_cast<decltype(SSB::RGB::g)>(rgb[1] >> 8 & 0xff) / 0xff,
+									static_cast<decltype(SSB::RGB::b)>(rgb[1] & 0xff) / 0xff
+								));
+				else if(hex_string_to_number(tag_values, rgb[0], rgb[1], rgb[2], rgb[3]) &&
+						rgb[0] <= 0xffffff && rgb[1] <= 0xffffff && rgb[2] <= 0xffffff && rgb[3] <= 0xffffff)
+					ADD_OBJECT(SSB::Color(
+									static_cast<decltype(SSB::RGB::r)>(rgb[0] >> 16) / 0xff,
+									static_cast<decltype(SSB::RGB::g)>(rgb[0] >> 8 & 0xff) / 0xff,
+									static_cast<decltype(SSB::RGB::b)>(rgb[0] & 0xff) / 0xff,
+									static_cast<decltype(SSB::RGB::r)>(rgb[1] >> 16) / 0xff,
+									static_cast<decltype(SSB::RGB::g)>(rgb[1] >> 8 & 0xff) / 0xff,
+									static_cast<decltype(SSB::RGB::b)>(rgb[1] & 0xff) / 0xff,
+									static_cast<decltype(SSB::RGB::r)>(rgb[2] >> 16) / 0xff,
+									static_cast<decltype(SSB::RGB::g)>(rgb[2] >> 8 & 0xff) / 0xff,
+									static_cast<decltype(SSB::RGB::b)>(rgb[2] & 0xff) / 0xff,
+									static_cast<decltype(SSB::RGB::r)>(rgb[3] >> 16) / 0xff,
+									static_cast<decltype(SSB::RGB::g)>(rgb[3] >> 8 & 0xff) / 0xff,
+									static_cast<decltype(SSB::RGB::b)>(rgb[3] & 0xff) / 0xff
+								));
+				else
+					THROW_WEAK_ERROR("Invalid color");
+			}
+		},
+		{
+			"lcl=",
+			[&event,this](std::string tag_values){
+				unsigned long rgb;
+				if(hex_string_to_number(tag_values, rgb) &&
+						rgb <= 0xffffff)
+					ADD_OBJECT(SSB::LineColor(
+									static_cast<decltype(SSB::RGB::r)>(rgb >> 16) / 0xff,
+									static_cast<decltype(SSB::RGB::g)>(rgb >> 8 & 0xff) / 0xff,
+									static_cast<decltype(SSB::RGB::b)>(rgb & 0xff) / 0xff
+								));
+				else
+					THROW_WEAK_ERROR("Invalid line color");
+			}
+		},
+		{
+			"al=",
+			[&event,this](std::string tag_values){
+				unsigned short a[4];
+				if(hex_string_to_number(tag_values, a[0]) &&
+						a[0] <= 0xff)
+					ADD_OBJECT(SSB::Alpha(static_cast<decltype(SSB::RGB::r)>(a[0]) / 0xff));
+				else if(hex_string_to_number(tag_values, a[0], a[1]) &&
+						a[0] <= 0xff && a[1] <= 0xff)
+					ADD_OBJECT(SSB::Alpha(
+									static_cast<decltype(SSB::RGB::r)>(a[0]) / 0xff,
+									static_cast<decltype(SSB::RGB::r)>(a[1]) / 0xff
+								));
+				else if(hex_string_to_number(tag_values, a[0], a[1], a[2], a[3]) &&
+						a[0] <= 0xff && a[1] <= 0xff && a[2] <= 0xff && a[3] <= 0xff)
+					ADD_OBJECT(SSB::Alpha(
+									static_cast<decltype(SSB::RGB::r)>(a[0]) / 0xff,
+									static_cast<decltype(SSB::RGB::r)>(a[1]) / 0xff,
+									static_cast<decltype(SSB::RGB::r)>(a[2]) / 0xff,
+									static_cast<decltype(SSB::RGB::r)>(a[3]) / 0xff
+								));
+				else
+					THROW_WEAK_ERROR("Invalid alpha");
+			}
+		},
+		{
+			"lal=",
+			[&event,this](std::string tag_values){
+				unsigned short a;
+				if(hex_string_to_number(tag_values, a) &&
+						a <= 0xff)
+					ADD_OBJECT(SSB::LineAlpha(static_cast<decltype(SSB::RGB::r)>(a) / 0xff));
+				else
+					THROW_WEAK_ERROR("Invalid line alpha");
+			}
+		},
+		{
+			"tex=",
+			[&event](std::string tag_values){
+				ADD_OBJECT(SSB::Texture(tag_values));
+			}
+		},
+		{
+			"texf=",
+			[&event,this](std::string tag_values){
+				decltype(SSB::TexFill::x) x, y;
+				std::string::size_type pos1, pos2;
+				if((pos1 = tag_values.find(',')) != std::string::npos &&
+						string_to_number(tag_values.substr(0, pos1), x) &&
+						(pos2 = tag_values.find(',', pos1+1)) != std::string::npos &&
+						string_to_number(tag_values.substr(pos1+1, pos2-(pos1+1)), y)){
+					std::string wrap = tag_values.substr(pos2+1);
+					if(wrap == "c")
+						ADD_OBJECT(SSB::TexFill(x, y, SSB::TexFill::WrapStyle::CLAMP));
+					else if(wrap == "r")
+						ADD_OBJECT(SSB::TexFill(x, y, SSB::TexFill::WrapStyle::REPEAT));
+					else if(wrap == "m")
+						ADD_OBJECT(SSB::TexFill(x, y, SSB::TexFill::WrapStyle::MIRROR));
+					else if(wrap == "f")
+						ADD_OBJECT(SSB::TexFill(x, y, SSB::TexFill::WrapStyle::FLOW));
+					else
+						THROW_WEAK_ERROR("Invalid texture filling wrap style");
+				}else
+					THROW_WEAK_ERROR("Invalid texture filling");
+			}
+		},
+		{
+			"bld=",
+			[&event,this](std::string tag_values){
+				if(tag_values == "over")
+					ADD_OBJECT(SSB::Blend(SSB::Blend::Mode::OVER));
+				else if(tag_values == "add")
+					ADD_OBJECT(SSB::Blend(SSB::Blend::Mode::ADDITION));
+				else if(tag_values == "sub")
+					ADD_OBJECT(SSB::Blend(SSB::Blend::Mode::SUBTRACT));
+				else if(tag_values == "mult")
+					ADD_OBJECT(SSB::Blend(SSB::Blend::Mode::MULTIPLY));
+				else if(tag_values == "scr")
+					ADD_OBJECT(SSB::Blend(SSB::Blend::Mode::SCREEN));
+				else if(tag_values == "diff")
+					ADD_OBJECT(SSB::Blend(SSB::Blend::Mode::DIFFERENCES));
+				else
+					THROW_WEAK_ERROR("Invalid blending");
+			}
+		},
+		{
+			"bl=",
+			[&event,this](std::string tag_values){
+				decltype(SSB::Blur::x) x, y;
+				if(string_to_number(tag_values, x) && x >= 0)
+					ADD_OBJECT(SSB::Blur(SSB::Blur::Type::BOTH, x));
+				else if(string_to_number(tag_values, x, y) && x >= 0 && y >= 0)
+					ADD_OBJECT(SSB::Blur(x, y));
+				else
+					THROW_WEAK_ERROR("Invalid blur");
+			}
+		},
+		{
+			"blh=",
+			[&event,this](std::string tag_values){
+				decltype(SSB::Blur::x) x;
+				if(string_to_number(tag_values, x) && x >= 0)
+					ADD_OBJECT(SSB::Blur(SSB::Blur::Type::HORIZONTAL, x));
+				else
+					THROW_WEAK_ERROR("Invalid horizontal blur");
+			}
+		},
+		{
+			"blv=",
+			[&event,this](std::string tag_values){
+				decltype(SSB::Blur::y) y;
+				if(string_to_number(tag_values, y) && y >= 0)
+					ADD_OBJECT(SSB::Blur(SSB::Blur::Type::VERTICAL, y));
+				else
+					THROW_WEAK_ERROR("Invalid vertical blur");
+			}
+		},
+		{
+			"stc=",
+			[&event,this](std::string tag_values){
+				if(tag_values == "off")
+					ADD_OBJECT(SSB::Stencil(SSB::Stencil::Mode::OFF));
+				else if(tag_values == "set")
+					ADD_OBJECT(SSB::Stencil(SSB::Stencil::Mode::SET));
+				else if(tag_values == "uset")
+					ADD_OBJECT(SSB::Stencil(SSB::Stencil::Mode::UNSET));
+				else if(tag_values == "in")
+					ADD_OBJECT(SSB::Stencil(SSB::Stencil::Mode::INSIDE));
+				else if(tag_values == "out")
+					ADD_OBJECT(SSB::Stencil(SSB::Stencil::Mode::OUTSIDE));
+				else
+					THROW_WEAK_ERROR("Invalid stencil mode");
+			}
+		},
+		{
+			"aa=",
+			[&event,this](std::string tag_values){
+				if(tag_values == "on")
+					ADD_OBJECT(SSB::AntiAliasing(true));
+				else if(tag_values == "off")
+					ADD_OBJECT(SSB::AntiAliasing(false));
+				else
+					THROW_WEAK_ERROR("Invalid anti-aliasing mode");
+			}
+		},
+		{
+			"fad=",
+			[&event,this](std::string tag_values){
+				decltype(SSB::Fade::in) in, out;
+				if(string_to_number(tag_values, in))
+					ADD_OBJECT(SSB::Fade(SSB::Fade::Type::BOTH, in));
+				else if(string_to_number(tag_values, in, out))
+					ADD_OBJECT(SSB::Fade(in, out));
+				else
+					THROW_WEAK_ERROR("Invalid fade");
+			}
+		},
+		{
+			"fadi=",
+			[&event,this](std::string tag_values){
+				decltype(SSB::Fade::in) in;
+				if(string_to_number(tag_values, in))
+					ADD_OBJECT(SSB::Fade(SSB::Fade::Type::INFADE, in));
+				else
+					THROW_WEAK_ERROR("Invalid infade");
+			}
+		},
+		{
+			"fado=",
+			[&event,this](std::string tag_values){
+				decltype(SSB::Fade::out) out;
+				if(string_to_number(tag_values, out))
+					ADD_OBJECT(SSB::Fade(SSB::Fade::Type::OUTFADE, out));
+				else
+					THROW_WEAK_ERROR("Invalid outfade");
+			}
+		},
+		{
+			"ani=",
+			[&event,this,&tags_stream,&geometry_type](std::string tag_values){
 				// Collect animation tokens (maximum: 4)
 				std::vector<std::string> animate_tokens;
-				std::istringstream animate_stream(tags_token.substr(4));
+				std::istringstream animate_stream(tag_values);
 				std::string animate_token;
 				for(unsigned char i = 0; std::getline(animate_stream, animate_token, ',') && i < 4; ++i)
 					// Get last token with brackets
@@ -683,8 +848,8 @@ void SSB::Parser::parse_tags(std::string& tags, SSB::Geometry::Type& geometry_ty
 							animate_token += ',' + animate_rest;
 						}
 						// Extend animation stream to get all animated tags
-						while(animate_token.back() != ')' && std::getline(tags_stream, tags_token, ';'))
-							animate_token += ';' + tags_token;
+						while(animate_token.back() != ')' && std::getline(tags_stream, tag_values, ';'))
+							animate_token += ';' + tag_values;
 						animate_tokens.push_back(std::move(animate_token));
 						// Finish collecting after last possible token
 						break;
@@ -725,23 +890,35 @@ void SSB::Parser::parse_tags(std::string& tags, SSB::Geometry::Type& geometry_ty
 					}
 				}else
 					THROW_WEAK_ERROR("Invalid animate");
-			}else if(STR_LIT_EQU_FIRST(tags_token, "k=")){
+			}
+		},
+		{
+			"k=",
+			[&event,this](std::string tag_values){
 				decltype(SSB::Karaoke::time) time;
-				if(string_to_number(tags_token.substr(2), time)){
+				if(string_to_number(tag_values, time)){
 					event.static_tags = false;
 					ADD_OBJECT(SSB::Karaoke(SSB::Karaoke::Type::DURATION, time));
 				}else
 					THROW_WEAK_ERROR("Invalid karaoke");
-			}else if(STR_LIT_EQU_FIRST(tags_token, "ks=")){
+			}
+		},
+		{
+			"ks=",
+			[&event,this](std::string tag_values){
 				decltype(SSB::Karaoke::time) time;
-				if(string_to_number(tags_token.substr(3), time)){
+				if(string_to_number(tag_values, time)){
 					event.static_tags = false;
 					ADD_OBJECT(SSB::Karaoke(SSB::Karaoke::Type::SET, time));
 				}else
 					THROW_WEAK_ERROR("Invalid karaoke set");
-			}else if(STR_LIT_EQU_FIRST(tags_token, "kc=")){
+			}
+		},
+		{
+			"kc=",
+			[&event,this](std::string tag_values){
 				unsigned long int rgb;
-				if(hex_string_to_number(tags_token.substr(3), rgb) && rgb <= 0xffffff)
+				if(hex_string_to_number(tag_values, rgb) && rgb <= 0xffffff)
 					ADD_OBJECT(SSB::KaraokeColor(
 									static_cast<decltype(SSB::RGB::r)>(rgb >> 16) / 0xff,
 									static_cast<decltype(SSB::RGB::g)>(rgb >> 8 & 0xff) / 0xff,
@@ -749,18 +926,35 @@ void SSB::Parser::parse_tags(std::string& tags, SSB::Geometry::Type& geometry_ty
 								));
 				else
 					THROW_WEAK_ERROR("Invalid karaoke color");
-			}else if(STR_LIT_EQU_FIRST(tags_token, "km=")){
-				std::string tag_value = tags_token.substr(3);
-				if(tag_value == "f")
+			}
+		},
+		{
+			"km=",
+			[&event,this](std::string tag_values){
+				if(tag_values == "f")
 					ADD_OBJECT(SSB::KaraokeMode(SSB::KaraokeMode::Mode::FILL));
-				else if(tag_value == "s")
+				else if(tag_values == "s")
 					ADD_OBJECT(SSB::KaraokeMode(SSB::KaraokeMode::Mode::SOLID));
-				else if(tag_value == "g")
+				else if(tag_values == "g")
 					ADD_OBJECT(SSB::KaraokeMode(SSB::KaraokeMode::Mode::GLOW));
 				else
 					THROW_WEAK_ERROR("Invalid karaoke mode");
-			}else
-				THROW_WEAK_ERROR("Invalid tag \"" + tags_token + '\"');
+			}
+		}
+	};
+	// Iterate through tags
+	std::string tags_token;
+	while(std::getline(tags_stream, tags_token, ';')){
+		// Evaluate single tags
+		for(auto& tag_entry : tags_register)
+			if(tags_token.compare(0, tag_entry.first.length(), tag_entry.first) == 0){
+				tag_entry.second(tags_token.substr(tag_entry.first.length()));
+				goto TAG_FOUND;
+			}
+		THROW_WEAK_ERROR("Invalid tag \"" + tags_token + '\"');
+		TAG_FOUND:
+			continue;	// Statement expected after label
+	}
 }
 
 void SSB::Parser::parse_script(SSB::Data& data, std::istream& script) throw(SSB::Exception){
@@ -793,6 +987,7 @@ void SSB::Parser::parse_script(SSB::Data& data, std::istream& script) throw(SSB:
 	}
 }
 
+#define STR_LIT_EQU_FIRST(s, s2) (s.compare(0, sizeof(s2)-1, s2) == 0)
 void SSB::Parser::parse_line(SSB::Data& data, std::string& line) throw(SSB::Exception){
 	// No empty or comment line = no skip
 	if(!line.empty() && !STR_LIT_EQU_FIRST(line, "//")){
