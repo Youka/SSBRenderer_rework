@@ -91,6 +91,7 @@ namespace GUtils{
 			HDC dc;
 			HFONT font;
 			HGDIOBJ old_font;
+			double spacing;
 #else
 			cairo_surface_t* surface;
 			cairo_t* context;
@@ -99,9 +100,9 @@ namespace GUtils{
 		public:
 			// Rule-of-five
 			Font();
-			Font(std::string family, float size = 12, bool bold = false, bool italic = false, bool underline = false, bool strikeout = false, bool rtl = false);
+			Font(std::string family, float size = 12, bool bold = false, bool italic = false, bool underline = false, bool strikeout = false, double spacing = 0.0, bool rtl = false);
 #ifdef _WIN32
-			Font(std::wstring family, float size = 12, bool bold = false, bool italic = false, bool underline = false, bool strikeout = false, bool rtl = false);
+			Font(std::wstring family, float size = 12, bool bold = false, bool italic = false, bool underline = false, bool strikeout = false, double spacing = 0.0, bool rtl = false);
 #endif
 			~Font();
 			Font(const Font& other);
@@ -118,6 +119,7 @@ namespace GUtils{
 			bool get_italic();
 			bool get_underline();
 			bool get_strikeout();
+			double get_spacing();
 			bool get_rtl();
 			// Check state
 			operator bool() const;
@@ -133,7 +135,7 @@ namespace GUtils{
 #endif
 			// Text to graphical path
 			struct PathSegment{
-				enum class Type{MOVE, LINE, CURVE, CLOSE} type;
+				enum class Type{MOVE, LINE, CURVE/*Cubic bezier*/, CLOSE} type;
 				double x, y;
 			};
 			std::vector<PathSegment> text_path(std::string text);

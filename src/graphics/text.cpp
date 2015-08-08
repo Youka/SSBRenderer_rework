@@ -34,10 +34,10 @@ Permission is granted to anyone to use this software for any purpose, including 
 
 namespace GUtils{
 #ifdef _WIN32
-	Font::Font() : dc(NULL), font(NULL), old_font(NULL){}
-	Font::Font(std::string family, float size, bool bold, bool italic, bool underline, bool strikeout, bool rtl)
-	: Font(utf8_to_utf16(family), size, bold, italic, underline, strikeout, rtl){}
-	Font::Font(std::wstring family, float size, bool bold, bool italic, bool underline, bool strikeout, bool rtl){
+	Font::Font() : dc(NULL), font(NULL), old_font(NULL), spacing(0){}
+	Font::Font(std::string family, float size, bool bold, bool italic, bool underline, bool strikeout, double spacing, bool rtl)
+	: Font(utf8_to_utf16(family), size, bold, italic, underline, strikeout, spacing, rtl){}
+	Font::Font(std::wstring family, float size, bool bold, bool italic, bool underline, bool strikeout, double spacing, bool rtl) : spacing(spacing){
 		this->dc = CreateCompatibleDC(NULL),
 		SetMapMode(this->dc, MM_TEXT),
 		SetBkMode(this->dc, TRANSPARENT);
@@ -66,7 +66,8 @@ namespace GUtils{
 		if(!other.dc)
 			this->dc = NULL,
 			this->font = NULL,
-			this->old_font = NULL;
+			this->old_font = NULL,
+			this->spacing = 0;
 		else{
 			this->dc = CreateCompatibleDC(NULL),
 			SetMapMode(this->dc, MM_TEXT),
@@ -75,7 +76,8 @@ namespace GUtils{
 			LOGFONTW lf;	// I trust in Spongebob that it has 4-byte boundary like required by GetObject
 			GetObjectW(other.font, sizeof(lf), &lf),
 			this->font = CreateFontIndirectW(&lf),
-			this->old_font = SelectObject(this->dc, this->font);
+			this->old_font = SelectObject(this->dc, this->font),
+			this->spacing = other.spacing;
 		}
 	}
 	Font& Font::operator=(const Font& other){
@@ -83,7 +85,8 @@ namespace GUtils{
 		if(!other.dc)
 			this->dc = NULL,
 			this->font = NULL,
-			this->old_font = NULL;
+			this->old_font = NULL,
+			this->spacing = 0;
 		else{
 			this->dc = CreateCompatibleDC(NULL),
 			SetMapMode(this->dc, MM_TEXT),
@@ -92,7 +95,8 @@ namespace GUtils{
 			LOGFONTW lf;
 			GetObjectW(other.font, sizeof(lf), &lf),
 			this->font = CreateFontIndirectW(&lf),
-			this->old_font = SelectObject(this->dc, this->font);
+			this->old_font = SelectObject(this->dc, this->font),
+			this->spacing = other.spacing;
 		}
 		return *this;
 	}
@@ -100,28 +104,34 @@ namespace GUtils{
 		if(!other.dc)
 			this->dc = NULL,
 			this->font = NULL,
-			this->old_font = NULL;
+			this->old_font = NULL,
+			this->spacing = 0;
 		else
 			this->dc = other.dc,
 			this->font = other.font,
 			this->old_font = other.old_font,
+			this->spacing = other.spacing,
 			other.dc = NULL,
 			other.font = NULL,
-			other.old_font = NULL;
+			other.old_font = NULL,
+			other.spacing = 0;
 	}
 	Font& Font::operator=(Font&& other){
 		this->~Font();
 		if(!other.dc)
 			this->dc = NULL,
 			this->font = NULL,
-			this->old_font = NULL;
+			this->old_font = NULL,
+			this->spacing = 0;
 		else
 			this->dc = other.dc,
 			this->font = other.font,
 			this->old_font = other.old_font,
+			this->spacing = other.spacing,
 			other.dc = NULL,
 			other.font = NULL,
-			other.old_font = NULL;
+			other.old_font = NULL,
+			other.spacing = 0;
 		return *this;
 	}
 	std::string Font::get_family(){
@@ -157,6 +167,9 @@ namespace GUtils{
 		GetObjectW(this->font, sizeof(lf), &lf);
 		return lf.lfStrikeOut;
 	}
+	double Font::get_spacing(){
+		return this->spacing;
+	}
 	bool Font::get_rtl(){
 		return GetTextAlign(this->dc) == TA_RTLREADING;
 	}
@@ -180,11 +193,19 @@ namespace GUtils{
 	double Font::text_width(std::wstring text){
 		SIZE sz;
 		GetTextExtentPoint32W(this->dc, text.data(), text.length(), &sz);
-		return static_cast<double>(sz.cx) / FONT_UPSCALE;
+		return static_cast<double>(sz.cx) / FONT_UPSCALE + text.length() * this->spacing;
+	}
+	std::vector<Font::PathSegment> Font::text_path(std::string text){
+		this->text_path(utf8_to_utf16(text));
+	}
+	std::vector<Font::PathSegment> Font::text_path(std::wstring text){
+
+		// TODO
+
 	}
 #else
 	Font::Font() : surface(nullptr), context(nullptr), layout(nullptr){}
-	Font::Font(std::string family, float size, bool bold, bool italic, bool underline, bool strikeout, bool rtl){
+	Font::Font(std::string family, float size, bool bold, bool italic, bool underline, bool strikeout, double spacing, bool rtl){
 		this->layout = pango_cairo_create_layout(this->context = cairo_create(this->surface = cairo_image_surface_create(CAIRO_FORMAT_A1, 1, 1)));
 		PangoFontDescription *font = pango_font_description_new();
 		pango_font_description_set_family(font, family.c_str()),
@@ -196,6 +217,7 @@ namespace GUtils{
 		PangoAttrList* attr_list = pango_attr_list_new();
 		pango_attr_list_insert(attr_list, pango_attr_underline_new(underline ? PANGO_UNDERLINE_SINGLE : PANGO_UNDERLINE_NONE)),
 		pango_attr_list_insert(attr_list, pango_attr_strikethrough_new(strikeout)),
+		pango_attr_list_insert(attr_list, pango_attr_letter_spacing_new(spacing * PANGO_SCALE * FONT_UPSCALE)),
 		pango_layout_set_attributes(this->layout, attr_list),
 		pango_attr_list_unref(attr_list),
 		pango_layout_set_auto_dir(this->layout, rtl);
@@ -261,17 +283,19 @@ namespace GUtils{
 	}
 	bool Font::get_underline(){
 		PangoAttrIterator* attr_list_iter = pango_attr_list_get_iterator(pango_layout_get_attributes(this->layout));
-		PangoAttribute* attr = pango_attr_underline_new(PANGO_UNDERLINE_SINGLE);
-		bool result = pango_attribute_equal(pango_attr_iterator_get(attr_list_iter, PANGO_ATTR_UNDERLINE), attr);
-		pango_attribute_destroy(attr),
+		bool result = reinterpret_cast<PangoAttrInt*>(pango_attr_iterator_get(attr_list_iter, PANGO_ATTR_UNDERLINE))->value == PANGO_UNDERLINE_SINGLE;
 		pango_attr_iterator_destroy(attr_list_iter);
 		return result;
 	}
 	bool Font::get_strikeout(){
 		PangoAttrIterator* attr_list_iter = pango_attr_list_get_iterator(pango_layout_get_attributes(this->layout));
-		PangoAttribute* attr = pango_attr_strikethrough_new(true);
-		bool result = pango_attribute_equal(pango_attr_iterator_get(attr_list_iter, PANGO_ATTR_STRIKETHROUGH), attr);
-		pango_attribute_destroy(attr),
+		bool result = reinterpret_cast<PangoAttrInt*>(pango_attr_iterator_get(attr_list_iter, PANGO_ATTR_STRIKETHROUGH))->value;
+		pango_attr_iterator_destroy(attr_list_iter);
+		return result;
+	}
+	double Font::get_spacing(){
+		PangoAttrIterator* attr_list_iter = pango_attr_list_get_iterator(pango_layout_get_attributes(this->layout));
+		double result = static_cast<double>(reinterpret_cast<PangoAttrInt*>(pango_attr_iterator_get(attr_list_iter, PANGO_ATTR_LETTER_SPACING))->value) / FONT_UPSCALE / PANGO_SCALE;
 		pango_attr_iterator_destroy(attr_list_iter);
 		return result;
 	}
@@ -297,6 +321,11 @@ namespace GUtils{
 		PangoRectangle rect;
 		pango_layout_get_pixel_extents(this->layout, NULL, &rect);
 		return static_cast<double>(rect.width) / FONT_UPSCALE;
+	}
+	std::vector<Font::PathSegment> Font::text_path(std::string text){
+
+		// TODO
+
 	}
 #endif
 }
