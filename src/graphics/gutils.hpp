@@ -111,7 +111,7 @@ namespace GUtils{
 			// Getters
 			std::string get_family();
 #ifdef _WIN32
-			std::string get_family_unicode();
+			std::wstring get_family_unicode();
 #endif
 			float get_size();
 			bool get_bold();

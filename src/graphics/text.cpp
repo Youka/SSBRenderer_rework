@@ -19,9 +19,14 @@ Permission is granted to anyone to use this software for any purpose, including 
 	#include <Stringapiset.h>
 
 	static inline std::wstring utf8_to_utf16(std::string s){
-		std::wstring ws(MultiByteToWideChar(CP_UTF8, 0x0, s.data(), s.size(), nullptr, 0), L'\0');
+		std::wstring ws(MultiByteToWideChar(CP_UTF8, 0x0, s.data(), s.size(), NULL, 0), L'\0');
 		MultiByteToWideChar(CP_UTF8, 0x0, s.data(), s.size(), const_cast<wchar_t*>(ws.data()), ws.length());
 		return ws;
+	}
+	static inline std::string utf16_to_utf8(std::wstring ws){
+		std::string s(WideCharToMultiByte(CP_UTF8, 0x0, ws.data(), ws.size(), NULL, 0, NULL, NULL), '\0');
+		WideCharToMultiByte(CP_UTF8, 0x0, ws.data(), ws.size(), const_cast<char*>(s.data()), s.length(), NULL, NULL);
+		return s;
 	}
 #else
 	#include <pango/pangocairo.h>
@@ -119,6 +124,42 @@ namespace GUtils{
 			other.old_font = NULL;
 		return *this;
 	}
+	std::string Font::get_family(){
+		return utf16_to_utf8(this->get_family_unicode());
+	}
+	std::wstring Font::get_family_unicode(){
+		LOGFONTW lf;
+		GetObjectW(this->font, sizeof(lf), &lf);
+		return lf.lfFaceName;
+	}
+	float Font::get_size(){
+		LOGFONTW lf;
+		GetObjectW(this->font, sizeof(lf), &lf);
+		return static_cast<float>(lf.lfHeight) / FONT_UPSCALE;
+	}
+	bool Font::get_bold(){
+		LOGFONTW lf;
+		GetObjectW(this->font, sizeof(lf), &lf);
+		return lf.lfWeight == FW_BOLD;
+	}
+	bool Font::get_italic(){
+		LOGFONTW lf;
+		GetObjectW(this->font, sizeof(lf), &lf);
+		return lf.lfItalic;
+	}
+	bool Font::get_underline(){
+		LOGFONTW lf;
+		GetObjectW(this->font, sizeof(lf), &lf);
+		return lf.lfUnderline;
+	}
+	bool Font::get_strikeout(){
+		LOGFONTW lf;
+		GetObjectW(this->font, sizeof(lf), &lf);
+		return lf.lfStrikeOut;
+	}
+	bool Font::get_rtl(){
+		return GetTextAlign(this->dc) == TA_RTLREADING;
+	}
 #else
 	Font::Font() : surface(nullptr), context(nullptr), layout(nullptr){}
 	Font::Font(std::string family, float size, bool bold, bool italic, bool underline, bool strikeout, bool rtl){
@@ -127,7 +168,7 @@ namespace GUtils{
 		pango_font_description_set_family(font, family.c_str()),
 		pango_font_description_set_weight(font, bold ? PANGO_WEIGHT_BOLD : PANGO_WEIGHT_NORMAL),
 		pango_font_description_set_style(font, italic ? PANGO_STYLE_ITALIC : PANGO_STYLE_NORMAL),
-		pango_font_description_set_absolute_size(font, size * PANGO_SCALE * UPSCALE),
+		pango_font_description_set_absolute_size(font, size * PANGO_SCALE * FONT_UPSCALE),
 		pango_layout_set_font_description(this->layout, font),
 		pango_font_description_free(font);
 		PangoAttrList* attr_list = pango_attr_list_new();
@@ -183,6 +224,37 @@ namespace GUtils{
 			this->layout = other.layout,
 			other.surface = other.context = other.layout = nullptr;
 		return *this;
+	}
+	std::string Font::get_family(){
+		return pango_font_description_get_family(pango_layout_get_font_description(this->layout));
+	}
+	float Font::get_size(){
+		return static_cast<float>(pango_font_description_get_size(pango_layout_get_font_description(this->layout))) / FONT_UPSCALE / PANGO_SCALE;
+	}
+	bool Font::get_bold(){
+		return pango_font_description_get_weight(pango_layout_get_font_description(this->layout)) == PANGO_WEIGHT_BOLD;
+	}
+	bool Font::get_italic(){
+		return pango_font_description_get_style(pango_layout_get_font_description(this->layout)) == PANGO_STYLE_ITALIC;
+	}
+	bool Font::get_underline(){
+		PangoAttrIterator* attr_list_iter = pango_attr_list_get_iterator(pango_layout_get_attributes(this->layout));
+		PangoAttribute* attr = pango_attr_underline_new(PANGO_UNDERLINE_SINGLE);
+		bool result = pango_attribute_equal(pango_attr_iterator_get(attr_list_iter, PANGO_ATTR_UNDERLINE), attr);
+		pango_attribute_destroy(attr),
+		pango_attr_iterator_destroy(attr_list_iter);
+		return result;
+	}
+	bool Font::get_strikeout(){
+		PangoAttrIterator* attr_list_iter = pango_attr_list_get_iterator(pango_layout_get_attributes(this->layout));
+		PangoAttribute* attr = pango_attr_strikethrough_new(true);
+		bool result = pango_attribute_equal(pango_attr_iterator_get(attr_list_iter, PANGO_ATTR_STRIKETHROUGH), attr);
+		pango_attribute_destroy(attr),
+		pango_attr_iterator_destroy(attr_list_iter);
+		return result;
+	}
+	bool Font::get_rtl(){
+		return pango_layout_get_auto_dir(this->layout);
 	}
 #endif
 }
