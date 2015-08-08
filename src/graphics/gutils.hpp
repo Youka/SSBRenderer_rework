@@ -119,17 +119,6 @@ namespace GUtils{
 			bool get_underline();
 			bool get_strikeout();
 			bool get_rtl();
-			// Setters
-			void set_family(std::string family);
-#ifdef _WIN32
-			void set_family(std::wstring family);
-#endif
-			void set_size(float size);
-			void set_bold(bool bold);
-			void set_italic(bool italic);
-			void set_underline(bool underline);
-			void set_strikeout(bool strikeout);
-			void set_rtl(bool rtl);
 			// Check state
 			operator bool() const;
 			// Font metrics
