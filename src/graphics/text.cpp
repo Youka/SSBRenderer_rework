@@ -30,6 +30,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 	}
 #else
 	#include <pango/pangocairo.h>
+	#include <memory>
 #endif
 
 namespace GUtils{
@@ -204,12 +205,59 @@ namespace GUtils{
 		return static_cast<double>(sz.cx) / FONT_UPSCALE + text.length() * this->spacing;
 	}
 	std::vector<Font::PathSegment> Font::text_path(std::string text) throw(FontException){
-		this->text_path(utf8_to_utf16(text));
+		return this->text_path(utf8_to_utf16(text));
 	}
 	std::vector<Font::PathSegment> Font::text_path(std::wstring text) throw(FontException){
-
-		// TODO
-
+		// Check valid text length
+		if(text.length() > 8192)	// See ExtTextOut limitation
+			throw FontException("Text length exceeds 8192");
+		// Get characters width
+		std::vector<int> distance_x;
+		if(this->spacing != 0){
+			distance_x.reserve(text.length());
+			SIZE sz;
+			const int spacing_upscaled = this->spacing * FONT_UPSCALE;
+			for(auto c : text)
+				GetTextExtentPoint32W(this->dc, &c, 1, &sz),
+				distance_x.push_back(sz.cx + spacing_upscaled);
+		}
+		// Add text path to context
+		BeginPath(this->dc);
+		ExtTextOutW(this->dc, 0, 0, 0x0, NULL, text.data(), text.length(), distance_x.empty() ? NULL : distance_x.data());
+		EndPath(this->dc);
+		// Get path points
+		std::vector<Font::PathSegment> path;
+		const int points_n = GetPath(this->dc, NULL, NULL, 0);
+		if(points_n){
+			std::vector<POINT> points;
+			std::vector<BYTE> types;
+			points.reserve(points_n),
+			types.reserve(points_n),
+			path.reserve(points_n),
+			GetPath(this->dc, points.data(), types.data(), points_n);
+			// Pack points in output
+			for(int point_i = 0; point_i < points_n; ++point_i){
+				switch(types[point_i]){
+					case PT_MOVETO:
+						path.push_back({Font::PathSegment::Type::MOVE, static_cast<double>(points[point_i].x) / FONT_UPSCALE, static_cast<double>(points[point_i].y) / FONT_UPSCALE});
+						break;
+					case PT_LINETO:
+					case PT_LINETO|PT_CLOSEFIGURE:
+						path.push_back({Font::PathSegment::Type::LINE, static_cast<double>(points[point_i].x) / FONT_UPSCALE, static_cast<double>(points[point_i].y) / FONT_UPSCALE});
+						break;
+					case PT_BEZIERTO:
+					case PT_BEZIERTO|PT_CLOSEFIGURE:
+						path.push_back({Font::PathSegment::Type::CURVE, static_cast<double>(points[point_i].x) / FONT_UPSCALE, static_cast<double>(points[point_i].y) / FONT_UPSCALE});
+						break;
+				}
+				if(types[point_i]&PT_CLOSEFIGURE)
+					path.push_back({Font::PathSegment::Type::CLOSE});
+			}
+		}
+		// Clear context from path...
+		AbortPath(this->dc);
+		// ...and return collected points
+		return path;
 	}
 #else
 	Font::Font() : surface(nullptr), context(nullptr), layout(nullptr){}
@@ -343,9 +391,41 @@ namespace GUtils{
 		return static_cast<double>(rect.width) / FONT_UPSCALE;
 	}
 	std::vector<Font::PathSegment> Font::text_path(std::string text) throw(FontException){
-
-		// TODO
-
+		// Add text path to context
+		pango_layout_set_text(this->layout, text.data(), text.length()),
+		cairo_save(this->context),
+		cairo_scale(ctx, 1.0 / FONT_UPSCALE, 1.0 / FONT_UPSCALE),
+		pango_cairo_layout_path(this->context, this->layout),
+		cairo_restore(this->context);
+		// Get path points
+		std::unique_ptr<cairo_path_t, std::function<void(cairo_path_t*)>> cpath(cairo_copy_path(this->context), [](cairo_path_t* path){cairo_path_destroy(path);});
+		if(cpath->status != CAIRO_STATUS_SUCCESS){
+			cairo_new_path(this->context);
+			throw FontException("Couldn't get valid path");
+		}
+		// Pack points in output
+		std::vector<Font::PathSegment> path;
+		for(cairo_path_data_t* pdata = cpath->data, *data_end = pdata + cpath->num_data; pdata != data_end; pdata += pdata->header.length)
+			switch(pdata->header.type){
+				case CAIRO_PATH_MOVE_TO:
+					path.push_back({Font::PathSegment::Type::MOVE, pdata[1].point.x, pdata[1].point.y});
+					break;
+				case CAIRO_PATH_LINE_TO:
+					path.push_back({Font::PathSegment::Type::LINE, pdata[1].point.x, pdata[1].point.y});
+					break;
+				case CAIRO_PATH_CURVE_TO:
+					path.push_back({Font::PathSegment::Type::CURVE, pdata[1].point.x, pdata[1].point.y});
+					path.push_back({Font::PathSegment::Type::CURVE, pdata[2].point.x, pdata[2].point.y});
+					path.push_back({Font::PathSegment::Type::CURVE, pdata[3].point.x, pdata[3].point.y});
+					break;
+				case CAIRO_PATH_CLOSE_PATH:
+					path.push_back({Font::PathSegment::Type::CLOSE});
+					break;
+			}
+		// Clear context from path...
+		cairo_new_path(this->context);
+		// ...and return collected points
+		return path;
 	}
 #endif
 }
