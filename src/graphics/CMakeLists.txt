@@ -29,4 +29,8 @@ if(${TEST_GRAPHICS})
 	add_executable(ssbgraphics_blur tests/blurred.cpp tests/tga.hpp tests/test_images.h)
 	target_link_libraries(ssbgraphics_blur ssbgraphics)
 	add_test(ssbgraphics_blur_test ssbgraphics_blur 2.5 8.2)
+	# Create font test
+	add_executable(ssbgraphics_text tests/text.cpp)
+	target_link_libraries(ssbgraphics_text ssbgraphics)
+	add_test(ssbgraphics_text_test ssbgraphics_text)
 endif()

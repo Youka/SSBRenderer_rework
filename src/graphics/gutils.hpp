@@ -90,7 +90,7 @@ namespace GUtils{
 		private:
 			std::string message;
 		public:
-			FontException(std::string message) : message(message){}
+			FontException(const std::string& message) : message(message){}
 			const char* what() const noexcept override{return this->message.c_str();}
 	};
 

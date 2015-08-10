@@ -23,7 +23,7 @@ namespace SSB{
 		private:
 			std::string message;
 		public:
-			Exception(std::string message) : message(message){}
+			Exception(const std::string& message) : message(message){}
 			const char* what() const noexcept override{return this->message.c_str();}
 	};
 
