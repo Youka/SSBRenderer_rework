@@ -12,19 +12,12 @@ Permission is granted to anyone to use this software for any purpose, including 
     3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <iostream>
-#include <stdexcept>
 #include "../SSBParser.hpp"
 
 int main(){
-	SSB::Data data;
 	SSB::Parser parser;
+	SSB::Data data;
 	std::string line("");
-	try{
-		parser.parse_line(data, line);
-		std::cout << "SUCCESS!!!" << std::endl;
-	}catch(SSB::Exception e){
-		throw std::logic_error(e.what());
-	}
+	parser.parse_line(data, line);
 	return 0;
 }
