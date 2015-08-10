@@ -7,4 +7,7 @@ add_custom_target(ssbstrings SOURCES ${STRINGS_SOURCES})
 
 # Add functionality tests
 if(${TEST_STRINGS})
+	# Create utf-8 test
+	add_executable(ssbstrings_utf8 tests/utf8.cpp)
+	add_test(ssbstrings_utf8_test ssbstrings_utf8)
 endif()
