@@ -16,18 +16,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 #include "config.h"
 #ifdef _WIN32
 	#include <Wingdi.h>
-	#include <Stringapiset.h>
-
-	static inline std::wstring utf8_to_utf16(std::string s){
-		std::wstring ws(MultiByteToWideChar(CP_UTF8, 0x0, s.data(), s.size(), NULL, 0), L'\0');
-		MultiByteToWideChar(CP_UTF8, 0x0, s.data(), s.size(), const_cast<wchar_t*>(ws.data()), ws.length());
-		return ws;
-	}
-	static inline std::string utf16_to_utf8(std::wstring ws){
-		std::string s(WideCharToMultiByte(CP_UTF8, 0x0, ws.data(), ws.size(), NULL, 0, NULL, NULL), '\0');
-		WideCharToMultiByte(CP_UTF8, 0x0, ws.data(), ws.size(), const_cast<char*>(s.data()), s.length(), NULL, NULL);
-		return s;
-	}
+	#include "../strings/utf8.hpp"
 #else
 	#include <pango/pangocairo.h>
 	#include <memory>
@@ -37,7 +26,7 @@ namespace GUtils{
 #ifdef _WIN32
 	Font::Font() : dc(NULL), font(NULL), old_font(NULL), spacing(0){}
 	Font::Font(std::string family, float size, bool bold, bool italic, bool underline, bool strikeout, double spacing, bool rtl) throw(FontException)
-	: Font(utf8_to_utf16(family), size, bold, italic, underline, strikeout, spacing, rtl){}
+	: Font(Utf8::to_utf16(family), size, bold, italic, underline, strikeout, spacing, rtl){}
 	Font::Font(std::wstring family, float size, bool bold, bool italic, bool underline, bool strikeout, double spacing, bool rtl) throw(FontException) : spacing(spacing){
 		if(family.length() > 31)	// See LOGFONT limitation
 			throw FontException("Family length exceeds 31");
@@ -147,7 +136,7 @@ namespace GUtils{
 		return this->dc;
 	}
 	std::string Font::get_family(){
-		return utf16_to_utf8(this->get_family_unicode());
+		return Utf8::from_utf16(this->get_family_unicode());
 	}
 	std::wstring Font::get_family_unicode(){
 		LOGFONTW lf;
@@ -197,7 +186,7 @@ namespace GUtils{
 		};
 	}
 	double Font::text_width(std::string text){
-		return this->text_width(utf8_to_utf16(text));
+		return this->text_width(Utf8::to_utf16(text));
 	}
 	double Font::text_width(std::wstring text){
 		SIZE sz;
@@ -205,7 +194,7 @@ namespace GUtils{
 		return static_cast<double>(sz.cx) / FONT_UPSCALE + text.length() * this->spacing;
 	}
 	std::vector<Font::PathSegment> Font::text_path(std::string text) throw(FontException){
-		return this->text_path(utf8_to_utf16(text));
+		return this->text_path(Utf8::to_utf16(text));
 	}
 	std::vector<Font::PathSegment> Font::text_path(std::wstring text) throw(FontException){
 		// Check valid text length

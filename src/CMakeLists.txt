@@ -110,6 +110,10 @@ message(STATUS "Processed plugin interfaces")
 add_subdirectory(graphics)
 message(STATUS "Processed graphics utilities")
 
+#Process string utilities
+add_subdirectory(strings)
+message(STATUS "Processed string utilities")
+
 # Process renderer
 add_subdirectory(renderer)
 message(STATUS "Processed renderer")

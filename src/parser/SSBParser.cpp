@@ -14,7 +14,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 
 #include "SSBParser.hpp"
 #include "config.h"
-#include "string_utils.hpp"
+#include "../strings/basic.hpp"
 #include <algorithm>
 
 // Parses SSB time and converts to milliseconds
@@ -217,11 +217,11 @@ namespace SSB{
 				break;
 			case Geometry::Type::TEXT:{
 					// Replace in string \t to 4 spaces
-					string_replace(geometry, "\t", "    ");
+					stdex::string_replace(geometry, "\t", "    ");
 					// Replace in string \n to real line breaks
-					string_replace(geometry, "\\n", "\n");
+					stdex::string_replace(geometry, "\\n", "\n");
 					// Replace in string \{ to single {
-					string_replace(geometry, "\\{", "{");
+					stdex::string_replace(geometry, "\\{", "{");
 					// Insert Text as Object to event
 					ADD_OBJECT(Text(geometry));
 				}
@@ -262,7 +262,7 @@ namespace SSB{
 				"fs=",
 				[&event,this](std::string tag_values){
 					decltype(FontSize::size) size;
-					if(string_to_number(tag_values, size) && size >= 0)
+					if(stdex::string_to_number(tag_values, size) && size >= 0)
 						ADD_OBJECT(FontSize(size));
 					else
 						THROW_WEAK_ERROR("Invalid font size");
@@ -272,7 +272,7 @@ namespace SSB{
 				"fsp=",
 				[&event,this](std::string tag_values){
 					decltype(FontSpace::x) x, y;
-					if(string_to_number(tag_values, x, y))
+					if(stdex::string_to_number(tag_values, x, y))
 						ADD_OBJECT(FontSpace(x, y));
 					else
 						THROW_WEAK_ERROR("Invalid font spaces");
@@ -282,7 +282,7 @@ namespace SSB{
 				"fsph=",
 				[&event,this](std::string tag_values){
 					decltype(FontSpace::x) x;
-					if(string_to_number(tag_values, x))
+					if(stdex::string_to_number(tag_values, x))
 						ADD_OBJECT(FontSpace(FontSpace::Type::HORIZONTAL, x));
 					else
 						THROW_WEAK_ERROR("Invalid horizontal font space");
@@ -292,7 +292,7 @@ namespace SSB{
 				"fspv=",
 				[&event,this](std::string tag_values){
 					decltype(FontSpace::y) y;
-					if(string_to_number(tag_values, y))
+					if(stdex::string_to_number(tag_values, y))
 						ADD_OBJECT(FontSpace(FontSpace::Type::VERTICAL, y));
 					else
 						THROW_WEAK_ERROR("Invalid vertical font space");
@@ -302,7 +302,7 @@ namespace SSB{
 				"lw=",
 				[&event,this](std::string tag_values){
 					decltype(LineWidth::width) width;
-					if(string_to_number(tag_values, width) && width >= 0)
+					if(stdex::string_to_number(tag_values, width) && width >= 0)
 						ADD_OBJECT(LineWidth(width));
 					else
 						THROW_WEAK_ERROR("Invalid line width");
@@ -339,11 +339,11 @@ namespace SSB{
 					decltype(LineDash::offset) offset;
 					std::istringstream dash_stream(tag_values);
 					std::string dash_token;
-					if(std::getline(dash_stream, dash_token, ',') && string_to_number(dash_token, offset) && offset >= 0){
+					if(std::getline(dash_stream, dash_token, ',') && stdex::string_to_number(dash_token, offset) && offset >= 0){
 						decltype(LineDash::dashes) dashes;
 						decltype(LineDash::offset) dash;
 						while(std::getline(dash_stream, dash_token, ','))
-							if(string_to_number(dash_token, dash) && dash >= 0)
+							if(stdex::string_to_number(dash_token, dash) && dash >= 0)
 								dashes.push_back(dash);
 							else
 								THROW_WEAK_ERROR("Invalid line dash");
@@ -398,7 +398,7 @@ namespace SSB{
 					constexpr decltype(x) max_pos = std::numeric_limits<decltype(x)>::max();
 					if(tag_values.empty())
 						ADD_OBJECT(Position(max_pos, max_pos));
-					else if(string_to_number(tag_values, x, y))
+					else if(stdex::string_to_number(tag_values, x, y))
 						ADD_OBJECT(Position(x, y));
 					else
 						THROW_WEAK_ERROR("Invalid position");
@@ -417,9 +417,9 @@ namespace SSB{
 				"mg=",
 				[&event,this](std::string tag_values){
 					decltype(Margin::x) x, y;
-					if(string_to_number(tag_values, x))
+					if(stdex::string_to_number(tag_values, x))
 						ADD_OBJECT(Margin(Margin::Type::BOTH, x));
-					else if(string_to_number(tag_values, x, y))
+					else if(stdex::string_to_number(tag_values, x, y))
 						ADD_OBJECT(Margin(x, y));
 					else
 						THROW_WEAK_ERROR("Invalid margin");
@@ -429,7 +429,7 @@ namespace SSB{
 				"mgh=",
 				[&event,this](std::string tag_values){
 					decltype(Margin::x) x;
-					if(string_to_number(tag_values, x))
+					if(stdex::string_to_number(tag_values, x))
 						ADD_OBJECT(Margin(Margin::Type::HORIZONTAL, x));
 					else
 						THROW_WEAK_ERROR("Invalid horizontal margin");
@@ -439,7 +439,7 @@ namespace SSB{
 				"mgv=",
 				[&event,this](std::string tag_values){
 					decltype(Margin::y) y;
-					if(string_to_number(tag_values, y))
+					if(stdex::string_to_number(tag_values, y))
 						ADD_OBJECT(Margin(Margin::Type::VERTICAL, y));
 					else
 						THROW_WEAK_ERROR("Invalid vertical margin");
@@ -462,7 +462,7 @@ namespace SSB{
 				"tl=",
 				[&event,this](std::string tag_values){
 					decltype(Translate::x) x, y;
-					if(string_to_number(tag_values, x, y))
+					if(stdex::string_to_number(tag_values, x, y))
 						ADD_OBJECT(Translate(x, y));
 					else
 						THROW_WEAK_ERROR("Invalid translation");
@@ -472,7 +472,7 @@ namespace SSB{
 				"tlx=",
 				[&event,this](std::string tag_values){
 					decltype(Translate::x) x;
-					if(string_to_number(tag_values, x))
+					if(stdex::string_to_number(tag_values, x))
 						ADD_OBJECT(Translate(Translate::Type::HORIZONTAL, x));
 					else
 						THROW_WEAK_ERROR("Invalid horizontal translation");
@@ -482,7 +482,7 @@ namespace SSB{
 				"tly=",
 				[&event,this](std::string tag_values){
 					decltype(Translate::y) y;
-					if(string_to_number(tag_values, y))
+					if(stdex::string_to_number(tag_values, y))
 						ADD_OBJECT(Translate(Translate::Type::VERTICAL, y));
 					else
 						THROW_WEAK_ERROR("Invalid vertical translation");
@@ -492,9 +492,9 @@ namespace SSB{
 				"sc=",
 				[&event,this](std::string tag_values){
 					decltype(Scale::x) x, y;
-					if(string_to_number(tag_values, x))
+					if(stdex::string_to_number(tag_values, x))
 						ADD_OBJECT(Scale(Scale::Type::BOTH, x));
-					else if(string_to_number(tag_values, x, y))
+					else if(stdex::string_to_number(tag_values, x, y))
 						ADD_OBJECT(Scale(x, y));
 					else
 						THROW_WEAK_ERROR("Invalid scale");
@@ -504,7 +504,7 @@ namespace SSB{
 				"scx=",
 				[&event,this](std::string tag_values){
 					decltype(Scale::x) x;
-					if(string_to_number(tag_values, x))
+					if(stdex::string_to_number(tag_values, x))
 						ADD_OBJECT(Scale(Scale::Type::HORIZONTAL, x));
 					else
 						THROW_WEAK_ERROR("Invalid horizontal scale");
@@ -514,7 +514,7 @@ namespace SSB{
 				"scy=",
 				[&event,this](std::string tag_values){
 					decltype(Scale::y) y;
-					if(string_to_number(tag_values, y))
+					if(stdex::string_to_number(tag_values, y))
 						ADD_OBJECT(Scale(Scale::Type::VERTICAL, y));
 					else
 						THROW_WEAK_ERROR("Invalid vertical scale");
@@ -524,7 +524,7 @@ namespace SSB{
 				"rxy=",
 				[&event,this](std::string tag_values){
 					decltype(Rotate::angle1) angle1, angle2;
-					if(string_to_number(tag_values, angle1, angle2))
+					if(stdex::string_to_number(tag_values, angle1, angle2))
 						ADD_OBJECT(Rotate(Rotate::Axis::XY, angle1, angle2));
 					else
 						THROW_WEAK_ERROR("Invalid rotation on x axis");
@@ -534,7 +534,7 @@ namespace SSB{
 				"ryx=",
 				[&event,this](std::string tag_values){
 					decltype(Rotate::angle1) angle1, angle2;
-					if(string_to_number(tag_values, angle1, angle2))
+					if(stdex::string_to_number(tag_values, angle1, angle2))
 						ADD_OBJECT(Rotate(Rotate::Axis::YX, angle1, angle2));
 					else
 						THROW_WEAK_ERROR("Invalid rotation on y axis");
@@ -544,7 +544,7 @@ namespace SSB{
 				"rz=",
 				[&event,this](std::string tag_values){
 					decltype(Rotate::angle1) angle;
-					if(string_to_number(tag_values, angle))
+					if(stdex::string_to_number(tag_values, angle))
 						ADD_OBJECT(Rotate(angle));
 					else
 						THROW_WEAK_ERROR("Invalid rotation on z axis");
@@ -554,7 +554,7 @@ namespace SSB{
 				"sh=",
 				[&event,this](std::string tag_values){
 					decltype(Shear::x) x, y;
-					if(string_to_number(tag_values, x, y))
+					if(stdex::string_to_number(tag_values, x, y))
 						ADD_OBJECT(Shear(x, y));
 					else
 						THROW_WEAK_ERROR("Invalid shear");
@@ -564,7 +564,7 @@ namespace SSB{
 				"shx=",
 				[&event,this](std::string tag_values){
 					decltype(Shear::x) x;
-					if(string_to_number(tag_values, x))
+					if(stdex::string_to_number(tag_values, x))
 						ADD_OBJECT(Shear(Shear::Type::HORIZONTAL, x));
 					else
 						THROW_WEAK_ERROR("Invalid horizontal shear");
@@ -574,7 +574,7 @@ namespace SSB{
 				"shy",
 				[&event,this](std::string tag_values){
 					decltype(Shear::y) y;
-					if(string_to_number(tag_values, y))
+					if(stdex::string_to_number(tag_values, y))
 						ADD_OBJECT(Shear(Shear::Type::VERTICAL, y));
 					else
 						THROW_WEAK_ERROR("Invalid vertical shear");
@@ -586,12 +586,12 @@ namespace SSB{
 					decltype(Transform::xx) xx, yx, xy, yy, x0, y0;
 					std::istringstream matrix_stream(tag_values);
 					std::string matrix_token;
-					if(std::getline(matrix_stream, matrix_token, ',') && string_to_number(matrix_token, xx) &&
-							std::getline(matrix_stream, matrix_token, ',') && string_to_number(matrix_token, yx) &&
-							std::getline(matrix_stream, matrix_token, ',') && string_to_number(matrix_token, xy) &&
-							std::getline(matrix_stream, matrix_token, ',') && string_to_number(matrix_token, yy) &&
-							std::getline(matrix_stream, matrix_token, ',') && string_to_number(matrix_token, x0) &&
-							std::getline(matrix_stream, matrix_token, ',') && string_to_number(matrix_token, y0) &&
+					if(std::getline(matrix_stream, matrix_token, ',') && stdex::string_to_number(matrix_token, xx) &&
+							std::getline(matrix_stream, matrix_token, ',') && stdex::string_to_number(matrix_token, yx) &&
+							std::getline(matrix_stream, matrix_token, ',') && stdex::string_to_number(matrix_token, xy) &&
+							std::getline(matrix_stream, matrix_token, ',') && stdex::string_to_number(matrix_token, yy) &&
+							std::getline(matrix_stream, matrix_token, ',') && stdex::string_to_number(matrix_token, x0) &&
+							std::getline(matrix_stream, matrix_token, ',') && stdex::string_to_number(matrix_token, y0) &&
 							matrix_stream.eof()
 						)
 						ADD_OBJECT(Transform(xx, yx, xy, yy, x0, y0));
@@ -603,14 +603,14 @@ namespace SSB{
 				"cl=",
 				[&event,this](std::string tag_values){
 					unsigned long rgb[4];
-					if(hex_string_to_number(tag_values, rgb[0]) &&
+					if(stdex::hex_string_to_number(tag_values, rgb[0]) &&
 						rgb[0] <= 0xffffff)
 						ADD_OBJECT(Color(
 										static_cast<decltype(RGB::r)>(rgb[0] >> 16) / 0xff,
 										static_cast<decltype(RGB::g)>(rgb[0] >> 8 & 0xff) / 0xff,
 										static_cast<decltype(RGB::b)>(rgb[0] & 0xff) / 0xff
 									));
-					else if(hex_string_to_number(tag_values, rgb[0], rgb[1]) &&
+					else if(stdex::hex_string_to_number(tag_values, rgb[0], rgb[1]) &&
 							rgb[0] <= 0xffffff && rgb[1] <= 0xffffff)
 						ADD_OBJECT(Color(
 										static_cast<decltype(RGB::r)>(rgb[0] >> 16) / 0xff,
@@ -620,7 +620,7 @@ namespace SSB{
 										static_cast<decltype(RGB::g)>(rgb[1] >> 8 & 0xff) / 0xff,
 										static_cast<decltype(RGB::b)>(rgb[1] & 0xff) / 0xff
 									));
-					else if(hex_string_to_number(tag_values, rgb[0], rgb[1], rgb[2], rgb[3]) &&
+					else if(stdex::hex_string_to_number(tag_values, rgb[0], rgb[1], rgb[2], rgb[3]) &&
 							rgb[0] <= 0xffffff && rgb[1] <= 0xffffff && rgb[2] <= 0xffffff && rgb[3] <= 0xffffff)
 						ADD_OBJECT(Color(
 										static_cast<decltype(RGB::r)>(rgb[0] >> 16) / 0xff,
@@ -644,7 +644,7 @@ namespace SSB{
 				"lcl=",
 				[&event,this](std::string tag_values){
 					unsigned long rgb;
-					if(hex_string_to_number(tag_values, rgb) &&
+					if(stdex::hex_string_to_number(tag_values, rgb) &&
 							rgb <= 0xffffff)
 						ADD_OBJECT(LineColor(
 										static_cast<decltype(RGB::r)>(rgb >> 16) / 0xff,
@@ -659,16 +659,16 @@ namespace SSB{
 				"al=",
 				[&event,this](std::string tag_values){
 					unsigned short a[4];
-					if(hex_string_to_number(tag_values, a[0]) &&
+					if(stdex::hex_string_to_number(tag_values, a[0]) &&
 							a[0] <= 0xff)
 						ADD_OBJECT(Alpha(static_cast<decltype(RGB::r)>(a[0]) / 0xff));
-					else if(hex_string_to_number(tag_values, a[0], a[1]) &&
+					else if(stdex::hex_string_to_number(tag_values, a[0], a[1]) &&
 							a[0] <= 0xff && a[1] <= 0xff)
 						ADD_OBJECT(Alpha(
 										static_cast<decltype(RGB::r)>(a[0]) / 0xff,
 										static_cast<decltype(RGB::r)>(a[1]) / 0xff
 									));
-					else if(hex_string_to_number(tag_values, a[0], a[1], a[2], a[3]) &&
+					else if(stdex::hex_string_to_number(tag_values, a[0], a[1], a[2], a[3]) &&
 							a[0] <= 0xff && a[1] <= 0xff && a[2] <= 0xff && a[3] <= 0xff)
 						ADD_OBJECT(Alpha(
 										static_cast<decltype(RGB::r)>(a[0]) / 0xff,
@@ -684,7 +684,7 @@ namespace SSB{
 				"lal=",
 				[&event,this](std::string tag_values){
 					unsigned short a;
-					if(hex_string_to_number(tag_values, a) &&
+					if(stdex::hex_string_to_number(tag_values, a) &&
 							a <= 0xff)
 						ADD_OBJECT(LineAlpha(static_cast<decltype(RGB::r)>(a) / 0xff));
 					else
@@ -703,9 +703,9 @@ namespace SSB{
 					decltype(TexFill::x) x, y;
 					std::string::size_type pos1, pos2;
 					if((pos1 = tag_values.find(',')) != std::string::npos &&
-							string_to_number(tag_values.substr(0, pos1), x) &&
+							stdex::string_to_number(tag_values.substr(0, pos1), x) &&
 							(pos2 = tag_values.find(',', pos1+1)) != std::string::npos &&
-							string_to_number(tag_values.substr(pos1+1, pos2-(pos1+1)), y)){
+							stdex::string_to_number(tag_values.substr(pos1+1, pos2-(pos1+1)), y)){
 						std::string wrap = tag_values.substr(pos2+1);
 						if(wrap == "c")
 							ADD_OBJECT(TexFill(x, y, TexFill::WrapStyle::CLAMP));
@@ -744,9 +744,9 @@ namespace SSB{
 				"bl=",
 				[&event,this](std::string tag_values){
 					decltype(Blur::x) x, y;
-					if(string_to_number(tag_values, x) && x >= 0)
+					if(stdex::string_to_number(tag_values, x) && x >= 0)
 						ADD_OBJECT(Blur(Blur::Type::BOTH, x));
-					else if(string_to_number(tag_values, x, y) && x >= 0 && y >= 0)
+					else if(stdex::string_to_number(tag_values, x, y) && x >= 0 && y >= 0)
 						ADD_OBJECT(Blur(x, y));
 					else
 						THROW_WEAK_ERROR("Invalid blur");
@@ -756,7 +756,7 @@ namespace SSB{
 				"blh=",
 				[&event,this](std::string tag_values){
 					decltype(Blur::x) x;
-					if(string_to_number(tag_values, x) && x >= 0)
+					if(stdex::string_to_number(tag_values, x) && x >= 0)
 						ADD_OBJECT(Blur(Blur::Type::HORIZONTAL, x));
 					else
 						THROW_WEAK_ERROR("Invalid horizontal blur");
@@ -766,7 +766,7 @@ namespace SSB{
 				"blv=",
 				[&event,this](std::string tag_values){
 					decltype(Blur::y) y;
-					if(string_to_number(tag_values, y) && y >= 0)
+					if(stdex::string_to_number(tag_values, y) && y >= 0)
 						ADD_OBJECT(Blur(Blur::Type::VERTICAL, y));
 					else
 						THROW_WEAK_ERROR("Invalid vertical blur");
@@ -804,9 +804,9 @@ namespace SSB{
 				"fad=",
 				[&event,this](std::string tag_values){
 					decltype(Fade::in) in, out;
-					if(string_to_number(tag_values, in))
+					if(stdex::string_to_number(tag_values, in))
 						ADD_OBJECT(Fade(Fade::Type::BOTH, in));
-					else if(string_to_number(tag_values, in, out))
+					else if(stdex::string_to_number(tag_values, in, out))
 						ADD_OBJECT(Fade(in, out));
 					else
 						THROW_WEAK_ERROR("Invalid fade");
@@ -816,7 +816,7 @@ namespace SSB{
 				"fadi=",
 				[&event,this](std::string tag_values){
 					decltype(Fade::in) in;
-					if(string_to_number(tag_values, in))
+					if(stdex::string_to_number(tag_values, in))
 						ADD_OBJECT(Fade(Fade::Type::INFADE, in));
 					else
 						THROW_WEAK_ERROR("Invalid infade");
@@ -826,7 +826,7 @@ namespace SSB{
 				"fado=",
 				[&event,this](std::string tag_values){
 					decltype(Fade::out) out;
-					if(string_to_number(tag_values, out))
+					if(stdex::string_to_number(tag_values, out))
 						ADD_OBJECT(Fade(Fade::Type::OUTFADE, out));
 					else
 						THROW_WEAK_ERROR("Invalid outfade");
@@ -871,11 +871,11 @@ namespace SSB{
 								case 2: progress_formula = animate_tokens[0];
 									tags = animate_tokens[1].substr(1, animate_tokens[1].size()-2);
 									break;
-								case 3: if(!string_to_number(animate_tokens[0], start_time) || !string_to_number(animate_tokens[1], end_time))
+								case 3: if(!stdex::string_to_number(animate_tokens[0], start_time) || !stdex::string_to_number(animate_tokens[1], end_time))
 										throw std::string("Invalid time(s)");
 									tags = animate_tokens[2].substr(1, animate_tokens[2].size()-2);
 									break;
-								case 4: if(!string_to_number(animate_tokens[0], start_time) || !string_to_number(animate_tokens[1], end_time))
+								case 4: if(!stdex::string_to_number(animate_tokens[0], start_time) || !stdex::string_to_number(animate_tokens[1], end_time))
 										throw std::string("Invalid time(s)");
 									progress_formula = animate_tokens[2];
 									tags = animate_tokens[3].substr(1, animate_tokens[3].size()-2);
@@ -897,7 +897,7 @@ namespace SSB{
 				"k=",
 				[&event,this](std::string tag_values){
 					decltype(Karaoke::time) time;
-					if(string_to_number(tag_values, time)){
+					if(stdex::string_to_number(tag_values, time)){
 						event.static_tags = false;
 						ADD_OBJECT(Karaoke(Karaoke::Type::DURATION, time));
 					}else
@@ -908,7 +908,7 @@ namespace SSB{
 				"ks=",
 				[&event,this](std::string tag_values){
 					decltype(Karaoke::time) time;
-					if(string_to_number(tag_values, time)){
+					if(stdex::string_to_number(tag_values, time)){
 						event.static_tags = false;
 						ADD_OBJECT(Karaoke(Karaoke::Type::SET, time));
 					}else
@@ -919,7 +919,7 @@ namespace SSB{
 				"kc=",
 				[&event,this](std::string tag_values){
 					unsigned long int rgb;
-					if(hex_string_to_number(tag_values, rgb) && rgb <= 0xffffff)
+					if(stdex::hex_string_to_number(tag_values, rgb) && rgb <= 0xffffff)
 						ADD_OBJECT(KaraokeColor(
 										static_cast<decltype(RGB::r)>(rgb >> 16) / 0xff,
 										static_cast<decltype(RGB::g)>(rgb >> 8 & 0xff) / 0xff,
@@ -1022,13 +1022,13 @@ namespace SSB{
 					case Data::Section::FRAME:
 						if(STR_LIT_EQU_FIRST(line, "Width: ")){
 							decltype(data.frame.width) width;
-							if(string_to_number(line.substr(7), width))
+							if(stdex::string_to_number(line.substr(7), width))
 								data.frame.width = width;
 							else
 								THROW_WEAK_ERROR("Invalid frame width");
 						}else if(STR_LIT_EQU_FIRST(line, "Heigth: ")){
 							decltype(data.frame.height) height;
-							if(string_to_number(line.substr(8), height))
+							if(stdex::string_to_number(line.substr(8), height))
 								data.frame.height = height;
 							else
 								THROW_WEAK_ERROR("Invalid frame height");
@@ -1118,7 +1118,7 @@ namespace SSB{
 								// Evaluate geometries
 								}else{
 									// Search geometry end at tags bracket (unescaped) or text end
-									pos_end = find_non_escaped_character(text, '{', pos_start);
+									pos_end = stdex::find_non_escaped_character(text, '{', pos_start);
 									if(pos_end == std::string::npos)
 										pos_end = text.length();
 									// Parse geometry by type
