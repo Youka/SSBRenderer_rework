@@ -109,9 +109,9 @@ namespace GUtils{
 		public:
 			// Rule-of-five
 			Font();
-			Font(std::string family, float size = 12, bool bold = false, bool italic = false, bool underline = false, bool strikeout = false, double spacing = 0.0, bool rtl = false) throw(FontException);
+			Font(const std::string& family, float size = 12, bool bold = false, bool italic = false, bool underline = false, bool strikeout = false, double spacing = 0.0, bool rtl = false) throw(FontException);
 #ifdef _WIN32
-			Font(std::wstring family, float size = 12, bool bold = false, bool italic = false, bool underline = false, bool strikeout = false, double spacing = 0.0, bool rtl = false) throw(FontException);
+			Font(const std::wstring& family, float size = 12, bool bold = false, bool italic = false, bool underline = false, bool strikeout = false, double spacing = 0.0, bool rtl = false) throw(FontException);
 #endif
 			~Font();
 			Font(const Font& other);
@@ -138,18 +138,18 @@ namespace GUtils{
 			};
 			Metrics metrics();
 			// Text width by extents (height from metrics)
-			double text_width(std::string text);
+			double text_width(const std::string& text);
 #ifdef _WIN32
-			double text_width(std::wstring text);
+			double text_width(const std::wstring& text);
 #endif
 			// Text to graphical path
 			struct PathSegment{
 				enum class Type{MOVE, LINE, CURVE/*Cubic bezier*/, CLOSE} type;
 				double x, y;
 			};
-			std::vector<PathSegment> text_path(std::string text) throw(FontException);
+			std::vector<PathSegment> text_path(const std::string& text) throw(FontException);
 #ifdef _WIN32
-			std::vector<PathSegment> text_path(std::wstring text) throw(FontException);
+			std::vector<PathSegment> text_path(const std::wstring& text) throw(FontException);
 #endif
 	};
 }

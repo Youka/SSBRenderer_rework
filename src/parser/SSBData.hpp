@@ -122,7 +122,7 @@ namespace SSB{
 	class FontFamily : public Tag{
 		public:
 			std::string family;
-			FontFamily(std::string family) : Tag(Tag::Type::FONT_FAMILY), family(family){}
+			FontFamily(const std::string& family) : Tag(Tag::Type::FONT_FAMILY), family(family){}
 	};
 
 	// Font style state
@@ -174,7 +174,7 @@ namespace SSB{
 		public:
 			Coord offset;
 			std::vector<Coord> dashes;
-			LineDash(Coord offset, std::vector<Coord> dashes) : Tag(Tag::Type::LINE_DASH), offset(offset), dashes(dashes){}
+			LineDash(Coord offset, const std::vector<Coord>& dashes) : Tag(Tag::Type::LINE_DASH), offset(offset), dashes(dashes){}
 	};
 
 	// Painting mode state
@@ -188,7 +188,7 @@ namespace SSB{
 	class Deform : public Tag{
 		public:
 			std::string formula_x, formula_y;
-			Deform(std::string formula_x, std::string formula_y) : Tag(Tag::Type::DEFORM), formula_x(formula_x), formula_y(formula_y){}
+			Deform(const std::string& formula_x, const std::string& formula_y) : Tag(Tag::Type::DEFORM), formula_x(formula_x), formula_y(formula_y){}
 	};
 
 	// Position state
@@ -336,7 +336,7 @@ namespace SSB{
 	class Texture : public Tag{
 		public:
 			std::string filename;
-			Texture(std::string filename) : Tag(Tag::Type::TEXTURE), filename(filename){}
+			Texture(const std::string& filename) : Tag(Tag::Type::TEXTURE), filename(filename){}
 	};
 
 	// Texture fill state
@@ -404,7 +404,7 @@ namespace SSB{
 			Duration start, end; // 'Unset' in case of maximum values
 			std::string progress_formula;   // 'Unset' in case of emtpiness
 			std::vector<std::shared_ptr<Object>> objects;
-			Animate(Duration start, Duration end, std::string progress_formula, std::vector<std::shared_ptr<Object>> objects) : Tag(Tag::Type::ANIMATE), start(start), end(end), progress_formula(progress_formula), objects(objects){}
+			Animate(Duration start, Duration end, const std::string& progress_formula, const std::vector<std::shared_ptr<Object>>& objects) : Tag(Tag::Type::ANIMATE), start(start), end(end), progress_formula(progress_formula), objects(objects){}
 	};
 
 	// Karaoke time state
@@ -433,7 +433,7 @@ namespace SSB{
 	class Points : public Geometry{
 		public:
 			std::vector<Point> points;
-			Points(std::vector<Point> points) : Geometry(Geometry::Type::POINTS), points(points){}
+			Points(const std::vector<Point>& points) : Geometry(Geometry::Type::POINTS), points(points){}
 	};
 
 	// Path geometry
@@ -448,14 +448,14 @@ namespace SSB{
 				};
 			};
 			std::vector<Segment> segments;
-			Path(std::vector<Segment> segments) : Geometry(Geometry::Type::PATH), segments(segments){}
+			Path(const std::vector<Segment>& segments) : Geometry(Geometry::Type::PATH), segments(segments){}
 	};
 
 	// Text geometry
 	class Text : public Geometry{
 		public:
 			std::string text;
-			Text(std::string text) : Geometry(Geometry::Type::TEXT), text(text){}
+			Text(const std::string& text) : Geometry(Geometry::Type::TEXT), text(text){}
 	};
 
 	// Meta informations (no effect on rendering)

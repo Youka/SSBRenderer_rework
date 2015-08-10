@@ -33,13 +33,13 @@ namespace SSB{
 			// Level of error detection (0=OFF, 1=SYNTAX, 3=+VALUES)
 			enum class Level{OFF, SYNTAX, ALL} const level;
 			// Parse event elements
-			void parse_geometry(std::string& geometry, Geometry::Type geometry_type, Event& event) throw(Exception);
-			void parse_tags(std::string& tags, Geometry::Type& geometry_type, Event& event) throw(Exception);
+			void parse_geometry(std::string geometry, Geometry::Type geometry_type, Event& event) throw(Exception);
+			void parse_tags(const std::string& tags, Geometry::Type& geometry_type, Event& event) throw(Exception);
 		public:
 			// Constructor
 			Parser(Level level = Level::ALL) : level(level){};
 			// Parse one text line
-			void parse_line(Data& data, std::string& line) throw(Exception);
+			void parse_line(Data& data, const std::string& line) throw(Exception);
 			// Parse a whole script from stream
 			void parse_script(Data& data, std::istream& script) throw(Exception);
 	};

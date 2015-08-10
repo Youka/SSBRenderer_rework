@@ -21,12 +21,12 @@ Permission is granted to anyone to use this software for any purpose, including 
 
 namespace Utf8{
 #ifdef _WIN32
-	static inline std::wstring to_utf16(std::string s){
+	static inline std::wstring to_utf16(const std::string& s){
 		std::wstring ws(MultiByteToWideChar(CP_UTF8, 0x0, s.data(), s.size(), NULL, 0), L'\0');
 		MultiByteToWideChar(CP_UTF8, 0x0, s.data(), s.size(), const_cast<wchar_t*>(ws.data()), ws.length());
 		return ws;
 	}
-	static inline std::string from_utf16(std::wstring ws){
+	static inline std::string from_utf16(const std::wstring& ws){
 		std::string s(WideCharToMultiByte(CP_UTF8, 0x0, ws.data(), ws.size(), NULL, 0, NULL, NULL), '\0');
 		WideCharToMultiByte(CP_UTF8, 0x0, ws.data(), ws.size(), const_cast<char*>(s.data()), s.length(), NULL, NULL);
 		return s;

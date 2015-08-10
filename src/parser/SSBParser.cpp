@@ -19,7 +19,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 
 // Parses SSB time and converts to milliseconds
 template<typename T>
-static inline bool parse_time(std::string& s, T& t){
+static inline bool parse_time(const std::string& s, T& t){
 	// Check for empty timestamp
 	if(s.empty())
 		return false;
@@ -129,7 +129,7 @@ namespace SSB{
 	#define ADD_OBJECT(obj) event.objects.emplace_back(new obj)
 	#define THROW_STRONG_ERROR(msg) if(this->level != Parser::Level::OFF) throw Exception(msg)
 	#define THROW_WEAK_ERROR(msg) if(this->level == Parser::Level::ALL) throw Exception(msg)
-	void Parser::parse_geometry(std::string& geometry, Geometry::Type geometry_type, Event& event) throw(Exception){
+	void Parser::parse_geometry(std::string geometry, Geometry::Type geometry_type, Event& event) throw(Exception){
 		switch(geometry_type){
 			case Geometry::Type::POINTS:{
 					// Points buffer
@@ -229,7 +229,7 @@ namespace SSB{
 		}
 	}
 
-	void Parser::parse_tags(std::string& tags, Geometry::Type& geometry_type, Event& event) throw(Exception){
+	void Parser::parse_tags(const std::string& tags, Geometry::Type& geometry_type, Event& event) throw(Exception){
 		// Stream for tags
 		std::istringstream tags_stream(tags);
 		// Registered tags + handler
@@ -989,7 +989,7 @@ namespace SSB{
 	}
 
 	#define STR_LIT_EQU_FIRST(s, s2) (s.compare(0, sizeof(s2)-1, s2) == 0)
-	void Parser::parse_line(Data& data, std::string& line) throw(Exception){
+	void Parser::parse_line(Data& data, const std::string& line) throw(Exception){
 		// No empty or comment line = no skip
 		if(!line.empty() && !STR_LIT_EQU_FIRST(line, "//")){
 			// Section header line

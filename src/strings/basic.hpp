@@ -19,14 +19,14 @@ Permission is granted to anyone to use this software for any purpose, including 
 namespace stdex{
 	// Converts string to number
 	template<typename T>
-	inline bool string_to_number(std::string src, T& dst){
+	inline bool string_to_number(const std::string& src, T& dst){
 		std::istringstream s(src);
-		return !(s >> std::noskipws >> dst) || !s.eof() ? false : true;
+		return s >> std::noskipws >> dst && s.eof();
 	}
 
 	// Converts string to number pair
 	template<typename T>
-	inline bool string_to_number(std::string src, T& dst1, T& dst2){
+	inline bool string_to_number(const std::string& src, T& dst1, T& dst2){
 		std::string::size_type pos;
 		return (pos = src.find(',')) != std::string::npos &&
 				string_to_number(src.substr(0, pos), dst1) &&
@@ -35,13 +35,13 @@ namespace stdex{
 
 	// Converts hex string to number
 	template<typename T>
-	inline bool hex_string_to_number(std::string src, T& dst){
+	inline bool hex_string_to_number(const std::string& src, T& dst){
 		std::istringstream s(src);
-		return !(s >> std::noskipws >> std::hex >> dst) || !s.eof() ? false : true;
+		return s >> std::noskipws >> std::hex >> dst && s.eof();
 	}
 	// Converts hex string to number pair
 	template<typename T>
-	inline bool hex_string_to_number(std::string src, T& dst1, T& dst2){
+	inline bool hex_string_to_number(const std::string& src, T& dst1, T& dst2){
 		std::string::size_type pos;
 		return (pos = src.find(',')) != std::string::npos &&
 				hex_string_to_number(src.substr(0, pos), dst1) &&
@@ -49,7 +49,7 @@ namespace stdex{
 	}
 	// Converts hex string to four numbers
 	template<typename T>
-	inline bool hex_string_to_number(std::string src, T& dst1, T& dst2, T& dst3, T& dst4){
+	inline bool hex_string_to_number(const std::string& src, T& dst1, T& dst2, T& dst3, T& dst4){
 		std::string::size_type pos1, pos2;
 		return (pos1 = src.find(',')) != std::string::npos &&
 				hex_string_to_number(src.substr(0, pos1), dst1) &&
@@ -61,7 +61,7 @@ namespace stdex{
 	}
 
 	// Find character in string which isn't escaped by character '\'
-	inline std::string::size_type find_non_escaped_character(std::string& s, const char c, const std::string::size_type pos_start = 0){
+	inline std::string::size_type find_non_escaped_character(const std::string& s, const char c, const std::string::size_type pos_start = 0){
 		std::string::size_type pos_end;
 		for(auto search_pos_start = pos_start;
 			(pos_end = s.find(c, search_pos_start)) != std::string::npos && pos_end > 0 && s[pos_end-1] == '\\';

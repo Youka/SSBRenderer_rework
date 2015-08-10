@@ -25,9 +25,9 @@ Permission is granted to anyone to use this software for any purpose, including 
 namespace GUtils{
 #ifdef _WIN32
 	Font::Font() : dc(NULL), font(NULL), old_font(NULL), spacing(0){}
-	Font::Font(std::string family, float size, bool bold, bool italic, bool underline, bool strikeout, double spacing, bool rtl) throw(FontException)
+	Font::Font(const std::string& family, float size, bool bold, bool italic, bool underline, bool strikeout, double spacing, bool rtl) throw(FontException)
 	: Font(Utf8::to_utf16(family), size, bold, italic, underline, strikeout, spacing, rtl){}
-	Font::Font(std::wstring family, float size, bool bold, bool italic, bool underline, bool strikeout, double spacing, bool rtl) throw(FontException) : spacing(spacing){
+	Font::Font(const std::wstring& family, float size, bool bold, bool italic, bool underline, bool strikeout, double spacing, bool rtl) throw(FontException) : spacing(spacing){
 		if(family.length() > 31)	// See LOGFONT limitation
 			throw FontException("Family length exceeds 31");
 		if(size < 0)
@@ -185,18 +185,18 @@ namespace GUtils{
 			static_cast<double>(metrics.tmExternalLeading) / FONT_UPSCALE
 		};
 	}
-	double Font::text_width(std::string text){
+	double Font::text_width(const std::string& text){
 		return this->text_width(Utf8::to_utf16(text));
 	}
-	double Font::text_width(std::wstring text){
+	double Font::text_width(const std::wstring& text){
 		SIZE sz;
 		GetTextExtentPoint32W(this->dc, text.data(), text.length(), &sz);
 		return static_cast<double>(sz.cx) / FONT_UPSCALE + text.length() * this->spacing;
 	}
-	std::vector<Font::PathSegment> Font::text_path(std::string text) throw(FontException){
+	std::vector<Font::PathSegment> Font::text_path(const std::string& text) throw(FontException){
 		return this->text_path(Utf8::to_utf16(text));
 	}
-	std::vector<Font::PathSegment> Font::text_path(std::wstring text) throw(FontException){
+	std::vector<Font::PathSegment> Font::text_path(const std::wstring& text) throw(FontException){
 		// Check valid text length
 		if(text.length() > 8192)	// See ExtTextOut limitation
 			throw FontException("Text length exceeds 8192");
@@ -250,7 +250,7 @@ namespace GUtils{
 	}
 #else
 	Font::Font() : surface(nullptr), context(nullptr), layout(nullptr){}
-	Font::Font(std::string family, float size, bool bold, bool italic, bool underline, bool strikeout, double spacing, bool rtl) throw(FontException){
+	Font::Font(const std::string& family, float size, bool bold, bool italic, bool underline, bool strikeout, double spacing, bool rtl) throw(FontException){
 		if(size < 0)
 			throw FontException("Size <0");
 		if(!(this->surface = cairo_image_surface_create(CAIRO_FORMAT_A1, 1, 1)))
@@ -373,13 +373,13 @@ namespace GUtils{
 		pango_font_metrics_unref(metrics);
 		return result;
 	}
-	double Font::text_width(std::string text){
+	double Font::text_width(const std::string& text){
 		pango_layout_set_text(this->layout, text.data(), text.length());
 		PangoRectangle rect;
 		pango_layout_get_pixel_extents(this->layout, NULL, &rect);
 		return static_cast<double>(rect.width) / FONT_UPSCALE;
 	}
-	std::vector<Font::PathSegment> Font::text_path(std::string text) throw(FontException){
+	std::vector<Font::PathSegment> Font::text_path(const std::string& text) throw(FontException){
 		// Add text path to context
 		pango_layout_set_text(this->layout, text.data(), text.length()),
 		cairo_save(this->context),
