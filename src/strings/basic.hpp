@@ -15,6 +15,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 #pragma once
 
 #include <sstream>
+#include <vector>
 
 namespace stdex{
 	// Converts string to number
@@ -69,10 +70,34 @@ namespace stdex{
 		return pos_end;
 	}
 
-	// Replaces text
+	// Replaces subtext
 	inline std::string& string_replace(std::string& s, std::string find, std::string repl){
 		for(std::string::size_type pos = 0; (pos = s.find(find, pos)) != std::string::npos; pos+=repl.length())
 			s.replace(pos, find.length(), repl);
 		return s;
+	}
+
+	// Splits text to words
+	struct WordData{
+		size_t prespace;
+		std::string text;
+	};
+	inline std::vector<WordData> get_words(const std::string& s){
+		std::vector<WordData> words;
+		if(!s.empty()){
+			std::string::size_type pos_begin = 0, pos_end;
+			bool search_prespace = true;
+			do{
+				if(search_prespace)
+					pos_end = s.find_first_not_of(" \t\n\r", pos_begin),
+					words.push_back({pos_end == std::string::npos ? s.length() - pos_begin : pos_end - pos_begin, ""});
+				else
+					pos_end = s.find_first_of(" \t\n\r", pos_end),
+					words.back().text = s.substr(pos_begin, pos_end == std::string::npos ? std::string::npos : pos_end - pos_begin);
+				search_prespace = !search_prespace,
+				pos_begin = pos_end;
+			}while(pos_end != std::string::npos);
+		}
+		return words;
 	}
 }
