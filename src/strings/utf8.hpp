@@ -104,17 +104,16 @@ namespace Utf8{
 				const std::wstring& wfilename = to_utf16(filename);
 #ifdef __MINGW32__
 				std::wstring wmode;
+				wmode.reserve(3);
 				if(mode & ios_base::app){
 					wmode = L'a';
 					if(mode & ios_base::in)
 						wmode.push_back(L'+');
-				}else if(mode & ios_base::in && mode & ios_base::out && mode & ios_base::trunc)
-					wmode = L"w+";
-				else if(mode & ios_base::in){
+				}else if(mode & ios_base::in && mode & ios_base::out)
+					wmode = mode & ios_base::trunc ? L"w+" : L"r+";
+				else if(mode & ios_base::in)
 					wmode = L'r';
-					if(mode & ios_base::out)
-						wmode.push_back(L'+');
-				}else if(mode & ios_base::out)
+				else if(mode & ios_base::out)
 					wmode = L'w';
 				if(mode & ios_base::binary)
 					wmode.push_back(L'b');
