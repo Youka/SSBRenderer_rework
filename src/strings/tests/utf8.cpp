@@ -20,10 +20,16 @@ int main(){
 	std::string s("こんにちは!");
 	auto chars = Utf8::chars(s);
 	for(auto c : chars)
-		std::cout << c << std::endl;
+		std::cout << c.length() << ':' << c << std::endl;
 #ifdef _WIN32
 	if(s != Utf8::from_utf16(Utf8::to_utf16(s)))
 		throw std::logic_error("Conversion back&forth failed");
 #endif
+	Utf8::fstream file("アニメが大好きです.txt", Utf8::fstream::out);
+	if(!file)
+		throw std::invalid_argument("Couldn't create file with unicode name");
+	file.open("アニメが大好きです.txt", Utf8::fstream::in);
+	if(!file)
+		throw std::invalid_argument("Couldn't open file with unicode name");
 	return 0;
 }

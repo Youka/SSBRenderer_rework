@@ -20,6 +20,11 @@ Permission is granted to anyone to use this software for any purpose, including 
 	#include <windef.h>
 	#include <Stringapiset.h>
 #endif
+#include <fstream>
+#ifdef __MINGW32__
+	#include <memory>
+	#include <ext/stdio_filebuf.h>
+#endif
 
 namespace Utf8{
 	static inline size_t clen(const std::string& s, const size_t pos){
@@ -78,4 +83,55 @@ namespace Utf8{
 		return s;
 	}
 #endif
+
+	class fstream : public std::
+#if defined(_WIN32) && !defined(__MINGW32__)
+	wfstream
+#else
+	fstream
+#endif
+	{
+#ifdef __MINGW32__
+		private:
+			std::unique_ptr<FILE,std::function<void(FILE*)>> file = decltype(file)(nullptr, [](FILE* file){fclose(file);});
+#endif
+		public:
+#ifdef _WIN32
+			fstream() = default;
+			explicit fstream(const std::string& filename, ios_base::openmode mode = ios_base::in|ios_base::out){this->open(filename, mode);}
+			void open(const char *filename, ios_base::openmode mode = ios_base::in|ios_base::out){this->open(std::string(filename), mode);}
+			void open(const std::string& filename, ios_base::openmode mode = ios_base::in|ios_base::out){
+				const std::wstring& wfilename = to_utf16(filename);
+#ifdef __MINGW32__
+				std::wstring wmode;
+				if(mode & ios_base::app){
+					wmode = L'a';
+					if(mode & ios_base::in)
+						wmode.push_back(L'+');
+				}else if(mode & ios_base::in && mode & ios_base::out && mode & ios_base::trunc)
+					wmode = L"w+";
+				else if(mode & ios_base::in){
+					wmode = L'r';
+					if(mode & ios_base::out)
+						wmode.push_back(L'+');
+				}else if(mode & ios_base::out)
+					wmode = L'w';
+				if(mode & ios_base::binary)
+					wmode.push_back(L'b');
+				FILE* file = _wfopen(wfilename.c_str(), wmode.c_str());
+				if(file){
+					this->file.reset(file);
+					delete std::ios::rdbuf(new __gnu_cxx::stdio_filebuf<char>(file, mode));
+					if(mode & ios_base::ate)
+						this->seekg(0, std::ios_base::end);
+				}else
+					this->setstate(std::ios_base::failbit);
+#else
+				std::wfstream::open(wfilename, mode);
+#endif
+			}
+#else
+			using std::fstream::fstream;
+#endif
+	};
 }
