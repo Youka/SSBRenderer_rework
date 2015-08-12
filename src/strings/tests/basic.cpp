@@ -33,5 +33,8 @@ int main(){
 	words[3].prespace != 1 || words[3].text != "correct," ||
 	words[4].prespace != 1 || words[4].text != "Spongebob?")
 		throw std::logic_error("Word extraction failed");
+	std::istringstream ss(s);
+	if(stdex::has_empty_last_line(ss, ' ') || !stdex::has_empty_last_line(ss, '?'))
+		throw std::logic_error("Couldn't detect empty last line correctly");
 	return 0;
 }

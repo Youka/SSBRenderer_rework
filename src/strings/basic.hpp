@@ -100,4 +100,22 @@ namespace stdex{
 		}
 		return words;
 	}
+
+	inline bool has_empty_last_line(std::istream& str, const char delimiter){
+		if(!str.bad()){
+			if(str.eof()){
+				str.clear();
+				if(str.unget() && str.get() == delimiter)
+					return true;
+			}else{
+				auto pos = str.tellg();
+				str.seekg(0, std::istream::end);
+				bool result = str.unget() && str.get() == delimiter;
+				str.clear(),
+				str.seekg(pos);
+				return result;
+			}
+		}
+		return false;
+	}
 }
