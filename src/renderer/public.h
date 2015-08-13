@@ -1,0 +1,98 @@
+/*
+Project: SSBRenderer
+File: public.h
+
+Copyright (c) 2015, Christoph "Youka" Spanknebel
+
+This software is provided 'as-is', without any express or implied warranty. In no event will the authors be held liable for any damages arising from the use of this software.
+
+Permission is granted to anyone to use this software for any purpose, including commercial applications, and to alter it and redistribute it freely, subject to the following restrictions:
+    1. The origin of this software must not be misrepresented; you must not claim that you wrote the original software. If you use this software in a product, an acknowledgment in the product documentation would be appreciated but is not required.
+    2. Altered source versions must be plainly marked as such, and must not be misrepresented as being the original software.
+    3. This notice may not be removed or altered from any source distribution.
+*/
+
+#pragma once
+
+#ifdef __cplusplus
+	#define EXTERN_C extern "C"
+#else
+	#define EXTERN_C
+#endif
+
+#ifdef _WIN32
+	#ifdef ssbrenderer_EXPORTS	// Set by CMake for shared libraries (libname_EXPORTS)
+		#define DLL_EXPORT EXTERN_C __declspec(dllexport)
+	#else
+		#define DLL_EXPORT EXTERN_C __declspec(dllimport)
+	#endif
+#else
+	#define DLL_EXPORT EXTERN_C
+#endif
+
+/// Renderer handle
+typedef void* ssb_renderer;
+
+/// Frame colorspaces
+enum {SSB_BGR = 0, SSB_BGRX, SSB_BGRA};
+
+/// Maximal length for output warning of ssb_create_renderer and ssb_create_renderer_from_memory
+#define SSB_WARNING_LENGTH 256
+
+/**
+Create renderer handle from file.
+
+@param width Frame width
+@param height Frame height
+@param format Frame colorspace
+@param script SSB script to render
+@param warning Output warning, pointer can be zero
+@return Renderer handle or zero
+*/
+DLL_EXPORT ssb_renderer ssb_create_renderer(int width, int height, char format, const char* script, char* warning);
+
+/**
+Create renderer handle from memory.
+
+@param width Frame width
+@param height Frame height
+@param format Frame colorspace
+@param data SSB data to render (null-terminated string)
+@param warning Output warning, pointer can be zero
+@return Renderer handle or zero
+*/
+DLL_EXPORT ssb_renderer ssb_create_renderer_from_memory(int width, int height, char format, const char* data, char* warning);
+
+/**
+Set target frame information.
+
+@param renderer Renderer handle
+@param width Frame width
+@param height Frame height
+@param format Frame colorspace
+*/
+DLL_EXPORT void ssb_set_target(ssb_renderer renderer, int width, int height, char format);
+
+/**
+Render on image.
+
+@param renderer Renderer handle
+@param image Frame data
+@param pitch Frame row pitch
+@param start_ms Start time of frame in milliseconds
+*/
+DLL_EXPORT void ssb_render(ssb_renderer renderer, unsigned char* image, int pitch, unsigned long start_ms);
+
+/**
+Destroy renderer handle.
+
+@param renderer Renderer handle
+*/
+DLL_EXPORT void ssb_free_renderer(ssb_renderer renderer);
+
+/**
+Get renderer version.
+
+@return Version string
+*/
+DLL_EXPORT const char* ssb_get_version(void);

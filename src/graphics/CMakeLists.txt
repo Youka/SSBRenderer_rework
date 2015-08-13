@@ -9,7 +9,7 @@ configure_file(
 )
 
 # Plan static library compiling
-file(GLOB GRAPHICS_SOURCES *.cpp *.hpp)
+file(GLOB GRAPHICS_SOURCES *.cpp *.hpp *.h)
 add_library(ssbgraphics STATIC ${GRAPHICS_SOURCES})
 
 # Add library include directories
