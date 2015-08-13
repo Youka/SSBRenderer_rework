@@ -16,7 +16,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 #include <algorithm>
 #include <cstdint>
 #include <cmath>
-#include "simd.hpp"
+#include "simd.h"
 
 namespace GUtils{
 	bool blend(const unsigned char* src_data, unsigned src_width, unsigned src_height, const unsigned src_stride, const bool src_with_alpha,
