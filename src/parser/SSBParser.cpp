@@ -450,8 +450,6 @@ namespace SSB{
 				[&event,this](std::string tag_values){
 					if(tag_values == "ltr")
 						ADD_OBJECT(Direction(Direction::Mode::LTR));
-					else if(tag_values == "rtl")
-						ADD_OBJECT(Direction(Direction::Mode::RTL));
 					else if(tag_values == "ttb")
 						ADD_OBJECT(Direction(Direction::Mode::TTB));
 					else
@@ -583,18 +581,24 @@ namespace SSB{
 			{
 				"tf=",
 				[&event,this](std::string tag_values){
-					decltype(Transform::xx) xx, yx, xy, yy, x0, y0;
+					decltype(Transform::xx) xx, xy, xz, x0, yx, yy, yz, y0, zx, zy, zz, z0;
 					std::istringstream matrix_stream(tag_values);
 					std::string matrix_token;
 					if(std::getline(matrix_stream, matrix_token, ',') && stdex::string_to_number(matrix_token, xx) &&
-							std::getline(matrix_stream, matrix_token, ',') && stdex::string_to_number(matrix_token, yx) &&
 							std::getline(matrix_stream, matrix_token, ',') && stdex::string_to_number(matrix_token, xy) &&
-							std::getline(matrix_stream, matrix_token, ',') && stdex::string_to_number(matrix_token, yy) &&
+							std::getline(matrix_stream, matrix_token, ',') && stdex::string_to_number(matrix_token, xz) &&
 							std::getline(matrix_stream, matrix_token, ',') && stdex::string_to_number(matrix_token, x0) &&
+							std::getline(matrix_stream, matrix_token, ',') && stdex::string_to_number(matrix_token, yx) &&
+							std::getline(matrix_stream, matrix_token, ',') && stdex::string_to_number(matrix_token, yy) &&
+							std::getline(matrix_stream, matrix_token, ',') && stdex::string_to_number(matrix_token, yz) &&
 							std::getline(matrix_stream, matrix_token, ',') && stdex::string_to_number(matrix_token, y0) &&
+							std::getline(matrix_stream, matrix_token, ',') && stdex::string_to_number(matrix_token, zx) &&
+							std::getline(matrix_stream, matrix_token, ',') && stdex::string_to_number(matrix_token, zy) &&
+							std::getline(matrix_stream, matrix_token, ',') && stdex::string_to_number(matrix_token, zz) &&
+							std::getline(matrix_stream, matrix_token, ',') && stdex::string_to_number(matrix_token, z0) &&
 							matrix_stream.eof()
 						)
-						ADD_OBJECT(Transform(xx, yx, xy, yy, x0, y0));
+						ADD_OBJECT(Transform(xx, xy, xz, x0, yx, yy, yz, y0, zx, zy, zz, z0));
 					else
 						THROW_WEAK_ERROR("Invalid transform");
 				}

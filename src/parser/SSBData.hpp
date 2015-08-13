@@ -233,7 +233,7 @@ namespace SSB{
 	// Direction state
 	class Direction : public Tag{
 		public:
-			enum class Mode : char{LTR, RTL, TTB} mode;
+			enum class Mode : char{LTR, TTB} mode;
 			Direction(Mode mode) : Tag(Tag::Type::DIRECTION), mode(mode){}
 	};
 
@@ -300,8 +300,9 @@ namespace SSB{
 	// Transform state
 	class Transform : public Tag{
 		public:
-			double xx, yx, xy, yy, x0, y0;
-			Transform(double xx, double yx, double xy, double yy, double x0, double y0) : Tag(Tag::Type::TRANSFORM), xx(xx), yx(yx), xy(xy), yy(yy), x0(x0), y0(y0){}
+			double xx, xy, xz, x0, yx, yy, yz, y0, zx, zy, zz, z0;
+			Transform(double xx, double xy, double xz, double x0, double yx, double yy, double yz, double y0, double zx, double zy, double zz, double z0)
+			: Tag(Tag::Type::TRANSFORM), xx(xx), xy(xy), xz(xz), x0(x0), yx(yx), yy(yy), yz(yz), y0(y0), zx(zx), zy(zy), zz(zz), z0(z0){}
 	};
 
 	// Color state
