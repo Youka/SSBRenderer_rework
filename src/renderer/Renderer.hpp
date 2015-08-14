@@ -23,6 +23,7 @@ namespace SSB{
 			enum class Colorspace{BGR, BGRX, BGRA};
 		private:
 			Data data;
+			const std::string script_directory;
 			void init(int width, int height, Colorspace format, std::istream& data, bool warnings) throw(Exception);
 		public:
 			Renderer(int width, int height, Colorspace format, const std::string& script, bool warnings) throw(Exception);
