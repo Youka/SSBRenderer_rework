@@ -9,7 +9,7 @@ configure_file(
 
 # Plan dynamic library compiling
 file(GLOB RENDERER_SOURCES *.cpp *.hpp *.h *.rc)
-add_library(ssbrenderer SHARED ${RENDERER_SOURCES})
+add_library(ssbrenderer SHARED ${RENDERER_SOURCES} $<TARGET_OBJECTS:ssbplugins>)
 
 # Add library include directories
 target_include_directories(ssbrenderer PUBLIC ${CMAKE_CURRENT_BINARY_DIR})

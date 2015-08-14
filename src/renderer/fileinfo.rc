@@ -36,8 +36,8 @@ BEGIN
             VALUE "CompanyName", PROJECT_AUTHOR
             VALUE "FileVersion", PROJECT_VERSION_STRING
             VALUE "InternalName", PROJECT_NAME
-            VALUE "LegalCopyright", PROJECT_AUTHOR",© 2015"
-            VALUE "OriginalFilename", "lib"PROJECT_NAME".dll"
+            VALUE "LegalCopyright", PROJECT_AUTHOR ",© 2015"
+            VALUE "OriginalFilename", "lib" PROJECT_NAME ".dll"
             VALUE "ProductName", PROJECT_NAME
             VALUE "ProductVersion", PROJECT_VERSION_STRING
         END
