@@ -16,4 +16,7 @@ if(${TEST_UTILS})
 	#Create io test
 	add_executable(ssbutils_io tests/io.cpp)
 	add_test(ssbutils_io_test ssbutils_io)
+	# Create memory test
+	add_executable(ssbutils_memory tests/memory.cpp)
+	add_test(ssbutils_memory_test ssbutils_memory)
 endif()
