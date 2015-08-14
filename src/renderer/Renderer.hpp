@@ -1,6 +1,6 @@
 /*
 Project: SSBRenderer
-File: SSBParser.hpp
+File: Renderer.hpp
 
 Copyright (c) 2015, Christoph "Youka" Spanknebel
 
@@ -14,23 +14,20 @@ Permission is granted to anyone to use this software for any purpose, including 
 
 #pragma once
 
-#include "SSBData.hpp"
+#include "../parser/SSBData.hpp"
 
 namespace SSB{
-	// Subtilte parser to fill data containers
-	class Parser{
-		private:
-			// Level of error detection (0=OFF, 1=SYNTAX, 3=+VALUES)
-			enum class Level{OFF, SYNTAX, ALL} const level;
-			// Parse event elements
-			void parse_geometry(std::string geometry, Geometry::Type geometry_type, Event& event) throw(Exception);
-			void parse_tags(const std::string& tags, Geometry::Type& geometry_type, Event& event) throw(Exception);
+	class Renderer{
 		public:
-			// Constructor
-			Parser(Level level = Level::ALL) : level(level){};
-			// Parse one text line
-			void parse_line(Data& data, const std::string& line) throw(Exception);
-			// Parse a whole script from stream
-			void parse_script(Data& data, std::istream& script) throw(Exception);
+			enum class Colorspace{BGR, BGRX, BGRA};
+		private:
+			int width, height;
+			Colorspace format;
+			const bool warnings;
+		public:
+			Renderer(int width, int height, Colorspace format, const std::string& script, bool warnings) throw(Exception);
+			Renderer(int width, int height, Colorspace format, std::istream& data, bool warnings) throw(Exception);
+			void set_target(int width, int height, Colorspace format);
+			void render(unsigned char* image, unsigned pitch, unsigned long start_ms);
 	};
-}	// namespace SSB
+}

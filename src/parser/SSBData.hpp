@@ -14,12 +14,22 @@ Permission is granted to anyone to use this software for any purpose, including 
 
 #pragma once
 
+#include <exception>
 #include <string>
 #include <vector>
 #include <memory>
 #include <map>
 
 namespace SSB{
+	// General SSB exception
+	class Exception : public std::exception{
+		private:
+			std::string message;
+		public:
+			Exception(const std::string& message) : message(message){}
+			const char* what() const noexcept override{return this->message.c_str();}
+	};
+
 	// Time range
 	using Time = unsigned long;
 	// Time difference
