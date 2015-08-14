@@ -111,6 +111,8 @@ namespace GUtils{
 			cairo_t* context;
 			PangoLayout* layout;
 #endif
+			void copy(const Font& other);
+			void move(Font&& other);
 		public:
 			// Rule-of-five
 			Font();
