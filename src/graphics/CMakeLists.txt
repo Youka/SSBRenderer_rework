@@ -1,5 +1,6 @@
 # Request build options from user
 set(BUILD_FONT_PRECISION 64 CACHE STRING "Internal font up- & downscale for better calculation results." FORCE)
+set(DEPEND_LIBDIVIDE "${CMAKE_SOURCE_DIR}/deps/libdivide/libdivide.h" CACHE FILEPATH "Libdivide path (header file)." FORCE)
 option(TEST_GRAPHICS "Build graphics tests?" OFF)
 
 # Generate configuration header
