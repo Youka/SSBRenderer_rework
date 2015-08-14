@@ -14,13 +14,16 @@ add_library(ssbrenderer SHARED ${RENDERER_SOURCES})
 # Add library include directories
 target_include_directories(ssbrenderer PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
+# Add library links
+target_link_libraries(ssbrenderer ssbparser)
+
 # Setup library installation
 install(TARGETS ssbrenderer
 	RUNTIME DESTINATION bin
 	LIBRARY DESTINATION lib
 	ARCHIVE DESTINATION lib
 )
-install(FILES public.h DESTINATION include RENAME ssb.h)
+install(FILES public.h DESTINATION include RENAME ssbrenderer.h)
 if(NOT MSVC)
 	configure_file(
 		${CMAKE_CURRENT_SOURCE_DIR}/ssbrenderer.pc.in

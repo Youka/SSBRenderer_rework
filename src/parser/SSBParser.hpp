@@ -19,9 +19,10 @@ Permission is granted to anyone to use this software for any purpose, including 
 namespace SSB{
 	// Subtilte parser to fill data containers
 	class Parser{
-		private:
+		public:
 			// Level of error detection (0=OFF, 1=SYNTAX, 3=+VALUES)
 			enum class Level{OFF, SYNTAX, ALL} const level;
+		private:
 			// Parse event elements
 			void parse_geometry(std::string geometry, Geometry::Type geometry_type, Event& event) throw(Exception);
 			void parse_tags(const std::string& tags, Geometry::Type& geometry_type, Event& event) throw(Exception);

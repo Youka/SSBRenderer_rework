@@ -13,18 +13,31 @@ Permission is granted to anyone to use this software for any purpose, including 
 */
 
 #include "Renderer.hpp"
+#include "../parser/SSBParser.hpp"
+#include "../strings/utf8.hpp"
 
 namespace SSB{
-	Renderer::Renderer(int width, int height, Renderer::Colorspace format, const std::string& script, bool warnings) throw(Exception) : warnings(warnings){
+	void Renderer::init(int width, int height, Renderer::Colorspace format, std::istream& data, bool warnings) throw(Exception){
+		Parser(warnings ? Parser::Level::ALL : Parser::Level::OFF).parse_script(this->data, data);
 
-		// TODO
+		// TODO: backend renderer creation
 
 	}
 
-	Renderer::Renderer(int width, int height, Renderer::Colorspace format, std::istream& data, bool warnings) throw(Exception) : warnings(warnings){
+	Renderer::Renderer(int width, int height, Renderer::Colorspace format, const std::string& script, bool warnings) throw(Exception){
+		Utf8::fstream file(script, Utf8::fstream::in);
+		if(!file)
+			throw Exception("Couldn't open file \"" + script + '\"');
 
-		// TODO
+		// TODO: save current directory path
 
+		this->init(width, height, format, file, warnings);
+	}
+
+	Renderer::Renderer(int width, int height, Renderer::Colorspace format, std::istream& data, bool warnings) throw(Exception){
+		if(!data)
+			throw Exception("Bad data stream");
+		this->init(width, height, format, data, warnings);
 	}
 
 	void Renderer::set_target(int width, int height, Renderer::Colorspace format){
