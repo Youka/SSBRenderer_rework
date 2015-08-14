@@ -74,18 +74,22 @@ namespace GUtils{
 			Matrix4x4d& rotate_z(double rad, Order order = Order::PREPEND);
 	};
 
+	// Flip image vertically
 	void flip(unsigned char* data, const unsigned height, const unsigned stride);
 	void flip(const unsigned char* src_data, const unsigned height, const unsigned stride, unsigned char* dst_data);
 
+	// Blend one image anywhere on another with specific operation
 	enum class BlendOp{SOURCE, OVER, ADD, SUB, MUL, SCR, DIFF};
 	bool blend(const unsigned char* src_data, unsigned src_width, unsigned src_height, const unsigned src_stride, const bool src_with_alpha,
 		unsigned char* dst_data, const unsigned dst_width, const unsigned dst_height, const unsigned dst_stride, const bool dst_with_alpha,
 		const int dst_x, const int dst_y, const BlendOp op);
 
+	// Gaussian blur on image
 	enum class ColorDepth{X1/* A */, X3/* RGB */, X4/* RGBA */};
 	void blur(unsigned char* data, const unsigned width, const unsigned height, const unsigned stride, const ColorDepth depth,
 		const float strength_h, const float strength_v);
 
+	// Exception for font problems (see Font class below)
 	class FontException : public std::exception{
 		private:
 			std::string message;
@@ -94,6 +98,7 @@ namespace GUtils{
 			const char* what() const noexcept override{return this->message.c_str();}
 	};
 
+	// Native font wrapper
 	class Font{
 		private:
 #ifdef _WIN32

@@ -101,6 +101,7 @@ namespace stdex{
 		return words;
 	}
 
+	// Checks stream for the last line after delimiter being empty
 	inline bool has_empty_last_line(std::istream& str, const char delimiter){
 		if(!str.bad()){
 			if(str.eof()){

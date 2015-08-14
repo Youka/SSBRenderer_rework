@@ -27,6 +27,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 #endif
 
 namespace Utf8{
+	// Byte length of utf-8 character at given position in string
 	static inline size_t clen(const std::string& s, const size_t pos){
 		const unsigned char c = s[pos];
 		if(c & 0x3<<6){
@@ -52,6 +53,7 @@ namespace Utf8{
 		return 1;
 	}
 
+	// Number of utf-8 characters in string
 	static inline size_t slen(const std::string& s){
 		size_t n = 0, i;
 		for(i = 0; i < s.length(); i += clen(s, i))
@@ -60,6 +62,7 @@ namespace Utf8{
 		return n;
 	}
 
+	// Collection of utf-8 characters in string
 	static inline std::vector<std::string> chars(const std::string& s){
 		std::vector<std::string> tokens;
 		tokens.reserve(slen(s));
@@ -71,12 +74,14 @@ namespace Utf8{
 		return tokens;
 	}
 #ifdef _WIN32
+	// Utf-8 to utf-16 string conversion (native windows)
 	static inline std::wstring to_utf16(const std::string& s){
 		std::wstring ws(MultiByteToWideChar(CP_UTF8, 0x0, s.data(), s.size(), NULL, 0), L'\0');
 		MultiByteToWideChar(CP_UTF8, 0x0, s.data(), s.size(), const_cast<wchar_t*>(ws.data()), ws.length());
 		return ws;
 	}
 
+	// Utf-16 to utf-8 string conversion (native windows)
 	static inline std::string from_utf16(const std::wstring& ws){
 		std::string s(WideCharToMultiByte(CP_UTF8, 0x0, ws.data(), ws.size(), NULL, 0, NULL, NULL), '\0');
 		WideCharToMultiByte(CP_UTF8, 0x0, ws.data(), ws.size(), const_cast<char*>(s.data()), s.length(), NULL, NULL);
@@ -84,6 +89,7 @@ namespace Utf8{
 	}
 #endif
 
+	// Cross-platform fstream which accepts utf-8 filename
 	class fstream : public std::
 #if defined(_WIN32) && !defined(__MINGW32__)
 	wfstream

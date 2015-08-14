@@ -17,6 +17,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 #include "../parser/SSBData.hpp"
 
 namespace SSB{
+	// Frontend renderer for SSB content
 	class Renderer{
 		public:
 			enum class Colorspace{BGR, BGRX, BGRA};
