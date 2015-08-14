@@ -13,7 +13,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 */
 
 #include "gutils.hpp"
-#include "config.h"
+#include <config.h>
 #ifdef _WIN32
 	#include <Wingdi.h>
 	#include "../utils/utf8.hpp"

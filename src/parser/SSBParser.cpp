@@ -13,7 +13,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 */
 
 #include "SSBParser.hpp"
-#include "config.h"
+#include <config.h>
 #include "../utils/string.hpp"
 #include <algorithm>
 

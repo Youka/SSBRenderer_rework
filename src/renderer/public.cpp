@@ -16,7 +16,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 #include "Renderer.hpp"
 #include <cstring>
 #include <sstream>
-#include "config.h"
+#include <config.h>
 
 ssb_renderer ssb_create_renderer(int width, int height, char format, const char* script, char* warning){
 	SSB::Renderer::Colorspace rformat;
