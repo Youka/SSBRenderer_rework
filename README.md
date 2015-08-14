@@ -6,13 +6,13 @@
 
 ### Build
 Dependencies:
-* Windows: <a href=http://muparser.beltoforion.de/>muParser</a> <a href=http://cairographics.org/>cairo</a>(with PNG)
-* Unix: <a href=http://muparser.beltoforion.de/>muParser</a> <a href=http://www.pango.org/>pango</a> <a href=http://cairographics.org/>cairo</a>(with PNG)
+* Windows: <a href=http://libdivide.com/>libdivide</a> <a href=http://muparser.beltoforion.de/>muParser</a> <a href=http://cairographics.org/>cairo</a>(with PNG)
+* Unix: <a href=http://libdivide.com/>libdivide</a> <a href=http://muparser.beltoforion.de/>muParser</a> <a href=http://www.pango.org/>pango</a> <a href=http://cairographics.org/>cairo</a>(with PNG)
 
 Building: Use CMake to build project files for your prefered (and supported) environment.
 
 ### Example
-See [examples](examples) or seach online for user videos & scripts.
+See [examples](docs/examples) or seach online for user videos & scripts.
 
 ### Contact
 Just whisper <b>Youka</b> on <a href="http://en.wikipedia.org/wiki/IRC">IRC</a> servers [freenode](https://www.freenode.net/) or [rizon](http://rizon.net/), open an issue on github or write a PM in [doom9 forum](http://forum.doom9.org/member.php?u=197060).
