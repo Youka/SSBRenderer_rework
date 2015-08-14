@@ -13,23 +13,8 @@ Permission is granted to anyone to use this software for any purpose, including 
 */
 
 #include "../interfaces/csri.h"
-#include <fstream>
+#include "../../utils/io.hpp"
 #include <stdexcept>
-#if _WIN32
-	#define WIN_LEAN_AND_MEAN
-	#include <windows.h>
-	#define DLL_HANDLE HMODULE
-	#define DLL_OPEN LoadLibrary
-	#define DLL_GET_PROC GetProcAddress
-	#define DLL_CLOSE FreeLibrary
-#else
-	#include <dlfcn.h>
-	#define DLL_HANDLE void*
-	#define DLL_OPEN(libname) dlopen(libname, RTLD_LAZY)
-	#define DLL_GET_PROC dlsym
-	#define DLL_CLOSE dlclose
-#endif // _WIN32
-#define ASSIGN_FUNC(dll_handle, funcname) (funcname = reinterpret_cast<decltype(funcname)>(DLL_GET_PROC(dll_handle, #funcname)))
 
 static bool write_ppm(const char* filename, unsigned width, unsigned height, unsigned char* data, unsigned long data_size){
 	std::ofstream img(filename, std::ios::binary);
@@ -56,16 +41,16 @@ int main(){
 	if(!(dll_handle = DLL_OPEN("libssbplugins_invert")))
 		throw std::domain_error("Couldn't load plugin DLL.");
 	if(!(
-		ASSIGN_FUNC(dll_handle, csri_renderer_next) &&
-		ASSIGN_FUNC(dll_handle, csri_renderer_default) &&
-		ASSIGN_FUNC(dll_handle, csri_renderer_byname) &&
-		ASSIGN_FUNC(dll_handle, csri_renderer_info) &&
-		ASSIGN_FUNC(dll_handle, csri_query_ext) &&
-		ASSIGN_FUNC(dll_handle, csri_render) &&
-		ASSIGN_FUNC(dll_handle, csri_request_fmt) &&
-		ASSIGN_FUNC(dll_handle, csri_close) &&
-		ASSIGN_FUNC(dll_handle, csri_open_mem) &&
-		ASSIGN_FUNC(dll_handle, csri_open_file)
+		DLL_ASSIGN_PROC(dll_handle, csri_renderer_next) &&
+		DLL_ASSIGN_PROC(dll_handle, csri_renderer_default) &&
+		DLL_ASSIGN_PROC(dll_handle, csri_renderer_byname) &&
+		DLL_ASSIGN_PROC(dll_handle, csri_renderer_info) &&
+		DLL_ASSIGN_PROC(dll_handle, csri_query_ext) &&
+		DLL_ASSIGN_PROC(dll_handle, csri_render) &&
+		DLL_ASSIGN_PROC(dll_handle, csri_request_fmt) &&
+		DLL_ASSIGN_PROC(dll_handle, csri_close) &&
+		DLL_ASSIGN_PROC(dll_handle, csri_open_mem) &&
+		DLL_ASSIGN_PROC(dll_handle, csri_open_file)
 	)){
 		DLL_CLOSE(dll_handle);
 		throw std::domain_error("Couldn't load DLL function.");
