@@ -1,6 +1,6 @@
 /*
 Project: SSBRenderer
-File: basic.hpp
+File: string.hpp
 
 Copyright (c) 2015, Christoph "Youka" Spanknebel
 

@@ -139,4 +139,9 @@ namespace Utf8{
 			using std::fstream::fstream;
 #endif
 	};
+
+
+
+
+
 }

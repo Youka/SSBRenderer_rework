@@ -14,7 +14,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 
 #include "SSBParser.hpp"
 #include "config.h"
-#include "../strings/basic.hpp"
+#include "../utils/string.hpp"
 #include <algorithm>
 
 // Parses SSB time and converts to milliseconds

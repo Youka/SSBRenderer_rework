@@ -16,7 +16,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 #include "config.h"
 #ifdef _WIN32
 	#include <Wingdi.h>
-	#include "../strings/utf8.hpp"
+	#include "../utils/utf8.hpp"
 #else
 	#include <pango/pangocairo.h>
 	#include <memory>

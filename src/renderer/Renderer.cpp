@@ -14,7 +14,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 
 #include "Renderer.hpp"
 #include "../parser/SSBParser.hpp"
-#include "../strings/utf8.hpp"
+#include "../utils/utf8.hpp"
 #ifndef _WIN32
 	#include <limits.h> // PATH_MAX
 	#include <libgen.h> // dirname
