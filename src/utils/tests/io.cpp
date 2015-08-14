@@ -1,6 +1,6 @@
 /*
 Project: SSBRenderer
-File: utf8.cpp
+File: io.cpp
 
 Copyright (c) 2015, Christoph "Youka" Spanknebel
 
@@ -12,20 +12,18 @@ Permission is granted to anyone to use this software for any purpose, including 
     3. This notice may not be removed or altered from any source distribution.
 */
 
-#include "../utf8.hpp"
-#include <iostream>
-#ifdef _WIN32
-	#include <stdexcept>
-#endif
+#include "../io.hpp"
+#include <stdexcept>
 
 int main(){
-	std::string s("こんにちは!");
-	auto chars = Utf8::chars(s);
-	for(auto c : chars)
-		std::cout << c.length() << ':' << c << std::endl;
-#ifdef _WIN32
-	if(s != Utf8::from_utf16(Utf8::to_utf16(s)))
-		throw std::logic_error("Conversion back&forth failed");
-#endif
+	const char* filename = "アニメが大好きです.txt";
+	stdex::fstream file(filename, stdex::fstream::out);
+	if(!file)
+		throw std::invalid_argument("Couldn't create file with unicode name");
+	file.open(filename, stdex::fstream::in);
+	if(!file)
+		throw std::invalid_argument("Couldn't open file with unicode name");
+	if(stdex::get_file_dir(filename).empty())
+		throw std::invalid_argument("Couldn't get directory path of file");
 	return 0;
 }

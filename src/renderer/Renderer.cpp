@@ -14,29 +14,9 @@ Permission is granted to anyone to use this software for any purpose, including 
 
 #include "Renderer.hpp"
 #include "../parser/SSBParser.hpp"
-#include "../utils/utf8.hpp"
-#ifndef _WIN32
-	#include <limits.h> // PATH_MAX
-	#include <libgen.h> // dirname
-#endif
+#include "../utils/io.hpp"
 
 namespace SSB{
-	static std::string get_file_dir(const std::string& filename){
-#ifdef _WIN32
-		wchar_t path[_MAX_PATH];
-		if(_wfullpath(path, Utf8::to_utf16(filename).c_str(), sizeof(path)/sizeof(path[0]))){
-			wchar_t drive[_MAX_DRIVE], dir[_MAX_DIR];
-			_wsplitpath(path, drive, dir, NULL, NULL);
-			return Utf8::from_utf16(std::wstring(drive) + dir);
-		}
-#else
-		char path[PATH_MAX], *dir;
-		if(realpath(filename.c_str(), path) && (dir = dirname(path)))
-                        return dir;
-#endif
-		return "";
-	}
-
 	void Renderer::init(int width, int height, Renderer::Colorspace format, std::istream& data, bool warnings) throw(Exception){
 		Parser(warnings ? Parser::Level::ALL : Parser::Level::OFF).parse_script(this->data, data);
 
@@ -45,8 +25,8 @@ namespace SSB{
 	}
 
 	Renderer::Renderer(int width, int height, Renderer::Colorspace format, const std::string& script, bool warnings) throw(Exception)
-	: script_directory(get_file_dir(script)){
-		Utf8::fstream file(script, Utf8::fstream::in);
+	: script_directory(stdex::get_file_dir(script)){
+		stdex::fstream file(script, stdex::fstream::in);
 		if(!file)
 			throw Exception("Couldn't open file \"" + script + '\"');
 		this->init(width, height, format, file, warnings);

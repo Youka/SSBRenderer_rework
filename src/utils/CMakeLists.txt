@@ -13,4 +13,7 @@ if(${TEST_UTILS})
 	# Create string test
 	add_executable(ssbutils_string tests/string.cpp)
 	add_test(ssbutils_string_test ssbutils_string)
+	#Create io test
+	add_executable(ssbutils_io tests/io.cpp)
+	add_test(ssbutils_io_test ssbutils_io)
 endif()
