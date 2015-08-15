@@ -14,6 +14,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 
 #include "../plugins/FilterBase.hpp"
 #include <config.h>
+#include "Renderer.hpp"
 
 #ifdef _MSC_VER
 #include <initguid.h>
@@ -61,55 +62,67 @@ namespace FilterBase{
 	}
 	namespace AVS{
 		std::vector<std::pair<std::string, ArgType>> get_args(){
-			std::vector<std::pair<std::string, ArgType>> args;
-
-			// TODO
-
-			return args;
+			return {{"script", ArgType::STRING}, {"warnings", ArgType::BOOL}};
 		}
 		void init(VideoInfo vinfo, std::vector<Variant> args, void** userdata) throw (const char*){
-
-			// TODO
-
+			if(args[0].type == ArgType::NONE)
+				throw "Script filename expected";
+			SSB::Renderer::Colorspace color_space;
+			switch(vinfo.format){
+				case ColorType::BGR: color_space = SSB::Renderer::Colorspace::BGR; break;
+				case ColorType::BGRA: color_space = SSB::Renderer::Colorspace::BGRA; break;
+				case ColorType::BGRX:
+				case ColorType::UNKNOWN:
+				default: throw "Invalid color format";	// Should never happen
+			}
+			try{
+				*userdata = new SSB::Renderer(vinfo.width, vinfo.height, color_space, args[0].s, args[1].type != ArgType::NONE && args[1].b);
+			}catch(SSB::Exception e){
+				static std::string error_holder;
+				error_holder = e.what();
+				throw error_holder.c_str();
+			}
 		}
 		void filter_frame(unsigned char* image_data, int stride, unsigned long ms, void** userdata){
-
-			// TODO
-
+			reinterpret_cast<SSB::Renderer*>(*userdata)->render(image_data, stride, ms);
 		}
 		void deinit(void* userdata){
-
-			// TODO
-
+			delete reinterpret_cast<SSB::Renderer*>(userdata);
 		}
 	}
 	namespace CSRI{
 		bool init(const char* filename, void** userdata){
-
-			// TODO
-
+			try{
+				*userdata = new SSB::Renderer(0, 0, SSB::Renderer::Colorspace::BGR, filename, false);
+			}catch(SSB::Exception){
+				return false;
+			}
 			return true;
 		}
 		bool init(std::istream& stream, void** userdata){
-
-			// TODO
-
+			try{
+				*userdata = new SSB::Renderer(0, 0, SSB::Renderer::Colorspace::BGR, stream, false);
+			}catch(SSB::Exception){
+				return false;
+			}
 			return true;
 		}
 		void setup(VideoInfo vinfo, void** userdata){
-
-			// TODO
-
+			SSB::Renderer::Colorspace color_space;
+			switch(vinfo.format){
+				case ColorType::BGR: color_space = SSB::Renderer::Colorspace::BGR; break;
+				case ColorType::BGRA: color_space = SSB::Renderer::Colorspace::BGRA; break;
+				case ColorType::BGRX: color_space = SSB::Renderer::Colorspace::BGRX; break;
+				case ColorType::UNKNOWN:
+				default: throw SSB::Exception("Something terrible happened with CSRI interface");	// Should never happen
+			}
+			reinterpret_cast<SSB::Renderer*>(*userdata)->set_target(vinfo.width, vinfo.height, color_space);
 		}
 		void filter_frame(unsigned char* image_data, int stride, unsigned long ms, void** userdata){
-
-			// TODO
-
+			reinterpret_cast<SSB::Renderer*>(*userdata)->render(image_data, stride, ms);
 		}
 		void deinit(void* userdata){
-
-			// TODO
-
+			delete reinterpret_cast<SSB::Renderer*>(userdata);
 		}
 	}
 #ifdef _WIN32
