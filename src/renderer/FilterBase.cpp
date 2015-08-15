@@ -27,6 +27,22 @@ DEFINE_GUID(IID_Config,
 0x534fd455, 0xc4f5, 0x4719, 0x81, 0x96, 0xf3, 0x15, 0x86, 0x8e, 0x2, 0xa4);
 #endif // _MSC_VER
 
+#if USE_AEGISUB_INTERFACE
+#include <regex>
+#include <sstream>
+static std::iostream& convert_ass_ssb(std::istream& in, std::iostream& out){
+	SSB::Data::Section current_section = SSB::Data::Section::NONE;
+	std::string line;
+	while(std::getline(in, line)){
+
+		// TODO
+
+	}
+	out.seekg(0);
+	return out;
+}
+#endif
+
 namespace FilterBase{
 	const char* get_id(){
 		return "com.subtitle." PROJECT_NAME;
@@ -100,8 +116,14 @@ namespace FilterBase{
 			return true;
 		}
 		bool init(std::istream& stream, void** userdata){
+#if USE_AEGISUB_INTERFACE
+			std::stringstream ssb_stream;
+			try{
+				*userdata = new SSB::Renderer(0, 0, SSB::Renderer::Colorspace::BGR, convert_ass_ssb(stream, ssb_stream), false);
+#else
 			try{
 				*userdata = new SSB::Renderer(0, 0, SSB::Renderer::Colorspace::BGR, stream, false);
+#endif
 			}catch(SSB::Exception){
 				return false;
 			}
