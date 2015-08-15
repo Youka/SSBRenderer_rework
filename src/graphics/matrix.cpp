@@ -1143,4 +1143,37 @@ namespace GUtils{
 			order
 		);
 	}
+	Matrix4x4d& Matrix4x4d::shear_x(double y, double z, Matrix4x4d::Order order){
+		return this->multiply(
+			Matrix4x4d(
+				1, y, z, 0,
+				0, 1, 0, 0,
+				0, 0, 1, 0,
+				0, 0, 0, 1
+			),
+			order
+		);
+	}
+	Matrix4x4d& Matrix4x4d::shear_y(double x, double z, Matrix4x4d::Order order){
+		return this->multiply(
+			Matrix4x4d(
+				1, 0, 0, 0,
+				x, 1, z, 0,
+				0, 0, 1, 0,
+				0, 0, 0, 1
+			),
+			order
+		);
+	}
+	Matrix4x4d& Matrix4x4d::shear_z(double x, double y, Matrix4x4d::Order order){
+		return this->multiply(
+			Matrix4x4d(
+				1, 0, 0, 0,
+				0, 1, 0, 0,
+				x, y, 1, 0,
+				0, 0, 0, 1
+			),
+			order
+		);
+	}
 }

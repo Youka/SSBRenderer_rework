@@ -72,6 +72,9 @@ namespace GUtils{
 			Matrix4x4d& rotate_x(double rad, Order order = Order::PREPEND);
 			Matrix4x4d& rotate_y(double rad, Order order = Order::PREPEND);
 			Matrix4x4d& rotate_z(double rad, Order order = Order::PREPEND);
+			Matrix4x4d& shear_x(double y, double z, Order order = Order::PREPEND);
+			Matrix4x4d& shear_y(double x, double z, Order order = Order::PREPEND);
+			Matrix4x4d& shear_z(double x, double y, Order order = Order::PREPEND);
 	};
 
 	// Flip image vertically
