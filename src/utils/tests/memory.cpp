@@ -14,6 +14,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 
 #include "../memory.hpp"
 #include <stdexcept>
+#include <iostream>
 
 int main(){
 	stdex::Cache<char, int, 3> cache{{'A', 1}, {'B', 2}, {'C', 3}, {'D', 4}};
@@ -24,5 +25,8 @@ int main(){
 		throw std::logic_error("Found outdated value in cache");
 	if(cache.get('B') != 2)
 		throw std::logic_error("Invalid cache entry");
+	auto keys = cache.keys();
+	for(auto& key : keys)
+		std::cout << key << ':' << cache.get(key) << std::endl;
 	return 0;
 }

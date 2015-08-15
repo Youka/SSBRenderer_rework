@@ -53,12 +53,19 @@ namespace stdex{
 			Cache(Iter first, Iter last){
 				this->init(first, last);
 			}
-			// Checks
+			// Requests
 			size_t size() const{
 				return this->memory.size();
 			}
 			bool contains(const Key& key){
 				return this->find(key) != this->memory.end();
+			}
+			std::vector<Key> keys(){
+				std::vector<Key> key_vec;
+				key_vec.reserve(this->memory.size());
+				for(auto& pair : this->memory)
+					key_vec.push_back(pair.first);
+				return key_vec;
 			}
 			// Modifications
 			Value get(const Key& key){
