@@ -992,7 +992,6 @@ namespace SSB{
 		}
 	}
 
-	#define STR_LIT_EQU_FIRST(s, s2) (s.compare(0, sizeof(s2)-1, s2) == 0)
 	void Parser::parse_line(Data& data, const std::string& line) throw(Exception){
 		// No empty or comment line = no skip
 		if(!line.empty() && !STR_LIT_EQU_FIRST(line, "//")){

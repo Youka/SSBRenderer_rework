@@ -120,3 +120,5 @@ namespace stdex{
 		return false;
 	}
 }
+
+#define STR_LIT_EQU_FIRST(s, s2) (s.compare(0, sizeof(s2)-1, s2) == 0)
