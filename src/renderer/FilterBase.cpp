@@ -209,9 +209,12 @@ namespace FilterBase{
 		}
 		std::string gen_args_desc(void* userdata){
 			Userdata* myuserdata = reinterpret_cast<Userdata*>(userdata);
-			std::ostringstream desc("Script: \"");
-			desc << myuserdata->script << "\" - Warnings: " << (myuserdata->warnings ? "ON" : "OFF");
-			return desc.str();
+			if(myuserdata){ // VirtualDub string function get called even before any initialization
+				std::ostringstream desc("    Script: \"");
+				desc << myuserdata->script << "\" - Warnings: " << (myuserdata->warnings ? "ON" : "OFF");
+				return desc.str();
+			}
+			return "";
 		}
 		int request_config(HWND wnd, void** userdata){
 
@@ -220,7 +223,7 @@ namespace FilterBase{
 			return 0;
 		}
 		void start(VideoInfo vinfo, void** userdata) throw(std::string){
-			Userdata* myuserdata = reinterpret_cast<Userdata*>(userdata);
+			Userdata* myuserdata = reinterpret_cast<Userdata*>(*userdata);
 			SSB::Renderer::Colorspace color_space;
 			switch(vinfo.format){
 				case ColorType::BGRX: color_space = SSB::Renderer::Colorspace::BGRX; break;
@@ -236,10 +239,10 @@ namespace FilterBase{
 			}
 		}
 		void filter_frame(unsigned char* image_data, int stride, unsigned long start_ms, unsigned long, void** userdata){
-			reinterpret_cast<Userdata*>(userdata)->renderer->render(image_data, stride, start_ms);
+			reinterpret_cast<Userdata*>(*userdata)->renderer->render(image_data, stride, start_ms);
 		}
 		void end(void** userdata){
-			reinterpret_cast<Userdata*>(userdata)->renderer.reset();
+			reinterpret_cast<Userdata*>(*userdata)->renderer.reset();
 		}
 		void deinit(void* userdata){
 			delete reinterpret_cast<Userdata*>(userdata);
