@@ -29,15 +29,67 @@ DEFINE_GUID(IID_Config,
 
 #if USE_AEGISUB_INTERFACE
 #include <regex>
-#include <sstream>
+#include "../utils/string.hpp"
+#include <iomanip>
 static std::iostream& convert_ass_ssb(std::istream& in, std::iostream& out){
+	// Regex pattern
+	static const std::regex_constants::syntax_option_type setting = std::regex_constants::optimize|std::regex_constants::ECMAScript;
+	static const std::regex playres_x("^PlayResX: (\\d+)\\s*$", setting),
+		playres_y("^PlayResY: (\\d+)\\s*$", setting),
+		ssbstyle("^SSBStyle: ([^,]*),(.*)$", setting),
+		style("^Style: ([^,]+),([^,]+),(\\d+),"
+			"&H([0-9a-fA-F]{2})([0-9a-fA-F]{2})([0-9a-fA-F]{2})([0-9a-fA-F]{2}),&H[0-9a-fA-F]{2}([0-9a-fA-F]{2})([0-9a-fA-F]{2})([0-9a-fA-F]{2}),&H([0-9a-fA-F]{2})([0-9a-fA-F]{2})([0-9a-fA-F]{2})([0-9a-fA-F]{2}),&H[0-9a-fA-F]{2}[0-9a-fA-F]{2}[0-9a-fA-F]{2}[0-9a-fA-F]{2},"
+			"(0|-1),(0|-1),(0|-1),(0|-1),(\\d+\\.?\\d*),(\\d+\\.?\\d*),(\\d+\\.?\\d*),(-?\\d+\\.?\\d*),(1|3),(\\d+\\.?\\d*),\\d+\\.?\\d*,([1-9]),(\\d+),\\d+,(\\d+),\\d+\\s*$", setting),
+		dialog("^(Dialogue|Comment): \\d+,(\\d:[0-5]\\d:[0-5]\\d\\.\\d{2}),(\\d:[0-5]\\d:[0-5]\\d\\.\\d{2}),([^,]*),[^,]*,\\d+,\\d+,\\d+,[^,]*,(.*)$", setting);
+	std::smatch m;
+	// SSB state
 	SSB::Data::Section current_section = SSB::Data::Section::NONE;
+	// Go through text lines
 	std::string line;
-	while(std::getline(in, line)){
-
-		// TODO
-
-	}
+	while(std::getline(in, line))
+		if(std::regex_search(line, m, playres_x)){
+			if(current_section != SSB::Data::Section::FRAME)
+				out << "#FRAME\n",
+				current_section = SSB::Data::Section::FRAME;
+			out << "Width: " << m[1] << '\n';
+		}else if(std::regex_search(line, m, playres_y)){
+			if(current_section != SSB::Data::Section::FRAME)
+				out << "#FRAME\n",
+				current_section = SSB::Data::Section::FRAME;
+			out << "Height: " << m[1] << '\n';
+		}else if(std::regex_search(line, m, ssbstyle)){
+			if(current_section != SSB::Data::Section::STYLES)
+				out << "#STYLES\n",
+				current_section = SSB::Data::Section::STYLES;
+			out << m[1] << ": " << m[2] << '\n';
+		}else if(std::regex_search(line, m, style)){
+			if(current_section != SSB::Data::Section::STYLES)
+				out << "#STYLES\n",
+				current_section = SSB::Data::Section::STYLES;
+			short al, lal;
+			float scx, scy;
+			stdex::hex_string_to_number(m[4], al),
+			stdex::hex_string_to_number(m[11], lal),
+			stdex::string_to_number(m[19], scx),
+			stdex::string_to_number(m[20], scy),
+			out << m[1] << ": " << "{ff=" << m[2] << ";fs=" << m[3]
+				<< ";cl=" << m[7] << m[6] << m[5]
+				<< ";kc=" << m[10] << m[9] << m[8]
+				<< ";lcl=" << m[14] << m[13] << m[12]
+				<< ";al=" << std::hex << std::setfill('0') << std::setw(2) << 255-al << ";lal=" << std::setw(2) << 255-lal << std::dec
+				<< ";fst=" << (m[15] == "-1" ? "b" : "") << (m[16] == "-1" ? "i" : "") << (m[17] == "-1" ? "u" : "") << (m[18] == "-1" ? "s" : "")
+				<< ";scx=" << scx / 100 << ";scy=" << scy / 100
+				<< ";fsph=" << m[21] << ";rz=" << m[22] << ";md=" << (m[23].str()[0] == '3' ? 'b' : 'f')
+				<< ";lw=" << m[24] << ";an=" << m[25] << ";mgh=" << m[26] << ";mgv=" << m[27] << "}\n";
+		}else if(std::regex_search(line, m, dialog)){
+			if(current_section != SSB::Data::Section::EVENTS)
+				out << "#EVENTS\n",
+				current_section = SSB::Data::Section::EVENTS;
+			if(m[1] == "Comment")
+				out << "// ";
+			out << m[2] << "0-" << m[3] << "0|" << m[4] << "||" << m[5] << '\n';
+		}
+	// Rewind output/new input
 	out.seekg(0);
 	return out;
 }
