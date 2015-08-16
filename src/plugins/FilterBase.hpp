@@ -57,7 +57,7 @@ namespace FilterBase{
 			};
 		};
 		std::vector<std::pair<std::string, ArgType>> get_args();
-		void init(VideoInfo vinfo, std::vector<Variant> args, void** userdata) throw (const char*);
+		void init(VideoInfo vinfo, std::vector<Variant> args, void** userdata) throw(std::string);
 		void filter_frame(unsigned char* image_data, int stride, unsigned long ms, void** userdata);
 		void deinit(void* userdata);
 	}
@@ -71,10 +71,10 @@ namespace FilterBase{
 	}
 	// VirtualDub processes
 	namespace VDub{
-		void init(void** userdata) throw (const char*);
+		void init(void** userdata) throw(std::string);
 		std::string gen_args_desc(void* userdata);
 		int request_config(HWND wnd, void** userdata);
-		void start(VideoInfo vinfo, void** userdata) throw (const char*);
+		void start(VideoInfo vinfo, void** userdata) throw(std::string);
 		void filter_frame(unsigned char* image_data, int stride, unsigned long start_ms, unsigned long end_ms, void** userdata);
 		void end(void** userdata);
 		void deinit(void* userdata);
@@ -86,8 +86,8 @@ namespace FilterBase{
 			virtual void UnlockData() = 0;
 			virtual void* GetData() = 0;
 		};
-		void init(IFilterConfig* config) throw (const char*);
-		void start(VideoInfo vinfo, IFilterConfig* config) throw (const char*);
+		void init(IFilterConfig* config) throw(std::string);
+		void start(VideoInfo vinfo, IFilterConfig* config) throw(std::string);
 		void filter_frame(unsigned char* image_data, int stride, unsigned long start_ms, unsigned long end_ms, IFilterConfig* config);
 		void end(IFilterConfig* config);
 		void deinit(IFilterConfig* config);

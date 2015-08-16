@@ -64,7 +64,7 @@ namespace FilterBase{
 			std::cout << "AVS - Tried to get arguments." << std::endl;
 			return std::vector<std::pair<std::string, ArgType>>();
 		}
-		void init(VideoInfo vinfo, std::vector<Variant>, void** userdata) throw (const char*){
+		void init(VideoInfo vinfo, std::vector<Variant>, void** userdata) throw(std::string){
 			std::cout << "AVS - Tried to initialize: " << vinfo.width << "x" << vinfo.height;
 			switch(vinfo.format){
 				case ColorType::BGR: std::cout << " BGR"; break;
@@ -87,7 +87,7 @@ namespace FilterBase{
 		}
 	}
 	namespace VDub{
-		void init(void**) throw (const char*){
+		void init(void**) throw(std::string){
 			std::cout << "VDub - Tried to initialize." << std::endl;
 		}
 		std::string gen_args_desc(void*){
@@ -98,7 +98,7 @@ namespace FilterBase{
 			std::cout << "VDub - Tried to request configuration with window handle " << wnd << " ." << std::endl;
 			return 0;
 		}
-		void start(VideoInfo vinfo, void** userdata) throw (const char*){
+		void start(VideoInfo vinfo, void** userdata) throw(std::string){
 			std::cout << "VDub - Tried to start: " << vinfo.width << "x" << vinfo.height;
 			switch(vinfo.format){
 				case ColorType::BGR: std::cout << " BGR"; break;
@@ -159,10 +159,10 @@ namespace FilterBase{
 		}
 	}
 	namespace DShow{
-		void init(IFilterConfig*) throw (const char*){
+		void init(IFilterConfig*) throw(std::string){
 			std::cout << "DShow - Tried to initialize." << std::endl;
 		}
-		void start(VideoInfo vinfo, IFilterConfig* config) throw (const char*){
+		void start(VideoInfo vinfo, IFilterConfig* config) throw(std::string){
 			std::cout << "DShow - Tried to start: " << vinfo.width << "x" << vinfo.height;
 			switch(vinfo.format){
 				case ColorType::BGR: std::cout << " BGR"; break;

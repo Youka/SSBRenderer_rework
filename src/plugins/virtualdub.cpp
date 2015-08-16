@@ -39,8 +39,8 @@ namespace VDub{
 			fdata->filter_data = nullptr;
 			try{
 				FilterBase::VDub::init(&fdata->filter_data);
-			}catch(const char* err){
-				ffuncs->Except(err);
+			}catch(std::string err){
+				ffuncs->Except(err.c_str());
 				return 1;
 			}
 			// Success
@@ -77,8 +77,8 @@ namespace VDub{
 			// Allocate renderer (and free previous renderer in case of buggy twice start)
 			try{
 				FilterBase::VDub::start({fdata->src.w, fdata->src.h, FilterBase::ColorType::BGRX, static_cast<double>(fdata->src.mFrameRateHi)/fdata->src.mFrameRateLo, static_cast<decltype(FilterBase::VideoInfo::frames)>(fdata->src.mFrameCount)}, &fdata->filter_data);
-			}catch(const char* err){
-				ffuncs->Except(err);
+			}catch(std::string err){
+				ffuncs->Except(err.c_str());
 				return 1;
 			}
 			// Success

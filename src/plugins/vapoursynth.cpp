@@ -90,9 +90,9 @@ namespace VS{
 			try{
 				FilterBase::AVS::init({vinfo_native->width, vinfo_native->height, vinfo_native->format->id == pfCompatBGR32 ? FilterBase::ColorType::BGRA : FilterBase::ColorType::BGR, static_cast<double>(vinfo_native->fpsNum)/vinfo_native->fpsDen, vinfo_native->numFrames}, packed_args, &reinterpret_cast<InstanceData*>(*inst_data)->userdata);
 				vsapi->setVideoInfo(vinfo_native, 1, node);
-			}catch(const char* err){
+			}catch(std::string err){
 				delete reinterpret_cast<InstanceData*>(*inst_data);
-				vsapi->setError(out, err);
+				vsapi->setError(out, err.c_str());
 			}
 		}
 	}

@@ -132,7 +132,7 @@ namespace FilterBase{
 		std::vector<std::pair<std::string, ArgType>> get_args(){
 			return {{"script", ArgType::STRING}, {"warnings", ArgType::BOOL}};
 		}
-		void init(VideoInfo vinfo, std::vector<Variant> args, void** userdata) throw (const char*){
+		void init(VideoInfo vinfo, std::vector<Variant> args, void** userdata) throw(std::string){
 			if(args[0].type == ArgType::NONE)
 				throw "Script filename expected";
 			SSB::Renderer::Colorspace color_space;
@@ -146,9 +146,7 @@ namespace FilterBase{
 			try{
 				*userdata = new SSB::Renderer(vinfo.width, vinfo.height, color_space, args[0].s, args[1].type != ArgType::NONE && args[1].b);
 			}catch(SSB::Exception e){
-				static std::string error_holder;
-				error_holder = e.what();
-				throw error_holder.c_str();
+				throw e.what();
 			}
 		}
 		void filter_frame(unsigned char* image_data, int stride, unsigned long ms, void** userdata){
@@ -201,10 +199,13 @@ namespace FilterBase{
 	}
 #ifdef _WIN32
 	namespace VDub{
-		void init(void** userdata) throw (const char*){
-
-			// TODO
-
+		struct Userdata{
+			std::string script;
+			bool warnings;
+			std::unique_ptr<SSB::Renderer> renderer;
+		};
+		void init(void** userdata) throw(std::string){
+			*userdata = new Userdata{"", true, nullptr};
 		}
 		std::string gen_args_desc(void* userdata){
 
@@ -218,7 +219,7 @@ namespace FilterBase{
 
 			return 0;
 		}
-		void start(VideoInfo vinfo, void** userdata) throw (const char*){
+		void start(VideoInfo vinfo, void** userdata) throw(std::string){
 
 			// TODO
 
@@ -234,19 +235,17 @@ namespace FilterBase{
 
 		}
 		void deinit(void* userdata){
-
-			// TODO
-
+			delete reinterpret_cast<SSB::Renderer*>(userdata);
 		}
 	}
 #ifdef _MSC_VER
 	namespace DShow{
-		void init(IFilterConfig* config) throw (const char*){
+		void init(IFilterConfig* config) throw(std::string){
 
 			// TODO
 
 		}
-		void start(VideoInfo vinfo, IFilterConfig* config) throw (const char*){
+		void start(VideoInfo vinfo, IFilterConfig* config) throw(std::string){
 
 			// TODO
 

@@ -41,10 +41,10 @@ class MyFilter : public CVideoTransformFilter, public IFilterConfig{
 			try{
 				if(!(filter = new MyFilter(unknown)))
 					*result = E_OUTOFMEMORY;
-			}catch(const char* err){
+			}catch(std::string err){
                                 delete filter;
                                 *result = E_FAIL;
-                                MessageBoxA(NULL, err, FilterBase::get_name(), MB_OK | MB_ICONERROR);
+                                MessageBoxA(NULL, err.c_str(), FilterBase::get_name(), MB_OK | MB_ICONERROR);
 			}
 			return filter;
 		}
@@ -171,8 +171,8 @@ class MyFilter : public CVideoTransformFilter, public IFilterConfig{
 			BITMAPINFOHEADER *bmp = &reinterpret_cast<VIDEOINFOHEADER*>(this->m_pInput->CurrentMediaType().pbFormat)->bmiHeader;
 			try{
 				FilterBase::DShow::start(bmp->biWidth, bmp->biHeight, bmp->biBitCount == 32 ? FilterBase::ColorType::BGRA : FilterBase::ColorType::BGR, dynamic_cast<FilterBase::DShow::IFilterConfig*>(this));
-			}catch(const char* err){
-				MessageBoxA(NULL, err, FilterBase::get_name(), MB_OK | MB_ICONSTOP);
+			}catch(std::string err){
+				MessageBoxA(NULL, err.c_str(), FilterBase::get_name(), MB_OK | MB_ICONSTOP);
 				return VFW_E_WRONG_STATE;
 			}
 			// Continue with default behaviour

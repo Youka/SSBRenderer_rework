@@ -81,8 +81,8 @@ namespace AVS{
 		filter_info->user_data = nullptr;
 		try{
 			FilterBase::AVS::init({vinfo_native->width, vinfo_native->height, avs_is_rgb32(vinfo_native) ? FilterBase::ColorType::BGRA : FilterBase::ColorType::BGR, static_cast<double>(vinfo_native->fps_numerator)/vinfo_native->fps_denominator, vinfo_native->num_frames}, packed_args, &filter_info->user_data);
-		}catch(const char* err){
-			return avs_new_value_error(err);
+		}catch(std::string err){
+			return avs_new_value_error(err.c_str());
 		}
 		// Set further callbacks
 		filter_info->free_filter = free_filter;
