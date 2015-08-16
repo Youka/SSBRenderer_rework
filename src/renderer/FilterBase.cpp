@@ -16,6 +16,19 @@ Permission is granted to anyone to use this software for any purpose, including 
 #include <config.h>
 #include "Renderer.hpp"
 
+#if USE_AEGISUB_INTERFACE
+#include <regex>
+#include "../utils/string.hpp"
+#include <iomanip>
+#endif
+
+#ifdef _WIN32
+#define WIN_LEAN_AND_MEAN
+#include <windows.h>
+#include <commdlg.h>
+#include "vdub_resources.h"
+#include "../utils/utf8.hpp"
+
 #ifdef _MSC_VER
 #include <initguid.h>
 // {2C80A3B9-6A38-4416-A6E1-8982A37FD3FA}
@@ -25,74 +38,7 @@ DEFINE_GUID(CLSID_Filter,
 // {534FD455-C4F5-4719-8196-F315868E02A4}
 DEFINE_GUID(IID_Config,
 0x534fd455, 0xc4f5, 0x4719, 0x81, 0x96, 0xf3, 0x15, 0x86, 0x8e, 0x2, 0xa4);
-#endif // _MSC_VER
-
-#if USE_AEGISUB_INTERFACE
-#include <regex>
-#include "../utils/string.hpp"
-#include <iomanip>
-static std::iostream& convert_ass_ssb(std::istream& in, std::iostream& out){
-	// Regex pattern
-	static const std::regex_constants::syntax_option_type setting = std::regex_constants::optimize|std::regex_constants::ECMAScript;
-	static const std::regex playres_x("^PlayResX: (\\d+)\\s*$", setting),
-		playres_y("^PlayResY: (\\d+)\\s*$", setting),
-		ssbstyle("^SSBStyle: ([^,]*),(.*)$", setting),
-		style("^Style: ([^,]+),([^,]+),(\\d+),"
-			"&H([0-9a-fA-F]{2})([0-9a-fA-F]{2})([0-9a-fA-F]{2})([0-9a-fA-F]{2}),&H[0-9a-fA-F]{2}([0-9a-fA-F]{2})([0-9a-fA-F]{2})([0-9a-fA-F]{2}),&H([0-9a-fA-F]{2})([0-9a-fA-F]{2})([0-9a-fA-F]{2})([0-9a-fA-F]{2}),&H[0-9a-fA-F]{2}[0-9a-fA-F]{2}[0-9a-fA-F]{2}[0-9a-fA-F]{2},"
-			"(0|-1),(0|-1),(0|-1),(0|-1),(\\d+\\.?\\d*),(\\d+\\.?\\d*),(\\d+\\.?\\d*),(-?\\d+\\.?\\d*),(1|3),(\\d+\\.?\\d*),\\d+\\.?\\d*,([1-9]),(\\d+),\\d+,(\\d+),\\d+\\s*$", setting),
-		dialog("^(Dialogue|Comment): \\d+,(\\d:[0-5]\\d:[0-5]\\d\\.\\d{2}),(\\d:[0-5]\\d:[0-5]\\d\\.\\d{2}),([^,]*),[^,]*,\\d+,\\d+,\\d+,[^,]*,(.*)$", setting);
-	std::smatch m;
-	// SSB state
-	SSB::Data::Section current_section = SSB::Data::Section::NONE;
-	// Go through text lines
-	std::string line;
-	while(std::getline(in, line))
-		if(std::regex_search(line, m, playres_x)){
-			if(current_section != SSB::Data::Section::FRAME)
-				out << "#FRAME\n",
-				current_section = SSB::Data::Section::FRAME;
-			out << "Width: " << m[1] << '\n';
-		}else if(std::regex_search(line, m, playres_y)){
-			if(current_section != SSB::Data::Section::FRAME)
-				out << "#FRAME\n",
-				current_section = SSB::Data::Section::FRAME;
-			out << "Height: " << m[1] << '\n';
-		}else if(std::regex_search(line, m, ssbstyle)){
-			if(current_section != SSB::Data::Section::STYLES)
-				out << "#STYLES\n",
-				current_section = SSB::Data::Section::STYLES;
-			out << m[1] << ": " << m[2] << '\n';
-		}else if(std::regex_search(line, m, style)){
-			if(current_section != SSB::Data::Section::STYLES)
-				out << "#STYLES\n",
-				current_section = SSB::Data::Section::STYLES;
-			short al, lal;
-			float scx, scy;
-			stdex::hex_string_to_number(m[4], al),
-			stdex::hex_string_to_number(m[11], lal),
-			stdex::string_to_number(m[19], scx),
-			stdex::string_to_number(m[20], scy),
-			out << m[1] << ": " << "{ff=" << m[2] << ";fs=" << m[3]
-				<< ";cl=" << m[7] << m[6] << m[5]
-				<< ";kc=" << m[10] << m[9] << m[8]
-				<< ";lcl=" << m[14] << m[13] << m[12]
-				<< ";al=" << std::hex << std::setfill('0') << std::setw(2) << 255-al << ";lal=" << std::setw(2) << 255-lal << std::dec
-				<< ";fst=" << (m[15] == "-1" ? "b" : "") << (m[16] == "-1" ? "i" : "") << (m[17] == "-1" ? "u" : "") << (m[18] == "-1" ? "s" : "")
-				<< ";scx=" << scx / 100 << ";scy=" << scy / 100
-				<< ";fsph=" << m[21] << ";rz=" << m[22] << ";md=" << (m[23].str()[0] == '3' ? 'b' : 'f')
-				<< ";lw=" << m[24] << ";an=" << m[25] << ";mgh=" << m[26] << ";mgv=" << m[27] << "}\n";
-		}else if(std::regex_search(line, m, dialog)){
-			if(current_section != SSB::Data::Section::EVENTS)
-				out << "#EVENTS\n",
-				current_section = SSB::Data::Section::EVENTS;
-			if(m[1] == "Comment")
-				out << "// ";
-			out << m[2] << "0-" << m[3] << "0|" << m[4] << "||" << m[5] << '\n';
-		}
-	// Rewind output/new input
-	out.seekg(0);
-	return out;
-}
+#endif
 #endif
 
 namespace FilterBase{
@@ -157,6 +103,70 @@ namespace FilterBase{
 		}
 	}
 	namespace CSRI{
+#if USE_AEGISUB_INTERFACE
+		static std::iostream& convert_ass_ssb(std::istream& in, std::iostream& out){
+			// Regex pattern
+			static const std::regex_constants::syntax_option_type setting = std::regex_constants::optimize|std::regex_constants::ECMAScript;
+			static const std::regex playres_x("^PlayResX: (\\d+)\\s*$", setting),
+				playres_y("^PlayResY: (\\d+)\\s*$", setting),
+				ssbstyle("^SSBStyle: ([^,]*),(.*)$", setting),
+				style("^Style: ([^,]+),([^,]+),(\\d+),"
+					"&H([0-9a-fA-F]{2})([0-9a-fA-F]{2})([0-9a-fA-F]{2})([0-9a-fA-F]{2}),&H[0-9a-fA-F]{2}([0-9a-fA-F]{2})([0-9a-fA-F]{2})([0-9a-fA-F]{2}),&H([0-9a-fA-F]{2})([0-9a-fA-F]{2})([0-9a-fA-F]{2})([0-9a-fA-F]{2}),&H[0-9a-fA-F]{2}[0-9a-fA-F]{2}[0-9a-fA-F]{2}[0-9a-fA-F]{2},"
+					"(0|-1),(0|-1),(0|-1),(0|-1),(\\d+\\.?\\d*),(\\d+\\.?\\d*),(\\d+\\.?\\d*),(-?\\d+\\.?\\d*),(1|3),(\\d+\\.?\\d*),\\d+\\.?\\d*,([1-9]),(\\d+),\\d+,(\\d+),\\d+\\s*$", setting),
+				dialog("^(Dialogue|Comment): \\d+,(\\d:[0-5]\\d:[0-5]\\d\\.\\d{2}),(\\d:[0-5]\\d:[0-5]\\d\\.\\d{2}),([^,]*),[^,]*,\\d+,\\d+,\\d+,[^,]*,(.*)$", setting);
+			std::smatch m;
+			// SSB state
+			SSB::Data::Section current_section = SSB::Data::Section::NONE;
+			// Go through text lines
+			std::string line;
+			while(std::getline(in, line))
+				if(std::regex_search(line, m, playres_x)){
+					if(current_section != SSB::Data::Section::FRAME)
+						out << "#FRAME\n",
+						current_section = SSB::Data::Section::FRAME;
+					out << "Width: " << m[1] << '\n';
+				}else if(std::regex_search(line, m, playres_y)){
+					if(current_section != SSB::Data::Section::FRAME)
+						out << "#FRAME\n",
+						current_section = SSB::Data::Section::FRAME;
+					out << "Height: " << m[1] << '\n';
+				}else if(std::regex_search(line, m, ssbstyle)){
+					if(current_section != SSB::Data::Section::STYLES)
+						out << "#STYLES\n",
+						current_section = SSB::Data::Section::STYLES;
+					out << m[1] << ": " << m[2] << '\n';
+				}else if(std::regex_search(line, m, style)){
+					if(current_section != SSB::Data::Section::STYLES)
+						out << "#STYLES\n",
+						current_section = SSB::Data::Section::STYLES;
+					short al, lal;
+					float scx, scy;
+					stdex::hex_string_to_number(m[4], al),
+					stdex::hex_string_to_number(m[11], lal),
+					stdex::string_to_number(m[19], scx),
+					stdex::string_to_number(m[20], scy),
+					out << m[1] << ": " << "{ff=" << m[2] << ";fs=" << m[3]
+						<< ";cl=" << m[7] << m[6] << m[5]
+						<< ";kc=" << m[10] << m[9] << m[8]
+						<< ";lcl=" << m[14] << m[13] << m[12]
+						<< ";al=" << std::hex << std::setfill('0') << std::setw(2) << 255-al << ";lal=" << std::setw(2) << 255-lal << std::dec
+						<< ";fst=" << (m[15] == "-1" ? "b" : "") << (m[16] == "-1" ? "i" : "") << (m[17] == "-1" ? "u" : "") << (m[18] == "-1" ? "s" : "")
+						<< ";scx=" << scx / 100 << ";scy=" << scy / 100
+						<< ";fsph=" << m[21] << ";rz=" << m[22] << ";md=" << (m[23].str()[0] == '3' ? 'b' : 'f')
+						<< ";lw=" << m[24] << ";an=" << m[25] << ";mgh=" << m[26] << ";mgv=" << m[27] << "}\n";
+				}else if(std::regex_search(line, m, dialog)){
+					if(current_section != SSB::Data::Section::EVENTS)
+						out << "#EVENTS\n",
+						current_section = SSB::Data::Section::EVENTS;
+					if(m[1] == "Comment")
+						out << "// ";
+					out << m[2] << "0-" << m[3] << "0|" << m[4] << "||" << m[5] << '\n';
+				}
+			// Rewind output/new input
+			out.seekg(0);
+			return out;
+		}
+#endif
 		bool init(const char* filename, void** userdata){
 			try{
 				*userdata = new SSB::Renderer(0, 0, SSB::Renderer::Colorspace::BGR, filename, false);
@@ -198,6 +208,7 @@ namespace FilterBase{
 		}
 	}
 #ifdef _WIN32
+	HANDLE module;
 	namespace VDub{
 		struct Userdata{
 			std::string script;
@@ -209,15 +220,89 @@ namespace FilterBase{
 		}
 		std::string gen_args_desc(void* userdata){
 			Userdata* myuserdata = reinterpret_cast<Userdata*>(userdata);
-			std::ostringstream desc("    Script: \"");
-			desc << myuserdata->script << "\" - Warnings: " << (myuserdata->warnings ? "ON" : "OFF");
+			std::ostringstream desc;
+			desc << "    Script: \"" << myuserdata->script << "\" - Warnings: " << (myuserdata->warnings ? "ON" : "OFF");
 			return desc.str();
 		}
+		INT_PTR CALLBACK config_callback(HWND wnd, UINT msg, WPARAM wParam, LPARAM lParam){
+			// Evaluate window message
+			switch(msg){
+				// Window initialization
+				case WM_INITDIALOG:
+					{
+						Userdata* userdata = reinterpret_cast<Userdata*>(lParam);
+						// Set window default contents
+						HWND edit = GetDlgItem(wnd, VDUB_DIALOG_FILENAME);
+						SendMessageW(edit, WM_SETTEXT, 0, reinterpret_cast<LPARAM>(Utf8::to_utf16(userdata->script).c_str())),
+						SendMessageW(edit, EM_SETSEL, 0, -1),
+						SendMessageW(GetDlgItem(wnd, VDUB_DIALOG_CHECK), BM_SETCHECK, userdata->warnings, 0),
+						// Store userdata to window
+						SetWindowLongPtrA(wnd, DWLP_USER, reinterpret_cast<LONG_PTR>(userdata));
+					}
+					break;
+				// Window action
+				case WM_COMMAND:
+					switch(wParam){
+						// '...' button pressed
+						case VDUB_DIALOG_FILENAME_CHOOSE:
+							{
+								// Target buffer (& default) for file dialog
+								wchar_t filename[MAX_PATH]; filename[0] = '\0';
+								// Describe file dialog
+								OPENFILENAMEW ofn = {0};
+								ofn.lStructSize = sizeof(OPENFILENAMEW),
+								ofn.hwndOwner = wnd,
+								ofn.hInstance = reinterpret_cast<HINSTANCE>(module),
+								ofn.lpstrFilter = L"SSB file (*.ssb)\0*.ssb\0\0",
+								ofn.nFilterIndex = 1,
+								ofn.lpstrFile = filename,
+								ofn.nMaxFile = sizeof(filename),
+								ofn.Flags = OFN_FILEMUSTEXIST;
+								// Show file dialog
+								if(GetOpenFileNameW(&ofn)){
+									// Save filename input of dialog
+									HWND edit = GetDlgItem(wnd, VDUB_DIALOG_FILENAME);
+									SendMessageW(edit, WM_SETTEXT, 0, reinterpret_cast<LPARAM>(ofn.lpstrFile));
+									SendMessageW(edit, EM_SETSEL, 0, -1);
+								}
+							}
+							break;
+						// 'OK' button pressed
+						case IDOK:
+							{
+								Userdata* userdata = reinterpret_cast<Userdata*>(GetWindowLongPtrA(wnd, DWLP_USER));
+								// Save window contents to userdata
+								HWND edit = GetDlgItem(wnd, VDUB_DIALOG_FILENAME);
+								std::wstring script(static_cast<int>(SendMessageW(edit, WM_GETTEXTLENGTH, 0, 0))+1, L'\0'); // Space for text + null-termination
+								SendMessageW(edit, WM_GETTEXT, script.length(), reinterpret_cast<LPARAM>(script.data())), // Fills space with text + null-termination
+								script.pop_back(), // Remove null-termination
+								userdata->script = Utf8::from_utf16(script),
+								userdata->warnings = SendMessageW(GetDlgItem(wnd, VDUB_DIALOG_CHECK), BM_GETCHECK, 0, 0),
+								// Successful end
+								EndDialog(wnd, 0);
+							}
+							break;
+						// 'Cancel' button pressed
+						case IDCANCEL:
+							// Unsuccessful end
+							EndDialog(wnd, 1);
+							break;
+					}
+					break;
+				// Window should close
+				case WM_CLOSE:
+					// Unsuccessful end
+					EndDialog(wnd, 1);
+					break;
+				// Message not handled (continue with default behaviour)
+				default:
+					return FALSE;
+			}
+			// Message handled
+			return TRUE;
+		}
 		int request_config(HWND wnd, void** userdata){
-
-			// TODO
-
-			return 0;
+			return DialogBoxParamW(reinterpret_cast<HINSTANCE>(module), MAKEINTRESOURCEW(VDUB_DIALOG), wnd, config_callback, reinterpret_cast<LPARAM>(*userdata));
 		}
 		void start(VideoInfo vinfo, void** userdata) throw(std::string){
 			Userdata* myuserdata = reinterpret_cast<Userdata*>(*userdata);
@@ -276,3 +361,14 @@ namespace FilterBase{
 #endif
 #endif
 }
+
+#ifdef _WIN32
+#ifdef __cplusplus
+extern "C"
+#endif
+BOOL APIENTRY DllMain(HANDLE dll_module, DWORD reason, LPVOID){
+	if(reason == DLL_PROCESS_ATTACH)
+		FilterBase::module = dll_module;
+	return TRUE;
+}
+#endif
