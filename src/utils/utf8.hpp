@@ -71,15 +71,15 @@ namespace Utf8{
 #ifdef _WIN32
 	// Utf-8 to utf-16 string conversion (native windows)
 	static inline std::wstring to_utf16(const std::string& s){
-		std::wstring ws(MultiByteToWideChar(CP_UTF8, 0x0, s.data(), s.size(), NULL, 0), L'\0');
-		MultiByteToWideChar(CP_UTF8, 0x0, s.data(), s.size(), const_cast<wchar_t*>(ws.data()), ws.length());
+		std::wstring ws(MultiByteToWideChar(CP_UTF8, 0x0, s.data(), s.length(), NULL, 0), L'\0');
+		MultiByteToWideChar(CP_UTF8, 0x0, s.data(), s.length(), const_cast<wchar_t*>(ws.data()), ws.length());
 		return ws;
 	}
 
 	// Utf-16 to utf-8 string conversion (native windows)
 	static inline std::string from_utf16(const std::wstring& ws){
-		std::string s(WideCharToMultiByte(CP_UTF8, 0x0, ws.data(), ws.size(), NULL, 0, NULL, NULL), '\0');
-		WideCharToMultiByte(CP_UTF8, 0x0, ws.data(), ws.size(), const_cast<char*>(s.data()), s.length(), NULL, NULL);
+		std::string s(WideCharToMultiByte(CP_UTF8, 0x0, ws.data(), ws.length(), NULL, 0, NULL, NULL), '\0');
+		WideCharToMultiByte(CP_UTF8, 0x0, ws.data(), ws.length(), const_cast<char*>(s.data()), s.length(), NULL, NULL);
 		return s;
 	}
 #endif

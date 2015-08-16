@@ -20,7 +20,7 @@ namespace VDub{
 	// Fill description for stringProc & stringProc2
 	void fill_description(std::string desc, char* buf, int maxlen = 128){
 		// Fill description buffer with given string
-		_snprintf(buf, maxlen, desc.c_str());
+		strncpy(buf, desc.c_str(), maxlen-1)[maxlen-1] = '\0';
 	}
 	// Filter definition
 	VDXFilterDefinition filter_definition = {
