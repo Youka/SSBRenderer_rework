@@ -31,7 +31,10 @@ install(TARGETS ssbrenderer
 	LIBRARY DESTINATION lib
 	ARCHIVE DESTINATION lib
 )
+message(STATUS "Binaries installation path: ${CMAKE_INSTALL_PREFIX}/bin")
+message(STATUS "Library installation path: ${CMAKE_INSTALL_PREFIX}/lib")
 install(FILES public.h DESTINATION include RENAME ssbrenderer.h)
+message(STATUS "Headers installation path: ${CMAKE_INSTALL_PREFIX}/include")
 if(NOT MSVC)
 	configure_file(
 		${CMAKE_CURRENT_SOURCE_DIR}/ssbrenderer.pc.in
@@ -39,6 +42,7 @@ if(NOT MSVC)
 		@ONLY
 	)
 	install(FILES ${CMAKE_CURRENT_BINARY_DIR}/ssbrenderer.pc DESTINATION share/pkgconfig)
+	message(STATUS "Package condig installation path: ${CMAKE_INSTALL_PREFIX}/share/pkgconfig")
 endif()
 
 # Add functionality tests
