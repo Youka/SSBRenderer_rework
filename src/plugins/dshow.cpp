@@ -31,7 +31,7 @@ class MyFilter : public CVideoTransformFilter, public IFilterConfig{
 		// Configuration data
 		void* userdata = nullptr;
 		// Filter instance constructor
-		MyFilter(IUnknown* unknown) : CVideoTransformFilter(FilterBase::get_namew, unknown, *FilterBase::get_filter_guid()) throw (const char*){
+		MyFilter(IUnknown* unknown) : CVideoTransformFilter(FilterBase::get_namew, unknown, *FilterBase::get_filter_guid()) throw(std::string){
 			FilterBase::DShow::init(dynamic_cast<FilterBase::DShow::IFilterConfig*>(this));
 		}
 	public:

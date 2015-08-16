@@ -134,19 +134,19 @@ namespace FilterBase{
 		}
 		void init(VideoInfo vinfo, std::vector<Variant> args, void** userdata) throw(std::string){
 			if(args[0].type == ArgType::NONE)
-				throw "Script filename expected";
+				throw std::string("Script filename expected");
 			SSB::Renderer::Colorspace color_space;
 			switch(vinfo.format){
 				case ColorType::BGR: color_space = SSB::Renderer::Colorspace::BGR; break;
 				case ColorType::BGRA: color_space = SSB::Renderer::Colorspace::BGRA; break;
 				case ColorType::BGRX:
 				case ColorType::UNKNOWN:
-				default: throw "Invalid color format";	// Should never happen
+				default: throw std::string("Invalid color format");	// Should never happen
 			}
 			try{
 				*userdata = new SSB::Renderer(vinfo.width, vinfo.height, color_space, args[0].s, args[1].type != ArgType::NONE && args[1].b);
 			}catch(SSB::Exception e){
-				throw e.what();
+				throw std::string(e.what());
 			}
 		}
 		void filter_frame(unsigned char* image_data, int stride, unsigned long ms, void** userdata){
@@ -208,10 +208,10 @@ namespace FilterBase{
 			*userdata = new Userdata{"", true, nullptr};
 		}
 		std::string gen_args_desc(void* userdata){
-
-			// TODO
-
-			return "";
+			Userdata* myuserdata = reinterpret_cast<Userdata*>(userdata);
+			std::ostringstream desc("Script: \"");
+			desc << myuserdata->script << "\" - Warnings: " << (myuserdata->warnings ? "ON" : "OFF");
+			return desc.str();
 		}
 		int request_config(HWND wnd, void** userdata){
 
@@ -220,22 +220,29 @@ namespace FilterBase{
 			return 0;
 		}
 		void start(VideoInfo vinfo, void** userdata) throw(std::string){
-
-			// TODO
-
+			Userdata* myuserdata = reinterpret_cast<Userdata*>(userdata);
+			SSB::Renderer::Colorspace color_space;
+			switch(vinfo.format){
+				case ColorType::BGRX: color_space = SSB::Renderer::Colorspace::BGRX; break;
+				case ColorType::BGR:
+				case ColorType::BGRA:
+				case ColorType::UNKNOWN:
+				default: throw std::string("Invalid color format");	// Should never happen
+			}
+			try{
+				myuserdata->renderer.reset(new SSB::Renderer(vinfo.width, vinfo.height, color_space, myuserdata->script, myuserdata->warnings));
+			}catch(SSB::Exception e){
+				throw std::string(e.what());
+			}
 		}
-		void filter_frame(unsigned char* image_data, int stride, unsigned long start_ms, unsigned long end_ms, void** userdata){
-
-			// TODO
-
+		void filter_frame(unsigned char* image_data, int stride, unsigned long start_ms, unsigned long, void** userdata){
+			reinterpret_cast<Userdata*>(userdata)->renderer->render(image_data, stride, start_ms);
 		}
 		void end(void** userdata){
-
-			// TODO
-
+			reinterpret_cast<Userdata*>(userdata)->renderer.reset();
 		}
 		void deinit(void* userdata){
-			delete reinterpret_cast<SSB::Renderer*>(userdata);
+			delete reinterpret_cast<Userdata*>(userdata);
 		}
 	}
 #ifdef _MSC_VER
