@@ -13,4 +13,3 @@ Permission is granted to anyone to use this software for any purpose, including 
 */
 
 #define FONT_UPSCALE @BUILD_FONT_PRECISION@
-#define LIBDIVIDE_FILEPATH "@DEPEND_LIBDIVIDE@"

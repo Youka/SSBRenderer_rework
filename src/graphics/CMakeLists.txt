@@ -1,7 +1,9 @@
 # Request build options from user
-set(BUILD_FONT_PRECISION 64 CACHE STRING "Internal font up- & downscale for better calculation results." FORCE)
-set(DEPEND_LIBDIVIDE "${CMAKE_SOURCE_DIR}/deps/libdivide/libdivide.h" CACHE FILEPATH "Libdivide path (header file)." FORCE)
+set(BUILD_FONT_PRECISION 64 CACHE STRING "Internal font up- & downscale for better calculation results.")
 option(TEST_GRAPHICS "Build graphics tests?" OFF)
+
+# Request dependencies locations
+set(DEPEND_LIBDIVIDE "" CACHE PATH "Libdivide directory (containing header file).")
 
 # Generate configuration header
 configure_file(
@@ -14,7 +16,7 @@ file(GLOB GRAPHICS_SOURCES *.cpp *.hpp *.h)
 add_library(ssbgraphics STATIC ${GRAPHICS_SOURCES})
 
 # Add library include directories
-target_include_directories(ssbgraphics PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+target_include_directories(ssbgraphics PUBLIC ${CMAKE_CURRENT_BINARY_DIR} ${DEPEND_LIBDIVIDE})
 
 # Add functionality tests
 if(${TEST_GRAPHICS})

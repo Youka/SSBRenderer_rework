@@ -18,8 +18,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 #include <cmath>
 #include <algorithm>
 #include "threads.hpp"
-#include <config.h>
-#include LIBDIVIDE_FILEPATH
+#include <libdivide.h>
 
 static std::vector<float> create_gauss_kernel(const float radius){
 	// Allocate kernel
