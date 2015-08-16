@@ -209,12 +209,9 @@ namespace FilterBase{
 		}
 		std::string gen_args_desc(void* userdata){
 			Userdata* myuserdata = reinterpret_cast<Userdata*>(userdata);
-			if(myuserdata){ // VirtualDub string function get called even before any initialization
-				std::ostringstream desc("    Script: \"");
-				desc << myuserdata->script << "\" - Warnings: " << (myuserdata->warnings ? "ON" : "OFF");
-				return desc.str();
-			}
-			return "";
+			std::ostringstream desc("    Script: \"");
+			desc << myuserdata->script << "\" - Warnings: " << (myuserdata->warnings ? "ON" : "OFF");
+			return desc.str();
 		}
 		int request_config(HWND wnd, void** userdata){
 

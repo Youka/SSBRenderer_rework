@@ -32,13 +32,14 @@ namespace VDub{
 		FilterBase::get_description(),	// desc
 		FilterBase::get_author(),	// maker
 		nullptr,			// private data
-		0,				// inst_data_size
+		sizeof(void*),			// inst_data_size
 
 		// initProc (Filter initialization)
 		[](VDXFilterActivation* fdata, const VDXFilterFunctions* ffuncs) -> int{
-			fdata->filter_data = nullptr;
+			void** userdata = reinterpret_cast<void**>(fdata->filter_data);
+			*userdata = nullptr;
 			try{
-				FilterBase::VDub::init(&fdata->filter_data);
+				FilterBase::VDub::init(userdata);
 			}catch(std::string err){
 				ffuncs->Except(err.c_str());
 				return 1;
@@ -48,11 +49,11 @@ namespace VDub{
 		},
 		// deinitProc (Filter deinitialization)
 		[](VDXFilterActivation* fdata, const VDXFilterFunctions*) -> void{
-			FilterBase::VDub::deinit(fdata->filter_data);
+			FilterBase::VDub::deinit(*reinterpret_cast<void**>(fdata->filter_data));
 		},
 		// runProc (Filter run/frame processing)
 		[](const VDXFilterActivation* fdata, const VDXFilterFunctions*) -> int{
-			FilterBase::VDub::filter_frame(reinterpret_cast<unsigned char*>(fdata->src.data), fdata->src.pitch, fdata->src.mFrameTimestampStart / 10000, fdata->src.mFrameTimestampEnd / 10000, const_cast<void**>(&fdata->filter_data));
+			FilterBase::VDub::filter_frame(reinterpret_cast<unsigned char*>(fdata->src.data), fdata->src.pitch, fdata->src.mFrameTimestampStart / 10000, fdata->src.mFrameTimestampEnd / 10000, reinterpret_cast<void**>(fdata->filter_data));
 			// Success
 			return 0;
 		},
@@ -63,11 +64,11 @@ namespace VDub{
 		},
 		// configProc (Filter configuration)
 		[](VDXFilterActivation* fdata, const VDXFilterFunctions*, VDXHWND wnd) -> int{
-			return FilterBase::VDub::request_config(reinterpret_cast<HWND>(wnd), &fdata->filter_data);
+			return FilterBase::VDub::request_config(reinterpret_cast<HWND>(wnd), reinterpret_cast<void**>(fdata->filter_data));
 		},
 		// stringProc (Filter description)
 		[](const VDXFilterActivation* fdata, const VDXFilterFunctions*, char* buf) -> void{
-			fill_description(FilterBase::VDub::gen_args_desc(fdata->filter_data), buf);
+			fill_description(FilterBase::VDub::gen_args_desc(*reinterpret_cast<void**>(fdata->filter_data)), buf);
 		},
 		// startProc (Filter start running)
 		[](VDXFilterActivation* fdata, const VDXFilterFunctions* ffuncs) -> int{
@@ -76,7 +77,7 @@ namespace VDub{
 				ffuncs->Except("Video informations are missing!");
 			// Allocate renderer (and free previous renderer in case of buggy twice start)
 			try{
-				FilterBase::VDub::start({fdata->src.w, fdata->src.h, FilterBase::ColorType::BGRX, static_cast<double>(fdata->src.mFrameRateHi)/fdata->src.mFrameRateLo, static_cast<decltype(FilterBase::VideoInfo::frames)>(fdata->src.mFrameCount)}, &fdata->filter_data);
+				FilterBase::VDub::start({fdata->src.w, fdata->src.h, FilterBase::ColorType::BGRX, static_cast<double>(fdata->src.mFrameRateHi)/fdata->src.mFrameRateLo, static_cast<decltype(FilterBase::VideoInfo::frames)>(fdata->src.mFrameCount)}, reinterpret_cast<void**>(fdata->filter_data));
 			}catch(std::string err){
 				ffuncs->Except(err.c_str());
 				return 1;
@@ -86,7 +87,7 @@ namespace VDub{
 		},
 		// endProc (Filter end running)
 		[](VDXFilterActivation* fdata, const VDXFilterFunctions*) -> int{
-			FilterBase::VDub::end(&fdata->filter_data);
+			FilterBase::VDub::end(reinterpret_cast<void**>(fdata->filter_data));
 			// Success
 			return 0;
 		},
@@ -96,7 +97,7 @@ namespace VDub{
 
 		// stringProc2 (Filter description *newer versions*)
 		[](const VDXFilterActivation* fdata, const VDXFilterFunctions*, char* buf, int maxlen) -> void{
-			fill_description(FilterBase::VDub::gen_args_desc(fdata->filter_data), buf, maxlen);
+			fill_description(FilterBase::VDub::gen_args_desc(*reinterpret_cast<void**>(fdata->filter_data)), buf, maxlen);
 		},
 		nullptr,	// serializeProc
 		nullptr,	// deserializeProc
