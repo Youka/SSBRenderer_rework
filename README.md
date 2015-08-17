@@ -15,10 +15,10 @@ Building: Use CMake to build project files for your prefered (and supported) env
 See [examples](docs/examples) or seach online for user videos & scripts.
 
 ### Contact
-Just whisper <b>Youka</b> on <a href="http://en.wikipedia.org/wiki/IRC">IRC</a> servers [freenode](https://www.freenode.net/) or [rizon](http://rizon.net/), open an issue on github or write a PM in [doom9 forum](http://forum.doom9.org/member.php?u=197060).
+Just whisper <b>Youka</b> on <a href="http://en.wikipedia.org/wiki/IRC">IRC</a> servers [freenode](https://www.freenode.net/) & [rizon](http://rizon.net/) or open an issue on Github.
 
 ### Contributing
 So far no need. But maybe later help is welcome.<br>Tutorials, more detailed documentations, bug fixes, source code improvements, ideas for the future, ...
 
 ### License
-This software is under zlib license. For details, read <b>LICENSE.txt<b>.
+This software is under zlib license. For details, read [LICENSE.txt](LICENSE.txt)<b>.

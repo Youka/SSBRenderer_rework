@@ -1,6 +1,6 @@
 # Request build options from user
 option(TEST_RENDERER "Build renderer tests?" OFF)
-option(BUILD_AEGISUB_CSRI "CRSI interface converts ASS data input to SSB." OFF)
+option(BUILD_AEGISUB_CSRI "Should the CRSI interface convert ASS data input to SSB?" OFF)
 
 # Reinterpret options for configuration
 if(BUILD_AEGISUB_CSRI)
