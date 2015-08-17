@@ -19,16 +19,64 @@ Permission is granted to anyone to use this software for any purpose, including 
 #include <mfapi.h>
 #include <atomic>
 
+extern const IID IID_IUNKNOWN;	// Found in uuid library but not in MinGW CGuid.h
+
 // Filter class
 class MyFilter : public IMFTransform{
 	private:
-		static std::atomic_uint locks; // Hopefully zero-set by default initialization
+		// Lock counter of MyFilter instances
+		static std::atomic_uint locks; // Member-initialization not allowed...
+		// Instance references counter
+		LONG refcount = 1;
+		// Destruction of COM object by IUnknown instance->Release
+		virtual ~MyFilter(){
+
+			// TODO
+
+		}
 	public:
+		// Any MyFilter instance is still locked?
 		static bool locked(){return locks != 0;}
+		// Ctors&assignment
+		MyFilter(){
+
+			// TODO
+
+		}
+		MyFilter(const MyFilter&) = delete;
+		MyFilter(MyFilter&&) = delete;
+		MyFilter& operator=(const MyFilter&) = delete;
+		MyFilter& operator=(MyFilter&&) = delete;
+		// IUnknown implementation
+		ULONG STDMETHODCALLTYPE AddRef(void){
+			return InterlockedIncrement(&this->refcount);
+		}
+		ULONG STDMETHODCALLTYPE Release(void){
+			LONG count = InterlockedDecrement(&this->refcount);
+			if(count == 0)
+				delete this;
+			return count;
+		}
+		HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject){
+			if(!ppvObject)
+				return E_POINTER;
+                        if(riid == IID_IUNKNOWN)
+				*ppvObject = static_cast<IUnknown*>(this);
+			else if(riid == __uuidof(IMFTransform))
+				*ppvObject = static_cast<IMFTransform*>(this);
+			else{
+				*ppvObject = NULL;
+				return E_NOINTERFACE;
+			}
+                        this->AddRef();
+			return S_OK;
+		}
+		// IMFTransform implementation
 
 		// TODO
 
 };
+std::atomic_uint MyFilter::locks(0);	// ...but direct-initialization
 
 static inline std::wstring gen_clsid_keyname(const GUID& guid){
 	wchar_t guid_str[40];
