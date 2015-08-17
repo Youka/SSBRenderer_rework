@@ -24,87 +24,87 @@ class MyFilter : public IMFTransform{
 	private:
 		static std::atomic_uint locks; // Hopefully zero-set by default initialization
 	public:
-		static bool in_lock(){return locks != 0;}
+		static bool locked(){return locks != 0;}
 
 		// TODO
 
 };
 
+static inline std::wstring gen_clsid_keyname(const GUID& guid){
+	wchar_t guid_str[40];
+	return StringFromGUID2(guid, guid_str, 40) ? std::wstring(L"CLSID\\") + guid_str : L"";
+}
+static std::wstring get_module_name(){
+	HMODULE module;
+	wchar_t module_name[MAX_PATH];
+	return GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, reinterpret_cast<LPCSTR>(&module), &module) && GetModuleFileNameW(module, module_name, MAX_PATH) ? module_name : L"";
+}
 STDAPI __declspec(dllexport) DllRegisterServer(){
 	// Create CLSID for CoCreateInstance entry in registry
-	HRESULT status = E_FAIL;
-	wchar_t guid_str[40];
-	if(StringFromGUID2(*FilterBase::get_filter_guid(), guid_str, sizeof(guid_str)/sizeof(guid_str[0]))){
-		wchar_t key_name[6+40] = L"CLSID\\";
-		HKEY key;
-		status = __HRESULT_FROM_WIN32(
-			RegCreateKeyExW(
-				HKEY_CLASSES_ROOT,
-				wcscat(key_name, guid_str),
-				0,
-				NULL,
-				REG_OPTION_NON_VOLATILE,
-				KEY_ALL_ACCESS,
-				NULL,
-				&key,
-				NULL
-			)
-		);
+	HKEY key;
+	HRESULT status = __HRESULT_FROM_WIN32(
+		RegCreateKeyExW(
+			HKEY_CLASSES_ROOT,
+			gen_clsid_keyname(*FilterBase::get_filter_guid()).c_str(),
+			0,
+			NULL,
+			REG_OPTION_NON_VOLATILE,
+			KEY_ALL_ACCESS,
+			NULL,
+			&key,
+			NULL
+		)
+	);
+	if(SUCCEEDED(status)){
+		const wchar_t* key_value = FilterBase::get_namew();
+		LONG result = RegSetValueExW(key, NULL, 0, REG_SZ, reinterpret_cast<const BYTE*>(key_value), (wcslen(key_value)+1)*sizeof(wchar_t));
+		status = result == ERROR_SUCCESS ? S_OK : HRESULT_FROM_WIN32(result);
 		if(SUCCEEDED(status)){
-			const wchar_t* key_value = FilterBase::get_namew();
-			LONG result = RegSetValueExW(key, NULL, 0, REG_SZ, reinterpret_cast<const BYTE*>(key_value), (wcslen(key_value)+1)*sizeof(wchar_t));
-			status = result == ERROR_SUCCESS ? S_OK : HRESULT_FROM_WIN32(result);
+			HKEY subkey;
+			status = __HRESULT_FROM_WIN32(
+				RegCreateKeyExW(
+					key,
+					L"InprocServer32",
+					0,
+					NULL,
+					REG_OPTION_NON_VOLATILE,
+					KEY_ALL_ACCESS,
+					NULL,
+					&subkey,
+					NULL
+				)
+			);
 			if(SUCCEEDED(status)){
-				HKEY subkey;
-				status = __HRESULT_FROM_WIN32(
-					RegCreateKeyExW(
-						key,
-						L"InprocServer32",
-						0,
-						NULL,
-						REG_OPTION_NON_VOLATILE,
-						KEY_ALL_ACCESS,
-						NULL,
-						&subkey,
-						NULL
-					)
-				);
+				std::wstring module_name = get_module_name();
+				result = RegSetValueExW(subkey, NULL, 0, REG_SZ, reinterpret_cast<const BYTE*>(module_name.c_str()), (module_name.length()+1)*sizeof(wchar_t)),
+				status = result == ERROR_SUCCESS ? S_OK : HRESULT_FROM_WIN32(result);
 				if(SUCCEEDED(status)){
-					HMODULE module;
-					wchar_t module_name[MAX_PATH];
-					if(GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, reinterpret_cast<LPCSTR>(&module), &module) && GetModuleFileNameW(module, module_name, sizeof(module_name)/sizeof(module_name[0]))){
-						result = RegSetValueExW(subkey, NULL, 0, REG_SZ, reinterpret_cast<const BYTE*>(module_name), (wcslen(module_name)+1)*sizeof(wchar_t)),
-						status = result == ERROR_SUCCESS ? S_OK : HRESULT_FROM_WIN32(result);
-						if(SUCCEEDED(status)){
-							result = RegSetValueExW(subkey, L"ThreadingModel", 0, REG_SZ, reinterpret_cast<const BYTE*>("Both"), 10),
-							status = result == ERROR_SUCCESS ? S_OK : HRESULT_FROM_WIN32(result);
-							if(SUCCEEDED(status)){
-								// Create MFT enumeration entry in registry
-								MFT_REGISTER_TYPE_INFO media_types[] = {
-									{MFMediaType_Video, MFVideoFormat_RGB24},
-									{MFMediaType_Video, MFVideoFormat_RGB32},
-									{MFMediaType_Video, MFVideoFormat_ARGB32}
-								};
-								status = MFTRegister(
-										*FilterBase::get_filter_guid(),
-										MFT_CATEGORY_VIDEO_EFFECT,
-										const_cast<wchar_t*>(FilterBase::get_namew()),
-										0x0,
-										sizeof(media_types)/sizeof(media_types[0]),
-										media_types,
-										sizeof(media_types)/sizeof(media_types[0]),
-										media_types,
-										NULL
-									);
-							}
-						}
-					}else
-						status = E_FAIL;
-					RegCloseKey(subkey);
+					result = RegSetValueExW(subkey, L"ThreadingModel", 0, REG_SZ, reinterpret_cast<const BYTE*>("Both"), 10),
+					status = result == ERROR_SUCCESS ? S_OK : HRESULT_FROM_WIN32(result);
+					if(SUCCEEDED(status)){
+						// Create MFT enumeration entry in registry
+						MFT_REGISTER_TYPE_INFO media_types[] = {
+							{MFMediaType_Video, MFVideoFormat_RGB24},
+							{MFMediaType_Video, MFVideoFormat_RGB32},
+							{MFMediaType_Video, MFVideoFormat_ARGB32}
+						};
+						status = MFTRegister(
+								*FilterBase::get_filter_guid(),
+								MFT_CATEGORY_VIDEO_EFFECT,
+								const_cast<wchar_t*>(FilterBase::get_namew()),
+								0x0,
+								sizeof(media_types)/sizeof(media_types[0]),
+								media_types,
+								sizeof(media_types)/sizeof(media_types[0]),
+								media_types,
+								NULL
+							);
+					}
 				}
+				RegCloseKey(subkey);
 			}
-			RegCloseKey(key);
 		}
+		RegCloseKey(key);
 	}
 	return status;
 }
@@ -113,17 +113,12 @@ STDAPI __declspec(dllexport) DllUnregisterServer(){
 	// Remove MFT enumeration entry in registry
 	MFTUnregister(*FilterBase::get_filter_guid());
 	// Remove CLSID for CoCreateInstance in registry
-	wchar_t guid_str[40];
-	if(StringFromGUID2(*FilterBase::get_filter_guid(), guid_str, sizeof(guid_str)/sizeof(guid_str[0]))){
-		wchar_t key_name[6+40] = L"CLSID\\";
-		LONG result = RegDeleteTreeW(HKEY_CLASSES_ROOT, wcscat(key_name, guid_str));
-		return result == ERROR_SUCCESS ? S_OK : __HRESULT_FROM_WIN32(result);
-	}
-	return E_FAIL;
+	RegDeleteTreeW(HKEY_CLASSES_ROOT, gen_clsid_keyname(*FilterBase::get_filter_guid()).c_str());
+	return S_OK;
 }
 
 STDAPI __declspec(dllexport) DllCanUnloadNow(){
-	return MyFilter::in_lock() ? S_FALSE : S_OK;
+	return MyFilter::locked() ? S_FALSE : S_OK;
 }
 
 STDAPI __declspec(dllexport) DllGetClassObject(REFCLSID clsid, REFIID riid, void** ppv){
