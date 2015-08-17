@@ -158,12 +158,12 @@ namespace FilterBase{
 			delete reinterpret_cast<int*>(userdata);
 		}
 	}
-	namespace DShow{
+	namespace MediaF{
 		void init(IFilterConfig*) throw(std::string){
-			std::cout << "DShow - Tried to initialize." << std::endl;
+			std::cout << "MediaF - Tried to initialize." << std::endl;
 		}
 		void start(VideoInfo vinfo, IFilterConfig* config) throw(std::string){
-			std::cout << "DShow - Tried to start: " << vinfo.width << "x" << vinfo.height;
+			std::cout << "MediaF - Tried to start: " << vinfo.width << "x" << vinfo.height;
 			switch(vinfo.format){
 				case ColorType::BGR: std::cout << " BGR"; break;
 				case ColorType::BGRA: std::cout << " BGRA"; break;
@@ -177,7 +177,7 @@ namespace FilterBase{
 			config->UnlockData();
 		}
 		void filter_frame(unsigned char* image_data, int stride, unsigned long start_ms, unsigned long end_ms, IFilterConfig* config){
-			std::cout << "DShow - Filter on time: " << start_ms << "ms -> " << end_ms << "ms" << std::endl;
+			std::cout << "MediaF - Filter on time: " << start_ms << "ms -> " << end_ms << "ms" << std::endl;
 			int* pheight = reinterpret_cast<int*>(*config->LockData());
 			if(pheight){
 				int height = *pheight;
@@ -189,14 +189,14 @@ namespace FilterBase{
 				config->UnlockData();
 		}
 		void end(IFilterConfig* config){
-			std::cout << "DShow - Tried to end." << std::endl;
+			std::cout << "MediaF - Tried to end." << std::endl;
 			int** ppheight = reinterpret_cast<int**>(config->LockData());
 			delete *ppheight;
 			*ppheight = nullptr;
 			config->UnlockData();
 		}
 		void deinit(IFilterConfig*){
-			std::cout << "DShow - Tried to close." << std::endl;
+			std::cout << "MediaF - Tried to close." << std::endl;
 		}
 	}
 }

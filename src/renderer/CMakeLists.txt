@@ -23,7 +23,11 @@ add_library(ssbrenderer SHARED ${RENDERER_SOURCES} $<TARGET_OBJECTS:ssbplugins>)
 target_include_directories(ssbrenderer PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
 # Add library links
-target_link_libraries(ssbrenderer ssbparser)
+set(RENDERER_LINKS ssbparser)
+if(WIN32)
+	set(RENDERER_LINKS ${RENDERER_LINKS} mfuuid strmiids mfplat mf evr)
+endif()
+target_link_libraries(ssbrenderer ${RENDERER_LINKS})
 
 # Setup library installation
 install(TARGETS ssbrenderer
@@ -35,15 +39,13 @@ message(STATUS "Binaries installation path: ${CMAKE_INSTALL_PREFIX}/bin")
 message(STATUS "Library installation path: ${CMAKE_INSTALL_PREFIX}/lib")
 install(FILES public.h DESTINATION include RENAME ssbrenderer.h)
 message(STATUS "Headers installation path: ${CMAKE_INSTALL_PREFIX}/include")
-if(NOT MSVC)
-	configure_file(
-		${CMAKE_CURRENT_SOURCE_DIR}/ssbrenderer.pc.in
-		${CMAKE_CURRENT_BINARY_DIR}/ssbrenderer.pc
-		@ONLY
-	)
-	install(FILES ${CMAKE_CURRENT_BINARY_DIR}/ssbrenderer.pc DESTINATION share/pkgconfig)
-	message(STATUS "Package condig installation path: ${CMAKE_INSTALL_PREFIX}/share/pkgconfig")
-endif()
+configure_file(
+	${CMAKE_CURRENT_SOURCE_DIR}/ssbrenderer.pc.in
+	${CMAKE_CURRENT_BINARY_DIR}/ssbrenderer.pc
+	@ONLY
+)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/ssbrenderer.pc DESTINATION share/pkgconfig)
+message(STATUS "Package condig installation path: ${CMAKE_INSTALL_PREFIX}/share/pkgconfig")
 
 # Add functionality tests
 if(${TEST_RENDERER})

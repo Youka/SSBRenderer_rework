@@ -29,16 +29,13 @@ Permission is granted to anyone to use this software for any purpose, including 
 #include "vdub_resources.h"
 #include "../utils/utf8.hpp"
 
-#ifdef _MSC_VER
 #include <initguid.h>
 // {2C80A3B9-6A38-4416-A6E1-8982A37FD3FA}
 DEFINE_GUID(CLSID_Filter,
 0x2c80a3b9, 0x6a38, 0x4416, 0xa6, 0xe1, 0x89, 0x82, 0xa3, 0x7f, 0xd3, 0xfa);
-
 // {534FD455-C4F5-4719-8196-F315868E02A4}
 DEFINE_GUID(IID_Config,
 0x534fd455, 0xc4f5, 0x4719, 0x81, 0x96, 0xf3, 0x15, 0x86, 0x8e, 0x2, 0xa4);
-#endif
 #endif
 
 namespace FilterBase{
@@ -48,7 +45,7 @@ namespace FilterBase{
 	const char* get_namespace(){
 		return "subtitle";
 	}
-#ifdef _MSC_VER
+#ifdef _WIN32
 	const CLSID* get_filter_guid(){
 		return &CLSID_Filter;
 	}
@@ -330,8 +327,7 @@ namespace FilterBase{
 			delete reinterpret_cast<Userdata*>(userdata);
 		}
 	}
-#ifdef _MSC_VER
-	namespace DShow{
+	namespace MediaF{
 		void init(IFilterConfig* config) throw(std::string){
 
 			// TODO
@@ -358,7 +354,6 @@ namespace FilterBase{
 
 		}
 	}
-#endif
 #endif
 }
 

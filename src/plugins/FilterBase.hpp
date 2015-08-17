@@ -36,10 +36,10 @@ namespace FilterBase{
 	// Meta informations
 	const char* get_id();	// Vapoursynth only
 	const char* get_namespace();	// Vapoursynth only
-	const CLSID* get_filter_guid();	// DirectShow only
-	const CLSID* get_filter_config_guid();	// DirectShow only
+	const CLSID* get_filter_guid();	// Media Foundation only
+	const CLSID* get_filter_config_guid();	// Media Foundation only
 	const char* get_name();
-	const wchar_t* get_namew();	// DirectShow only
+	const wchar_t* get_namew();	// Media Foundation only
 	const char* get_description();
 	const char* get_version();
 	const char* get_author();
@@ -79,8 +79,8 @@ namespace FilterBase{
 		void end(void** userdata);
 		void deinit(void* userdata);
 	}
-	// DirectShow processes
-	namespace DShow{
+	// Media Foundation processes
+	namespace MediaF{
 		struct IFilterConfig{	// "interface" keyword is MSVC-only
 			virtual void** LockData() = 0;
 			virtual void UnlockData() = 0;
