@@ -17,15 +17,20 @@ Permission is granted to anyone to use this software for any purpose, including 
 #include "FilterBase.hpp"
 #include <mftransform.h>
 #include <mfapi.h>
+#include <atomic>
 
 // Filter class
 class MyFilter : public IMFTransform{
+	private:
+		static std::atomic_uint locks; // Hopefully zero-set by default initialization
+	public:
+		static bool in_lock(){return locks != 0;}
 
-	// TODO
+		// TODO
 
 };
 
-STDAPI DllRegisterServer(){
+STDAPI __declspec(dllexport) DllRegisterServer(){
 	// Create CLSID for CoCreateInstance entry in registry
 	HRESULT status = E_FAIL;
 	wchar_t guid_str[40];
@@ -100,12 +105,11 @@ STDAPI DllRegisterServer(){
 			}
 			RegCloseKey(key);
 		}
-	}else
-		status = E_FAIL;
+	}
 	return status;
 }
 
-STDAPI DllUnregisterServer(){
+STDAPI __declspec(dllexport) DllUnregisterServer(){
 	// Remove MFT enumeration entry in registry
 	MFTUnregister(*FilterBase::get_filter_guid());
 	// Remove CLSID for CoCreateInstance in registry
@@ -116,4 +120,18 @@ STDAPI DllUnregisterServer(){
 		return result == ERROR_SUCCESS ? S_OK : __HRESULT_FROM_WIN32(result);
 	}
 	return E_FAIL;
+}
+
+STDAPI __declspec(dllexport) DllCanUnloadNow(){
+	return MyFilter::in_lock() ? S_FALSE : S_OK;
+}
+
+STDAPI __declspec(dllexport) DllGetClassObject(REFCLSID clsid, REFIID riid, void** ppv){
+	IUnknown* inst;
+	if(clsid == *FilterBase::get_filter_guid() && (inst = new MyFilter)){
+		inst->QueryInterface(riid, ppv),
+		inst->Release();
+		return S_OK;
+	}
+	return E_NOINTERFACE;
 }
