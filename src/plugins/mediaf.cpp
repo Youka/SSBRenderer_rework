@@ -18,30 +18,33 @@ Permission is granted to anyone to use this software for any purpose, including 
 #include <mftransform.h>
 #include <mfapi.h>
 #include <atomic>
+#include <mutex>
 
 extern const IID IID_IUNKNOWN;	// Found in uuid library but not in MinGW CGuid.h
 
+// Filter configuration interface
+struct IMyFilterConfig : public FilterBase::MediaF::IFilterConfig, public IUnknown{};
+
 // Filter class
-class MyFilter : public IMFTransform{
+class MyFilter : public IMFTransform, public IMyFilterConfig{
 	private:
 		// Lock counter of MyFilter instances
 		static std::atomic_uint locks; // Member-initialization not allowed...
 		// Instance references counter
-		LONG refcount = 1;
+		std::atomic_ulong refcount;
+		// Instance userdata & access lock
+		void *userdata = nullptr;
+		std::mutex userdata_lock;
 		// Destruction of COM object by IUnknown instance->Release
 		virtual ~MyFilter(){
-
-			// TODO
-
+			FilterBase::MediaF::deinit(dynamic_cast<FilterBase::MediaF::IFilterConfig*>(this));
 		}
 	public:
 		// Any MyFilter instance is still locked?
 		static bool locked(){return locks != 0;}
 		// Ctors&assignment
-		MyFilter(){
-
-			// TODO
-
+		MyFilter() : refcount(1){
+			FilterBase::MediaF::init(dynamic_cast<FilterBase::MediaF::IFilterConfig*>(this));
 		}
 		MyFilter(const MyFilter&) = delete;
 		MyFilter(MyFilter&&) = delete;
@@ -49,27 +52,39 @@ class MyFilter : public IMFTransform{
 		MyFilter& operator=(MyFilter&&) = delete;
 		// IUnknown implementation
 		ULONG STDMETHODCALLTYPE AddRef(void){
-			return InterlockedIncrement(&this->refcount);
+			return ++this->refcount;
 		}
 		ULONG STDMETHODCALLTYPE Release(void){
-			LONG count = InterlockedDecrement(&this->refcount);
-			if(count == 0)
+			if(--this->refcount == 0)
 				delete this;
-			return count;
+			return this->refcount;
 		}
 		HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject){
 			if(!ppvObject)
 				return E_POINTER;
-                        if(riid == IID_IUNKNOWN)
-				*ppvObject = static_cast<IUnknown*>(this);
-			else if(riid == __uuidof(IMFTransform))
-				*ppvObject = static_cast<IMFTransform*>(this);
+			if(riid == *FilterBase::get_filter_guid())
+				*ppvObject = this;
+			else if(riid == *FilterBase::get_filter_config_guid())
+				*ppvObject = static_cast<IMyFilterConfig*>(this);
 			else{
 				*ppvObject = NULL;
 				return E_NOINTERFACE;
 			}
-                        this->AddRef();
+			this->AddRef();
 			return S_OK;
+		}
+		// IMyFilterConfig implementation
+		void** LockData(){
+			this->userdata_lock.lock();
+			++MyFilter::locks;
+			return &this->userdata;
+		}
+		void UnlockData(){
+			this->userdata_lock.unlock();
+			--MyFilter::locks;
+		}
+		void* GetData(){
+			return this->userdata;
 		}
 		// IMFTransform implementation
 
