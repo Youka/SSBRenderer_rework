@@ -17,6 +17,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 #include "FilterBase.hpp"
 #include <mftransform.h>
 #include <mfapi.h>
+#include <mferror.h>
 #include <atomic>
 #include <mutex>
 
@@ -51,15 +52,6 @@ class MyFilter : public IMFTransform, public IMyFilterConfig{
 		MyFilter& operator=(const MyFilter&) = delete;
 		MyFilter& operator=(MyFilter&&) = delete;
 		// IUnknown implementation
-		ULONG STDMETHODCALLTYPE AddRef(void){
-			return ++this->refcount;
-		}
-		ULONG STDMETHODCALLTYPE Release(void){
-			ULONG count = --this->refcount;
-			if(count == 0)
-				delete this;
-			return count;
-		}
 		HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject){
 			if(!ppvObject)
 				return E_POINTER;
@@ -78,6 +70,15 @@ class MyFilter : public IMFTransform, public IMyFilterConfig{
 			this->AddRef();
 			return S_OK;
 		}
+		ULONG STDMETHODCALLTYPE AddRef(void){
+			return ++this->refcount;
+		}
+		ULONG STDMETHODCALLTYPE Release(void){
+			ULONG count = --this->refcount;
+			if(count == 0)
+				delete this;
+			return count;
+		}
 		// IMyFilterConfig implementation
 		void** LockData(){
 			++MyFilter::locks;
@@ -92,11 +93,62 @@ class MyFilter : public IMFTransform, public IMyFilterConfig{
 			return this->userdata;
 		}
 		// IMFTransform implementation
+		HRESULT STDMETHODCALLTYPE GetStreamLimits(DWORD *pdwInputMinimum, DWORD *pdwInputMaximum, DWORD *pdwOutputMinimum, DWORD *pdwOutputMaximum){
+			if(!pdwInputMinimum || !pdwInputMaximum || !pdwOutputMinimum || !pdwOutputMaximum)
+				return E_POINTER;
+			*pdwInputMinimum = *pdwInputMaximum = *pdwOutputMinimum = *pdwOutputMaximum = 1;
+			return S_OK;
+		}
+		HRESULT STDMETHODCALLTYPE GetStreamCount(DWORD *pcInputStreams, DWORD *pcOutputStreams){
+			if(!pcInputStreams || !pcOutputStreams)
+				return E_POINTER;
+			*pcInputStreams = *pcOutputStreams = 1;
+			return S_OK;
+		}
+		HRESULT STDMETHODCALLTYPE GetStreamIDs(DWORD, DWORD *, DWORD, DWORD *){
+			return E_NOTIMPL; // Fixed number of streams, so ID==INDEX
+		}
+		HRESULT STDMETHODCALLTYPE GetInputStreamInfo(DWORD dwInputStreamID, MFT_INPUT_STREAM_INFO *pStreamInfo){
+			if(!pStreamInfo)
+				return E_POINTER;
+			if(dwInputStreamID != 0) // Just one input stream
+				return MF_E_INVALIDSTREAMNUMBER;
+			pStreamInfo->hnsMaxLatency = 0, // No time difference between input&output sample
+			pStreamInfo->dwFlags = MFT_INPUT_STREAM_WHOLE_SAMPLES | MFT_INPUT_STREAM_SINGLE_SAMPLE_PER_BUFFER | MFT_INPUT_STREAM_FIXED_SAMPLE_SIZE,
+			pStreamInfo->cbMaxLookahead = 0, // No holding data to look
+			pStreamInfo->cbAlignment = 0; // No special alignment requirements
+
+			// TODO: Fill stream info (cbSize)
+
+			return S_OK;
+		}
+		HRESULT STDMETHODCALLTYPE GetOutputStreamInfo(DWORD dwOutputStreamID, MFT_OUTPUT_STREAM_INFO *pStreamInfo){
+			if(!pStreamInfo)
+				return E_POINTER;
+			if(dwOutputStreamID != 0) // Just one output stream
+				return MF_E_INVALIDSTREAMNUMBER;
+			pStreamInfo->dwFlags = MFT_OUTPUT_STREAM_WHOLE_SAMPLES | MFT_OUTPUT_STREAM_SINGLE_SAMPLE_PER_BUFFER | MFT_OUTPUT_STREAM_FIXED_SAMPLE_SIZE,
+			pStreamInfo->cbAlignment = 0;
+
+			// TODO: Fill stream info (cbSize)
+
+			return S_OK;
+		}
+		HRESULT STDMETHODCALLTYPE GetAttributes(IMFAttributes **){
+			return E_NOTIMPL; // No attributes
+		}
+		HRESULT STDMETHODCALLTYPE GetInputStreamAttributes(DWORD, IMFAttributes **){
+			return E_NOTIMPL; // No attributes
+		}
+		HRESULT STDMETHODCALLTYPE GetOutputStreamAttributes(DWORD, IMFAttributes **){
+			return E_NOTIMPL; // No attributes
+		}
 
 		// TODO
 
 };
 std::atomic_uint MyFilter::locks(0);	// ...but direct-initialization
+
 
 // Filter registration to server
 static inline std::wstring gen_clsid_keyname(const GUID& guid){
