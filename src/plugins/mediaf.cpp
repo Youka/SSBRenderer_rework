@@ -20,8 +20,26 @@ Permission is granted to anyone to use this software for any purpose, including 
 #include <mferror.h>
 #include <atomic>
 #include <mutex>
+#include <memory>
 
 extern const IID IID_IUNKNOWN;	// Found in uuid library but not in MinGW CGuid.h
+
+// IUnknown deleter
+auto iunknown_deleter = [](IUnknown* p){p->Release();};
+// Extracts image meta informations from MediaType
+struct ImageHeader{
+	DWORD width, height;
+	GUID subtype;
+};
+static ImageHeader get_image_header(IMFMediaType* pmt){
+	MFVIDEOFORMAT* mvf;
+	if(SUCCEEDED(pmt->GetRepresentation(FORMAT_MFVideoFormat, reinterpret_cast<void**>(&mvf)))){
+		ImageHeader result = {mvf->videoInfo.dwWidth, mvf->videoInfo.dwHeight, mvf->guidFormat};
+		pmt->FreeRepresentation(FORMAT_MFVideoFormat, mvf);
+		return result;
+	}
+	return {0, 0, GUID_NULL};
+}
 
 // Filter configuration interface
 struct IMyFilterConfig : public FilterBase::MediaF::IFilterConfig, public IUnknown{};
@@ -35,9 +53,8 @@ class MyFilter : public IMFTransform, public IMyFilterConfig{
 		std::atomic_ulong refcount;
 		// Instance userdata & video format
 		void *userdata = nullptr;
-		GUID subtype = GUID_NULL;
-		DWORD width = 0, height = 0;
-		ULONG size = 0;
+		std::unique_ptr<IMFMediaType, std::function<void(IUnknown*)>> input, output;
+                std::unique_ptr<IMFSample, std::function<void(IUnknown*)>> sample;
 		std::mutex mutex;
 		// Destruction of COM object by IUnknown instance->Release
 		virtual ~MyFilter(){
@@ -48,7 +65,7 @@ class MyFilter : public IMFTransform, public IMyFilterConfig{
 		// Any MyFilter instance is still locked?
 		static bool active_instances(){return instances_n != 0;}
 		// Ctors&assignment
-		MyFilter() : refcount(1){
+		MyFilter() : refcount(1), input(nullptr, iunknown_deleter), output(nullptr, iunknown_deleter), sample(nullptr, iunknown_deleter){
 			++instances_n,
 			FilterBase::MediaF::init(static_cast<FilterBase::MediaF::IFilterConfig*>(this));
 		}
@@ -120,8 +137,12 @@ class MyFilter : public IMFTransform, public IMyFilterConfig{
 			pStreamInfo->hnsMaxLatency = 0, // No time difference between input&output sample
 			pStreamInfo->dwFlags = MFT_INPUT_STREAM_WHOLE_SAMPLES | MFT_INPUT_STREAM_SINGLE_SAMPLE_PER_BUFFER | MFT_INPUT_STREAM_FIXED_SAMPLE_SIZE,
 			pStreamInfo->cbMaxLookahead = 0, // No holding data to look
-			pStreamInfo->cbAlignment = 0, // No special alignment requirements
-			pStreamInfo->cbSize = this->size; // Image size, calculated by getting input type
+			pStreamInfo->cbAlignment = 0; // No special alignment requirements
+			if(this->input){
+				auto image_header = get_image_header(this->input.get());
+				pStreamInfo->cbSize = image_header.width * image_header.height * (image_header.subtype == MFVideoFormat_RGB24 ? 3 : 4);
+			}else
+				pStreamInfo->cbSize = 0;
 			return S_OK;
 		}
 		HRESULT STDMETHODCALLTYPE GetOutputStreamInfo(DWORD dwOutputStreamID, MFT_OUTPUT_STREAM_INFO *pStreamInfo) override{
@@ -131,8 +152,12 @@ class MyFilter : public IMFTransform, public IMyFilterConfig{
 				return MF_E_INVALIDSTREAMNUMBER;
 			std::unique_lock<std::mutex>(this->mutex);
 			pStreamInfo->dwFlags = MFT_OUTPUT_STREAM_WHOLE_SAMPLES | MFT_OUTPUT_STREAM_SINGLE_SAMPLE_PER_BUFFER | MFT_OUTPUT_STREAM_FIXED_SAMPLE_SIZE,
-			pStreamInfo->cbAlignment = 0,
-			pStreamInfo->cbSize = this->size;
+			pStreamInfo->cbAlignment = 0;
+			if(this->output){
+				auto image_header = get_image_header(this->output.get());
+				pStreamInfo->cbSize = image_header.width * image_header.height * (image_header.subtype == MFVideoFormat_RGB24 ? 3 : 4);
+			}else
+				pStreamInfo->cbSize = 0;
 			return S_OK;
 		}
 		HRESULT STDMETHODCALLTYPE GetAttributes(IMFAttributes **) override{
@@ -256,7 +281,6 @@ class MyFilter : public IMFTransform, public IMyFilterConfig{
 		}
 };
 std::atomic_uint MyFilter::instances_n(0);	// ...but direct-initialization
-
 
 // Filter registration to server
 static inline std::wstring gen_clsid_keyname(const GUID& guid){
