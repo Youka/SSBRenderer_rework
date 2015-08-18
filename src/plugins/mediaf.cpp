@@ -29,22 +29,27 @@ struct IMyFilterConfig : public FilterBase::MediaF::IFilterConfig, public IUnkno
 // Filter class
 class MyFilter : public IMFTransform, public IMyFilterConfig{
 	private:
-		// Lock counter of MyFilter instances
-		static std::atomic_uint locks; // Member-initialization not allowed...
+		// Number of active MyFilter instances
+		static std::atomic_uint instances_n; // Member-initialization not allowed...
 		// Instance references counter
 		std::atomic_ulong refcount;
-		// Instance userdata & access lock
+		// Instance userdata & video format
 		void *userdata = nullptr;
-		std::mutex userdata_lock;
+		GUID subtype = GUID_NULL;
+		DWORD width = 0, height = 0;
+		ULONG size = 0;
+		std::mutex mutex;
 		// Destruction of COM object by IUnknown instance->Release
 		virtual ~MyFilter(){
-			FilterBase::MediaF::deinit(static_cast<FilterBase::MediaF::IFilterConfig*>(this));
+			FilterBase::MediaF::deinit(static_cast<FilterBase::MediaF::IFilterConfig*>(this)),
+			--instances_n;
 		}
 	public:
 		// Any MyFilter instance is still locked?
-		static bool locked(){return locks != 0;}
+		static bool active_instances(){return instances_n != 0;}
 		// Ctors&assignment
 		MyFilter() : refcount(1){
+			++instances_n,
 			FilterBase::MediaF::init(static_cast<FilterBase::MediaF::IFilterConfig*>(this));
 		}
 		MyFilter(const MyFilter&) = delete;
@@ -81,13 +86,11 @@ class MyFilter : public IMFTransform, public IMyFilterConfig{
 		}
 		// IMyFilterConfig implementation
 		void** LockData(){
-			++MyFilter::locks;
-			this->userdata_lock.lock();
+			this->mutex.lock();
 			return &this->userdata;
 		}
 		void UnlockData(){
-			this->userdata_lock.unlock();
-			--MyFilter::locks;
+			this->mutex.unlock();
 		}
 		void* GetData(){
 			return this->userdata;
@@ -113,13 +116,12 @@ class MyFilter : public IMFTransform, public IMyFilterConfig{
 				return E_POINTER;
 			if(dwInputStreamID != 0) // Just one input stream
 				return MF_E_INVALIDSTREAMNUMBER;
+			std::unique_lock<std::mutex>(this->mutex);
 			pStreamInfo->hnsMaxLatency = 0, // No time difference between input&output sample
 			pStreamInfo->dwFlags = MFT_INPUT_STREAM_WHOLE_SAMPLES | MFT_INPUT_STREAM_SINGLE_SAMPLE_PER_BUFFER | MFT_INPUT_STREAM_FIXED_SAMPLE_SIZE,
 			pStreamInfo->cbMaxLookahead = 0, // No holding data to look
-			pStreamInfo->cbAlignment = 0; // No special alignment requirements
-
-			// TODO: Fill stream info (cbSize)
-
+			pStreamInfo->cbAlignment = 0, // No special alignment requirements
+			pStreamInfo->cbSize = this->size; // Image size, calculated by getting input type
 			return S_OK;
 		}
 		HRESULT STDMETHODCALLTYPE GetOutputStreamInfo(DWORD dwOutputStreamID, MFT_OUTPUT_STREAM_INFO *pStreamInfo){
@@ -127,11 +129,10 @@ class MyFilter : public IMFTransform, public IMyFilterConfig{
 				return E_POINTER;
 			if(dwOutputStreamID != 0) // Just one output stream
 				return MF_E_INVALIDSTREAMNUMBER;
+			std::unique_lock<std::mutex>(this->mutex);
 			pStreamInfo->dwFlags = MFT_OUTPUT_STREAM_WHOLE_SAMPLES | MFT_OUTPUT_STREAM_SINGLE_SAMPLE_PER_BUFFER | MFT_OUTPUT_STREAM_FIXED_SAMPLE_SIZE,
-			pStreamInfo->cbAlignment = 0;
-
-			// TODO: Fill stream info (cbSize)
-
+			pStreamInfo->cbAlignment = 0,
+			pStreamInfo->cbSize = this->size;
 			return S_OK;
 		}
 		HRESULT STDMETHODCALLTYPE GetAttributes(IMFAttributes **){
@@ -144,10 +145,14 @@ class MyFilter : public IMFTransform, public IMyFilterConfig{
 			return E_NOTIMPL; // No attributes
 		}
 
+
+
+
+
 		// TODO
 
 };
-std::atomic_uint MyFilter::locks(0);	// ...but direct-initialization
+std::atomic_uint MyFilter::instances_n(0);	// ...but direct-initialization
 
 
 // Filter registration to server
@@ -259,7 +264,7 @@ STDAPI __declspec(dllexport) DllUnregisterServer(){
 }
 
 STDAPI __declspec(dllexport) DllCanUnloadNow(){
-	return MyFilter::locked() ? S_FALSE : S_OK;
+	return MyFilter::active_instances() ? S_FALSE : S_OK;
 }
 
 STDAPI __declspec(dllexport) DllGetClassObject(REFCLSID clsid, REFIID riid, void** ppv){
