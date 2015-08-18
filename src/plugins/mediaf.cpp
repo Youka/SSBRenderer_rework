@@ -295,9 +295,11 @@ class MyFilter : public IMFTransform, public IMyFilterConfig{
 				return E_POINTER;
 			if(dwInputStreamID != 0)
 				return MF_E_INVALIDSTREAMNUMBER;
-
-			// TODO
-
+			std::unique_lock<std::mutex>(this->mutex);
+			if(!this->input)
+				return MF_E_TRANSFORM_TYPE_NOT_SET;
+			*ppType = this->input.get(),
+			this->input->AddRef();
 			return S_OK;
 		}
 		HRESULT STDMETHODCALLTYPE GetOutputCurrentType(DWORD dwOutputStreamID, IMFMediaType **ppType) override{
@@ -305,9 +307,11 @@ class MyFilter : public IMFTransform, public IMyFilterConfig{
 				return E_POINTER;
 			if(dwOutputStreamID != 0)
 				return MF_E_INVALIDSTREAMNUMBER;
-
-			// TODO
-
+			std::unique_lock<std::mutex>(this->mutex);
+			if(!this->output)
+				return MF_E_TRANSFORM_TYPE_NOT_SET;
+			*ppType = this->output.get(),
+			this->output->AddRef();
 			return S_OK;
 		}
 		HRESULT STDMETHODCALLTYPE GetInputStatus(DWORD dwInputStreamID, DWORD *pdwFlags) override{
@@ -315,17 +319,15 @@ class MyFilter : public IMFTransform, public IMyFilterConfig{
 				return E_POINTER;
 			if(dwInputStreamID != 0)
 				return MF_E_INVALIDSTREAMNUMBER;
-
-			// TODO
-
+			std::unique_lock<std::mutex>(this->mutex);
+			*pdwFlags = !this->sample ? MFT_INPUT_STATUS_ACCEPT_DATA : 0x0;
 			return S_OK;
 		}
 		HRESULT STDMETHODCALLTYPE GetOutputStatus(DWORD *pdwFlags) override{
 			if(!pdwFlags)
 				return E_POINTER;
-
-			// TODO
-
+			std::unique_lock<std::mutex>(this->mutex);
+			*pdwFlags = this->sample ? MFT_OUTPUT_STATUS_SAMPLE_READY : 0x0;
 			return S_OK;
 		}
 		HRESULT STDMETHODCALLTYPE SetOutputBounds(LONGLONG, LONGLONG) override{
@@ -334,10 +336,38 @@ class MyFilter : public IMFTransform, public IMyFilterConfig{
 		HRESULT STDMETHODCALLTYPE ProcessEvent(DWORD, IMFMediaEvent *) override{
 			return E_NOTIMPL; // Not event processing
 		}
-		HRESULT STDMETHODCALLTYPE ProcessMessage(MFT_MESSAGE_TYPE eMessage, ULONG_PTR ulParam) override{
-
-			// TODO
-
+		HRESULT STDMETHODCALLTYPE ProcessMessage(MFT_MESSAGE_TYPE eMessage, ULONG_PTR) override{
+			std::unique_lock<std::mutex>(this->mutex);
+			switch(eMessage){
+				case MFT_MESSAGE_COMMAND_FLUSH:
+					this->sample.reset();
+					break;
+				case MFT_MESSAGE_SET_D3D_MANAGER:
+					return E_NOTIMPL;
+				case MFT_MESSAGE_COMMAND_DRAIN:
+				case MFT_MESSAGE_NOTIFY_BEGIN_STREAMING:
+					{
+						if(!this->input)
+							return MF_E_TRANSFORM_TYPE_NOT_SET;
+						auto image_header = get_image_header(this->input.get());
+                                                FilterBase::ColorType ct;
+                                                if(image_header.subtype == MFVideoFormat_RGB24)
+							ct = FilterBase::ColorType::BGR;
+						else if(image_header.subtype == MFVideoFormat_RGB32)
+							ct = FilterBase::ColorType::BGRX;
+						else // image_header.subtype == MFVideoFormat_ARGB32
+							ct = FilterBase::ColorType::BGRA;
+						FilterBase::MediaF::start({static_cast<int>(image_header.width), static_cast<int>(image_header.height), ct, 0, 0}, static_cast<FilterBase::MediaF::IFilterConfig*>(this));
+					}
+					break;
+				case MFT_MESSAGE_NOTIFY_END_STREAMING:
+					FilterBase::MediaF::end(static_cast<FilterBase::MediaF::IFilterConfig*>(this));
+					break;
+				case MFT_MESSAGE_NOTIFY_END_OF_STREAM:
+				case MFT_MESSAGE_NOTIFY_START_OF_STREAM:
+				case MFT_MESSAGE_COMMAND_MARKER:
+					break;
+			}
 			return S_OK;
 		}
 		HRESULT STDMETHODCALLTYPE ProcessInput(DWORD dwInputStreamID, IMFSample *pSample, DWORD dwFlags) override{
@@ -345,16 +375,37 @@ class MyFilter : public IMFTransform, public IMyFilterConfig{
 				return E_POINTER;
 			if(dwInputStreamID != 0)
 				return MF_E_INVALIDSTREAMNUMBER;
-
-			// TODO
-
+			if(dwFlags != 0)
+				return E_INVALIDARG;
+			std::unique_lock<std::mutex>(this->mutex);
+			// All needed data available?
+			if(!this->input || !this->output || this->sample)
+				return MF_E_NOTACCEPTING;
+                        DWORD buffer_count;
+                        if(!SUCCEEDED(pSample->GetBufferCount(&buffer_count)) || buffer_count == 0)
+				return E_FAIL;
+			if(buffer_count > 1)
+				return MF_E_SAMPLE_HAS_TOO_MANY_BUFFERS;
+			// Save sample
+			this->sample.reset(pSample),
+			pSample->AddRef();
 			return S_OK;
 		}
 		HRESULT STDMETHODCALLTYPE ProcessOutput(DWORD dwFlags, DWORD cOutputBufferCount, MFT_OUTPUT_DATA_BUFFER *pOutputSamples, DWORD *pdwStatus) override{
 			if(!pOutputSamples || !pdwStatus)
 				return E_POINTER;
+			if(dwFlags != 0 || cOutputBufferCount != 1 || !pOutputSamples[0].pSample)
+				return E_INVALIDARG;
+			std::unique_lock<std::mutex>(this->mutex);
+			// Sample to process?
+			if(!this->sample)
+				return MF_E_TRANSFORM_NEED_MORE_INPUT;
+			// Get sample data
+			std::unique_ptr<IMFMediaBuffer, std::function<void(IUnknown* p)>> sample_in(nullptr, iunknown_deleter), sample_out(nullptr, iunknown_deleter);
+
 
 			// TODO
+
 
 			return S_OK;
 		}
