@@ -169,6 +169,25 @@ STDAPI __declspec(dllexport) DllRegisterServer(){
 		}
 		RegCloseKey(key);
 	}
+	status = __HRESULT_FROM_WIN32(
+		RegCreateKeyExW(
+			HKEY_CLASSES_ROOT,
+			gen_clsid_keyname(*FilterBase::get_filter_config_guid()).c_str(),
+			0,
+			NULL,
+			REG_OPTION_NON_VOLATILE,
+			KEY_ALL_ACCESS,
+			NULL,
+			&key,
+			NULL
+		)
+	);
+	if(SUCCEEDED(status)){
+		std::wstring key_value = std::wstring(FilterBase::get_namew()) + L" configuration";
+		LONG result = RegSetValueExW(key, NULL, 0, REG_SZ, reinterpret_cast<const BYTE*>(key_value.c_str()), (key_value.length()+1)*sizeof(wchar_t));
+		status = result == ERROR_SUCCESS ? S_OK : HRESULT_FROM_WIN32(result),
+		RegCloseKey(key);
+	}
 	return status;
 }
 
@@ -177,6 +196,7 @@ STDAPI __declspec(dllexport) DllUnregisterServer(){
 	MFTUnregister(*FilterBase::get_filter_guid());
 	// Remove CLSID for CoCreateInstance in registry
 	RegDeleteTreeW(HKEY_CLASSES_ROOT, gen_clsid_keyname(*FilterBase::get_filter_guid()).c_str());
+	RegDeleteTreeW(HKEY_CLASSES_ROOT, gen_clsid_keyname(*FilterBase::get_filter_config_guid()).c_str());
 	return S_OK;
 }
 
