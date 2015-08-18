@@ -62,7 +62,11 @@ class MyFilter : public IMFTransform, public IMyFilterConfig{
 		HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject){
 			if(!ppvObject)
 				return E_POINTER;
-			if(riid == *FilterBase::get_filter_guid())
+			if(riid == IID_IUNKNOWN)
+				*ppvObject = static_cast<IUnknown*>(static_cast<IMFTransform*>(this)); // Because of multiple inheritance of IUnknown, one has to be chosen
+			else if(riid == __uuidof(IMFTransform))
+				*ppvObject = static_cast<IMFTransform*>(this);
+			else if(riid == *FilterBase::get_filter_guid())
 				*ppvObject = this;
 			else if(riid == *FilterBase::get_filter_config_guid())
 				*ppvObject = static_cast<IMyFilterConfig*>(this);

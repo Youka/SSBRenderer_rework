@@ -34,7 +34,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 DEFINE_GUID(CLSID_Filter,
 0x2c80a3b9, 0x6a38, 0x4416, 0xa6, 0xe1, 0x89, 0x82, 0xa3, 0x7f, 0xd3, 0xfa);
 // {534FD455-C4F5-4719-8196-F315868E02A4}
-DEFINE_GUID(IID_Config,
+DEFINE_GUID(IID_FilterConfig,
 0x534fd455, 0xc4f5, 0x4719, 0x81, 0x96, 0xf3, 0x15, 0x86, 0x8e, 0x2, 0xa4);
 #endif
 
@@ -50,7 +50,7 @@ namespace FilterBase{
 		return &CLSID_Filter;
 	}
 	const CLSID* get_filter_config_guid(){
-		return &IID_Config;
+		return &IID_FilterConfig;
 	}
 #endif
 	const char* get_name(){
