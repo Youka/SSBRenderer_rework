@@ -180,35 +180,114 @@ class MyFilter : public IMFTransform, public IMyFilterConfig{
 				return E_POINTER;
 			if(dwInputStreamID != 0)
 				return MF_E_INVALIDSTREAMNUMBER;
-
-			// TODO
-
-			return S_OK;
+			std::unique_lock<std::mutex>(this->mutex);
+			// Accept already given output type or RGB type
+			if(this->output){
+				if(dwTypeIndex > 0)
+					return MF_E_NO_MORE_TYPES;
+				*ppType = this->output.get(),
+				this->output->AddRef();
+				return S_OK;
+			}else{
+				if(dwTypeIndex > 2)
+					return MF_E_NO_MORE_TYPES;
+				IMFMediaType* pmt;
+				HRESULT status = MFCreateMediaType(&pmt);
+				if(SUCCEEDED(status)){
+					static const GUID subtypes[] = {MFVideoFormat_RGB24, MFVideoFormat_RGB32, MFVideoFormat_ARGB32};
+					pmt->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Video),
+					pmt->SetGUID(MF_MT_SUBTYPE, subtypes[dwTypeIndex]);
+				}
+				return status;
+			}
 		}
 		HRESULT STDMETHODCALLTYPE GetOutputAvailableType(DWORD dwOutputStreamID, DWORD dwTypeIndex, IMFMediaType **ppType) override{
 			if(!ppType)
 				return E_POINTER;
 			if(dwOutputStreamID != 0)
 				return MF_E_INVALIDSTREAMNUMBER;
-
-			// TODO
-
+			std::unique_lock<std::mutex>(this->mutex);
+			// Accept already given input type or RGB type
+			if(this->input){
+				if(dwTypeIndex > 0)
+					return MF_E_NO_MORE_TYPES;
+				*ppType = this->input.get(),
+				this->input->AddRef();
+				return S_OK;
+			}else{
+				if(dwTypeIndex > 2)
+					return MF_E_NO_MORE_TYPES;
+				IMFMediaType* pmt;
+				HRESULT status = MFCreateMediaType(&pmt);
+				if(SUCCEEDED(status)){
+					static const GUID subtypes[] = {MFVideoFormat_RGB24, MFVideoFormat_RGB32, MFVideoFormat_ARGB32};
+					pmt->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Video),
+					pmt->SetGUID(MF_MT_SUBTYPE, subtypes[dwTypeIndex]);
+				}
+				return status;
+			}
 			return S_OK;
 		}
 		HRESULT STDMETHODCALLTYPE SetInputType(DWORD dwInputStreamID, IMFMediaType *pType, DWORD dwFlags) override{
 			if(dwInputStreamID != 0)
 				return MF_E_INVALIDSTREAMNUMBER;
-
-			// TODO
-
+			if(dwFlags & ~MFT_SET_TYPE_TEST_ONLY)
+				return E_INVALIDARG;
+			std::unique_lock<std::mutex>(this->mutex);
+			// Pending sample operation?
+			if(this->sample)
+				return MF_E_TRANSFORM_CANNOT_CHANGE_MEDIATYPE_WHILE_PROCESSING;
+			// Valid type?
+			if(this->output){
+				DWORD flag;
+				if(!SUCCEEDED(pType->IsEqual(this->output.get(), &flag)) || flag != S_OK)
+					return MF_E_INVALIDMEDIATYPE;
+			}else{
+				GUID guid;
+				MFVideoInterlaceMode interlace;
+				if(!SUCCEEDED(pType->GetGUID(MF_MT_MAJOR_TYPE, &guid)) ||
+					guid != MFMediaType_Video ||
+					!SUCCEEDED(pType->GetGUID(MF_MT_SUBTYPE, &guid)) ||
+					(guid != MFVideoFormat_RGB24 && guid != MFVideoFormat_RGB32 && guid != MFVideoFormat_ARGB32) ||
+					!SUCCEEDED(pType->GetUINT32(MF_MT_INTERLACE_MODE, reinterpret_cast<UINT32*>(&interlace))) ||
+					interlace != MFVideoInterlace_Progressive)
+					return MF_E_INVALIDMEDIATYPE;
+			}
+			// Set when no test
+			if(!(dwFlags & MFT_SET_TYPE_TEST_ONLY))
+				this->input.reset(pType),
+				pType->AddRef();
 			return S_OK;
 		}
 		HRESULT STDMETHODCALLTYPE SetOutputType(DWORD dwOutputStreamID, IMFMediaType *pType, DWORD dwFlags) override{
 			if(dwOutputStreamID != 0)
 				return MF_E_INVALIDSTREAMNUMBER;
-
-			// TODO
-
+			if(dwFlags & ~MFT_SET_TYPE_TEST_ONLY)
+				return E_INVALIDARG;
+			std::unique_lock<std::mutex>(this->mutex);
+			// Pending sample operation?
+			if(this->sample)
+				return MF_E_TRANSFORM_CANNOT_CHANGE_MEDIATYPE_WHILE_PROCESSING;
+			// Valid type?
+			if(this->input){
+				DWORD flag;
+				if(!SUCCEEDED(pType->IsEqual(this->input.get(), &flag)) || flag != S_OK)
+					return MF_E_INVALIDMEDIATYPE;
+			}else{
+				GUID guid;
+				MFVideoInterlaceMode interlace;
+				if(!SUCCEEDED(pType->GetGUID(MF_MT_MAJOR_TYPE, &guid)) ||
+					guid != MFMediaType_Video ||
+					!SUCCEEDED(pType->GetGUID(MF_MT_SUBTYPE, &guid)) ||
+					(guid != MFVideoFormat_RGB24 && guid != MFVideoFormat_RGB32 && guid != MFVideoFormat_ARGB32) ||
+					!SUCCEEDED(pType->GetUINT32(MF_MT_INTERLACE_MODE, reinterpret_cast<UINT32*>(&interlace))) ||
+					interlace != MFVideoInterlace_Progressive)
+					return MF_E_INVALIDMEDIATYPE;
+			}
+			// Set when no test
+			if(!(dwFlags & MFT_SET_TYPE_TEST_ONLY))
+				this->output.reset(pType),
+				pType->AddRef();
 			return S_OK;
 		}
 		HRESULT STDMETHODCALLTYPE GetInputCurrentType(DWORD dwInputStreamID, IMFMediaType **ppType) override{
