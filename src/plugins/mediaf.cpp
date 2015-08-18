@@ -37,14 +37,14 @@ class MyFilter : public IMFTransform, public IMyFilterConfig{
 		std::mutex userdata_lock;
 		// Destruction of COM object by IUnknown instance->Release
 		virtual ~MyFilter(){
-			FilterBase::MediaF::deinit(dynamic_cast<FilterBase::MediaF::IFilterConfig*>(this));
+			FilterBase::MediaF::deinit(static_cast<FilterBase::MediaF::IFilterConfig*>(this));
 		}
 	public:
 		// Any MyFilter instance is still locked?
 		static bool locked(){return locks != 0;}
 		// Ctors&assignment
 		MyFilter() : refcount(1){
-			FilterBase::MediaF::init(dynamic_cast<FilterBase::MediaF::IFilterConfig*>(this));
+			FilterBase::MediaF::init(static_cast<FilterBase::MediaF::IFilterConfig*>(this));
 		}
 		MyFilter(const MyFilter&) = delete;
 		MyFilter(MyFilter&&) = delete;
@@ -55,9 +55,10 @@ class MyFilter : public IMFTransform, public IMyFilterConfig{
 			return ++this->refcount;
 		}
 		ULONG STDMETHODCALLTYPE Release(void){
-			if(--this->refcount == 0)
+			ULONG count = --this->refcount;
+			if(count == 0)
 				delete this;
-			return this->refcount;
+			return count;
 		}
 		HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject){
 			if(!ppvObject)
@@ -79,8 +80,8 @@ class MyFilter : public IMFTransform, public IMyFilterConfig{
 		}
 		// IMyFilterConfig implementation
 		void** LockData(){
-			this->userdata_lock.lock();
 			++MyFilter::locks;
+			this->userdata_lock.lock();
 			return &this->userdata;
 		}
 		void UnlockData(){
@@ -97,9 +98,10 @@ class MyFilter : public IMFTransform, public IMyFilterConfig{
 };
 std::atomic_uint MyFilter::locks(0);	// ...but direct-initialization
 
+// Filter registration to server
 static inline std::wstring gen_clsid_keyname(const GUID& guid){
-	wchar_t guid_str[40];
-	return StringFromGUID2(guid, guid_str, 40) ? std::wstring(L"CLSID\\") + guid_str : L"";
+	wchar_t guid_str[39];
+	return StringFromGUID2(guid, guid_str, 39) ? std::wstring(L"CLSID\\") + guid_str : L"";
 }
 static std::wstring get_module_name(){
 	HMODULE module;
@@ -211,9 +213,9 @@ STDAPI __declspec(dllexport) DllCanUnloadNow(){
 STDAPI __declspec(dllexport) DllGetClassObject(REFCLSID clsid, REFIID riid, void** ppv){
 	IUnknown* inst;
 	if(clsid == *FilterBase::get_filter_guid() && (inst = new MyFilter)){
-		inst->QueryInterface(riid, ppv),
+		HRESULT status = inst->QueryInterface(riid, ppv);
 		inst->Release();
-		return S_OK;
+		return status;
 	}
 	return E_NOINTERFACE;
 }
