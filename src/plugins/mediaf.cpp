@@ -57,7 +57,7 @@ class MyFilter : public IMFTransform, public IMyFilterConfig{
 		MyFilter& operator=(const MyFilter&) = delete;
 		MyFilter& operator=(MyFilter&&) = delete;
 		// IUnknown implementation
-		HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject){
+		HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject) override{
 			if(!ppvObject)
 				return E_POINTER;
 			if(riid == IID_IUNKNOWN)
@@ -75,43 +75,43 @@ class MyFilter : public IMFTransform, public IMyFilterConfig{
 			this->AddRef();
 			return S_OK;
 		}
-		ULONG STDMETHODCALLTYPE AddRef(void){
+		ULONG STDMETHODCALLTYPE AddRef(void) override{
 			return ++this->refcount;
 		}
-		ULONG STDMETHODCALLTYPE Release(void){
+		ULONG STDMETHODCALLTYPE Release(void) override{
 			ULONG count = --this->refcount;
 			if(count == 0)
 				delete this;
 			return count;
 		}
 		// IMyFilterConfig implementation
-		void** LockData(){
+		void** LockData() override{
 			this->mutex.lock();
 			return &this->userdata;
 		}
-		void UnlockData(){
+		void UnlockData() override{
 			this->mutex.unlock();
 		}
-		void* GetData(){
+		void* GetData() override{
 			return this->userdata;
 		}
 		// IMFTransform implementation
-		HRESULT STDMETHODCALLTYPE GetStreamLimits(DWORD *pdwInputMinimum, DWORD *pdwInputMaximum, DWORD *pdwOutputMinimum, DWORD *pdwOutputMaximum){
+		HRESULT STDMETHODCALLTYPE GetStreamLimits(DWORD *pdwInputMinimum, DWORD *pdwInputMaximum, DWORD *pdwOutputMinimum, DWORD *pdwOutputMaximum) override{
 			if(!pdwInputMinimum || !pdwInputMaximum || !pdwOutputMinimum || !pdwOutputMaximum)
 				return E_POINTER;
 			*pdwInputMinimum = *pdwInputMaximum = *pdwOutputMinimum = *pdwOutputMaximum = 1;
 			return S_OK;
 		}
-		HRESULT STDMETHODCALLTYPE GetStreamCount(DWORD *pcInputStreams, DWORD *pcOutputStreams){
+		HRESULT STDMETHODCALLTYPE GetStreamCount(DWORD *pcInputStreams, DWORD *pcOutputStreams) override{
 			if(!pcInputStreams || !pcOutputStreams)
 				return E_POINTER;
 			*pcInputStreams = *pcOutputStreams = 1;
 			return S_OK;
 		}
-		HRESULT STDMETHODCALLTYPE GetStreamIDs(DWORD, DWORD *, DWORD, DWORD *){
+		HRESULT STDMETHODCALLTYPE GetStreamIDs(DWORD, DWORD *, DWORD, DWORD *) override{
 			return E_NOTIMPL; // Fixed number of streams, so ID==INDEX
 		}
-		HRESULT STDMETHODCALLTYPE GetInputStreamInfo(DWORD dwInputStreamID, MFT_INPUT_STREAM_INFO *pStreamInfo){
+		HRESULT STDMETHODCALLTYPE GetInputStreamInfo(DWORD dwInputStreamID, MFT_INPUT_STREAM_INFO *pStreamInfo) override{
 			if(!pStreamInfo)
 				return E_POINTER;
 			if(dwInputStreamID != 0) // Just one input stream
@@ -124,7 +124,7 @@ class MyFilter : public IMFTransform, public IMyFilterConfig{
 			pStreamInfo->cbSize = this->size; // Image size, calculated by getting input type
 			return S_OK;
 		}
-		HRESULT STDMETHODCALLTYPE GetOutputStreamInfo(DWORD dwOutputStreamID, MFT_OUTPUT_STREAM_INFO *pStreamInfo){
+		HRESULT STDMETHODCALLTYPE GetOutputStreamInfo(DWORD dwOutputStreamID, MFT_OUTPUT_STREAM_INFO *pStreamInfo) override{
 			if(!pStreamInfo)
 				return E_POINTER;
 			if(dwOutputStreamID != 0) // Just one output stream
@@ -135,22 +135,125 @@ class MyFilter : public IMFTransform, public IMyFilterConfig{
 			pStreamInfo->cbSize = this->size;
 			return S_OK;
 		}
-		HRESULT STDMETHODCALLTYPE GetAttributes(IMFAttributes **){
+		HRESULT STDMETHODCALLTYPE GetAttributes(IMFAttributes **) override{
 			return E_NOTIMPL; // No attributes
 		}
-		HRESULT STDMETHODCALLTYPE GetInputStreamAttributes(DWORD, IMFAttributes **){
+		HRESULT STDMETHODCALLTYPE GetInputStreamAttributes(DWORD, IMFAttributes **) override{
 			return E_NOTIMPL; // No attributes
 		}
-		HRESULT STDMETHODCALLTYPE GetOutputStreamAttributes(DWORD, IMFAttributes **){
+		HRESULT STDMETHODCALLTYPE GetOutputStreamAttributes(DWORD, IMFAttributes **) override{
 			return E_NOTIMPL; // No attributes
 		}
+		HRESULT STDMETHODCALLTYPE DeleteInputStream(DWORD) override{
+			return E_NOTIMPL; // One default input stream, no change
+		}
+		HRESULT STDMETHODCALLTYPE AddInputStreams(DWORD, DWORD *) override{
+			return E_NOTIMPL; // One default input stream, no change
+		}
+		HRESULT STDMETHODCALLTYPE GetInputAvailableType(DWORD dwInputStreamID, DWORD dwTypeIndex, IMFMediaType **ppType) override{
+			if(!ppType)
+				return E_POINTER;
+			if(dwInputStreamID != 0)
+				return MF_E_INVALIDSTREAMNUMBER;
 
+			// TODO
 
+			return S_OK;
+		}
+		HRESULT STDMETHODCALLTYPE GetOutputAvailableType(DWORD dwOutputStreamID, DWORD dwTypeIndex, IMFMediaType **ppType) override{
+			if(!ppType)
+				return E_POINTER;
+			if(dwOutputStreamID != 0)
+				return MF_E_INVALIDSTREAMNUMBER;
 
+			// TODO
 
+			return S_OK;
+		}
+		HRESULT STDMETHODCALLTYPE SetInputType(DWORD dwInputStreamID, IMFMediaType *pType, DWORD dwFlags) override{
+			if(dwInputStreamID != 0)
+				return MF_E_INVALIDSTREAMNUMBER;
 
-		// TODO
+			// TODO
 
+			return S_OK;
+		}
+		HRESULT STDMETHODCALLTYPE SetOutputType(DWORD dwOutputStreamID, IMFMediaType *pType, DWORD dwFlags) override{
+			if(dwOutputStreamID != 0)
+				return MF_E_INVALIDSTREAMNUMBER;
+
+			// TODO
+
+			return S_OK;
+		}
+		HRESULT STDMETHODCALLTYPE GetInputCurrentType(DWORD dwInputStreamID, IMFMediaType **ppType) override{
+			if(!ppType)
+				return E_POINTER;
+			if(dwInputStreamID != 0)
+				return MF_E_INVALIDSTREAMNUMBER;
+
+			// TODO
+
+			return S_OK;
+		}
+		HRESULT STDMETHODCALLTYPE GetOutputCurrentType(DWORD dwOutputStreamID, IMFMediaType **ppType) override{
+			if(!ppType)
+				return E_POINTER;
+			if(dwOutputStreamID != 0)
+				return MF_E_INVALIDSTREAMNUMBER;
+
+			// TODO
+
+			return S_OK;
+		}
+		HRESULT STDMETHODCALLTYPE GetInputStatus(DWORD dwInputStreamID, DWORD *pdwFlags) override{
+			if(!pdwFlags)
+				return E_POINTER;
+			if(dwInputStreamID != 0)
+				return MF_E_INVALIDSTREAMNUMBER;
+
+			// TODO
+
+			return S_OK;
+		}
+		HRESULT STDMETHODCALLTYPE GetOutputStatus(DWORD *pdwFlags) override{
+			if(!pdwFlags)
+				return E_POINTER;
+
+			// TODO
+
+			return S_OK;
+		}
+		HRESULT STDMETHODCALLTYPE SetOutputBounds(LONGLONG, LONGLONG) override{
+			return E_NOTIMPL; // Optional informations
+		}
+		HRESULT STDMETHODCALLTYPE ProcessEvent(DWORD, IMFMediaEvent *) override{
+			return E_NOTIMPL; // Not event processing
+		}
+		HRESULT STDMETHODCALLTYPE ProcessMessage(MFT_MESSAGE_TYPE eMessage, ULONG_PTR ulParam) override{
+
+			// TODO
+
+			return S_OK;
+		}
+		HRESULT STDMETHODCALLTYPE ProcessInput(DWORD dwInputStreamID, IMFSample *pSample, DWORD dwFlags) override{
+			if(!pSample)
+				return E_POINTER;
+			if(dwInputStreamID != 0)
+				return MF_E_INVALIDSTREAMNUMBER;
+
+			// TODO
+
+			return S_OK;
+		}
+		HRESULT STDMETHODCALLTYPE ProcessOutput(DWORD dwFlags, DWORD cOutputBufferCount, MFT_OUTPUT_DATA_BUFFER *pOutputSamples, DWORD *pdwStatus) override{
+			if(!pOutputSamples || !pdwStatus)
+				return E_POINTER;
+
+			// TODO
+
+			return S_OK;
+		}
 };
 std::atomic_uint MyFilter::instances_n(0);	// ...but direct-initialization
 
@@ -269,7 +372,7 @@ STDAPI __declspec(dllexport) DllCanUnloadNow(){
 
 STDAPI __declspec(dllexport) DllGetClassObject(REFCLSID clsid, REFIID riid, void** ppv){
 	IUnknown* inst;
-	if(clsid == *FilterBase::get_filter_guid() && (inst = new MyFilter)){
+	if(clsid == *FilterBase::get_filter_guid() && (inst = static_cast<IUnknown*>(static_cast<IMFTransform*>(new MyFilter)))){
 		HRESULT status = inst->QueryInterface(riid, ppv);
 		inst->Release();
 		return status;
