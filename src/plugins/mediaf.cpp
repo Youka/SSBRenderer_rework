@@ -21,7 +21,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 #include <atomic>
 #include <mutex>
 #include <memory>
-#include <Strmif.h>
+#include <strmif.h>
 
 extern const IID IID_IUNKNOWN;	// Found in uuid library but not in MinGW CGuid.h
 
@@ -29,12 +29,13 @@ namespace MediaF{
 	// IUnknown deleters
 	auto iunknown_deleter = [](IUnknown* p){p->Release();};
 	auto imfmediabuffer_deleter = [](IMFMediaBuffer* p){p->Unlock(); p->Release();};
+
 	// Extracts image meta informations from MediaType
 	struct ImageHeader{
 		DWORD width, height;
 		GUID subtype;
 	};
-	static ImageHeader get_image_header(IMFMediaType* pmt){
+	static ImageHeader GetImageHeader(IMFMediaType* pmt){
 		AM_MEDIA_TYPE* amt;
 		if(SUCCEEDED(pmt->GetRepresentation(FORMAT_MFVideoFormat, reinterpret_cast<void**>(&amt)))){
 			const MFVIDEOFORMAT* mvf = reinterpret_cast<MFVIDEOFORMAT*>(amt->pbFormat);
@@ -43,6 +44,40 @@ namespace MediaF{
 			return result;
 		}
 		return {0, 0, GUID_NULL};
+	}
+
+	// Generate available media type
+	static HRESULT GetAvailableType(IMFMediaType* xput, DWORD dwTypeIndex, IMFMediaType **ppType){
+		if(xput){
+			if(dwTypeIndex > 0)
+				return MF_E_NO_MORE_TYPES;
+			*ppType = xput,
+			xput->AddRef();
+			return S_OK;
+		}
+		if(dwTypeIndex > 2)
+			return MF_E_NO_MORE_TYPES;
+		IMFMediaType* pmt;
+		HRESULT status = MFCreateMediaType(&pmt);
+		if(SUCCEEDED(status)){
+			static const GUID subtypes[] = {MFVideoFormat_RGB24, MFVideoFormat_RGB32, MFVideoFormat_ARGB32};
+			pmt->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Video),
+			pmt->SetGUID(MF_MT_SUBTYPE, subtypes[dwTypeIndex]);
+		}
+		return status;
+	}
+
+	// Check type for support
+	static bool IsValidType(IMFMediaType* pType, IMFMediaType* xput){
+		if(xput){
+			DWORD flag;
+			return SUCCEEDED(pType->IsEqual(xput, &flag)) && flag == S_OK;
+		}
+		GUID guid;
+		MFVideoInterlaceMode interlace;
+		return SUCCEEDED(pType->GetGUID(MF_MT_MAJOR_TYPE, &guid)) && guid == MFMediaType_Video &&
+			SUCCEEDED(pType->GetGUID(MF_MT_SUBTYPE, &guid)) && (guid == MFVideoFormat_RGB24 || guid == MFVideoFormat_RGB32 || guid == MFVideoFormat_ARGB32) &&
+			SUCCEEDED(pType->GetUINT32(MF_MT_INTERLACE_MODE, reinterpret_cast<UINT32*>(&interlace))) && interlace != MFVideoInterlace_Progressive;
 	}
 
 	// Filter configuration interface
@@ -143,7 +178,7 @@ namespace MediaF{
 				pStreamInfo->cbMaxLookahead = 0, // No holding data to look
 				pStreamInfo->cbAlignment = 0; // No special alignment requirements
 				if(this->input){
-					auto image_header = get_image_header(this->input.get());
+					auto image_header = GetImageHeader(this->input.get());
 					pStreamInfo->cbSize = image_header.width * image_header.height * (image_header.subtype == MFVideoFormat_RGB24 ? 3 : 4);
 				}else
 					pStreamInfo->cbSize = 0;
@@ -158,7 +193,7 @@ namespace MediaF{
 				pStreamInfo->dwFlags = MFT_OUTPUT_STREAM_WHOLE_SAMPLES | MFT_OUTPUT_STREAM_SINGLE_SAMPLE_PER_BUFFER | MFT_OUTPUT_STREAM_FIXED_SAMPLE_SIZE,
 				pStreamInfo->cbAlignment = 0;
 				if(this->output){
-					auto image_header = get_image_header(this->output.get());
+					auto image_header = GetImageHeader(this->output.get());
 					pStreamInfo->cbSize = image_header.width * image_header.height * (image_header.subtype == MFVideoFormat_RGB24 ? 3 : 4);
 				}else
 					pStreamInfo->cbSize = 0;
@@ -185,25 +220,7 @@ namespace MediaF{
 				if(dwInputStreamID != 0)
 					return MF_E_INVALIDSTREAMNUMBER;
 				std::unique_lock<std::mutex>(this->transform_mutex);
-				// Accept already given output type or RGB type
-				if(this->output){
-					if(dwTypeIndex > 0)
-						return MF_E_NO_MORE_TYPES;
-					*ppType = this->output.get(),
-					this->output->AddRef();
-					return S_OK;
-				}else{
-					if(dwTypeIndex > 2)
-						return MF_E_NO_MORE_TYPES;
-					IMFMediaType* pmt;
-					HRESULT status = MFCreateMediaType(&pmt);
-					if(SUCCEEDED(status)){
-						static const GUID subtypes[] = {MFVideoFormat_RGB24, MFVideoFormat_RGB32, MFVideoFormat_ARGB32};
-						pmt->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Video),
-						pmt->SetGUID(MF_MT_SUBTYPE, subtypes[dwTypeIndex]);
-					}
-					return status;
-				}
+				return GetAvailableType(this->output.get(), dwTypeIndex, ppType);
 			}
 			HRESULT STDMETHODCALLTYPE GetOutputAvailableType(DWORD dwOutputStreamID, DWORD dwTypeIndex, IMFMediaType **ppType) override{
 				if(!ppType)
@@ -211,26 +228,7 @@ namespace MediaF{
 				if(dwOutputStreamID != 0)
 					return MF_E_INVALIDSTREAMNUMBER;
 				std::unique_lock<std::mutex>(this->transform_mutex);
-				// Accept already given input type or RGB type
-				if(this->input){
-					if(dwTypeIndex > 0)
-						return MF_E_NO_MORE_TYPES;
-					*ppType = this->input.get(),
-					this->input->AddRef();
-					return S_OK;
-				}else{
-					if(dwTypeIndex > 2)
-						return MF_E_NO_MORE_TYPES;
-					IMFMediaType* pmt;
-					HRESULT status = MFCreateMediaType(&pmt);
-					if(SUCCEEDED(status)){
-						static const GUID subtypes[] = {MFVideoFormat_RGB24, MFVideoFormat_RGB32, MFVideoFormat_ARGB32};
-						pmt->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Video),
-						pmt->SetGUID(MF_MT_SUBTYPE, subtypes[dwTypeIndex]);
-					}
-					return status;
-				}
-				return S_OK;
+				return GetAvailableType(this->input.get(), dwTypeIndex, ppType);
 			}
 			HRESULT STDMETHODCALLTYPE SetInputType(DWORD dwInputStreamID, IMFMediaType *pType, DWORD dwFlags) override{
 				if(dwInputStreamID != 0)
@@ -242,21 +240,8 @@ namespace MediaF{
 				if(this->sample)
 					return MF_E_TRANSFORM_CANNOT_CHANGE_MEDIATYPE_WHILE_PROCESSING;
 				// Valid type?
-				if(this->output){
-					DWORD flag;
-					if(!SUCCEEDED(pType->IsEqual(this->output.get(), &flag)) || flag != S_OK)
-						return MF_E_INVALIDMEDIATYPE;
-				}else{
-					GUID guid;
-					MFVideoInterlaceMode interlace;
-					if(!SUCCEEDED(pType->GetGUID(MF_MT_MAJOR_TYPE, &guid)) ||
-						guid != MFMediaType_Video ||
-						!SUCCEEDED(pType->GetGUID(MF_MT_SUBTYPE, &guid)) ||
-						(guid != MFVideoFormat_RGB24 && guid != MFVideoFormat_RGB32 && guid != MFVideoFormat_ARGB32) ||
-						!SUCCEEDED(pType->GetUINT32(MF_MT_INTERLACE_MODE, reinterpret_cast<UINT32*>(&interlace))) ||
-						interlace != MFVideoInterlace_Progressive)
-						return MF_E_INVALIDMEDIATYPE;
-				}
+				if(!IsValidType(pType, this->output.get()))
+					return MF_E_INVALIDMEDIATYPE;
 				// Set when no test
 				if(!(dwFlags & MFT_SET_TYPE_TEST_ONLY))
 					this->input.reset(pType),
@@ -273,21 +258,8 @@ namespace MediaF{
 				if(this->sample)
 					return MF_E_TRANSFORM_CANNOT_CHANGE_MEDIATYPE_WHILE_PROCESSING;
 				// Valid type?
-				if(this->input){
-					DWORD flag;
-					if(!SUCCEEDED(pType->IsEqual(this->input.get(), &flag)) || flag != S_OK)
-						return MF_E_INVALIDMEDIATYPE;
-				}else{
-					GUID guid;
-					MFVideoInterlaceMode interlace;
-					if(!SUCCEEDED(pType->GetGUID(MF_MT_MAJOR_TYPE, &guid)) ||
-						guid != MFMediaType_Video ||
-						!SUCCEEDED(pType->GetGUID(MF_MT_SUBTYPE, &guid)) ||
-						(guid != MFVideoFormat_RGB24 && guid != MFVideoFormat_RGB32 && guid != MFVideoFormat_ARGB32) ||
-						!SUCCEEDED(pType->GetUINT32(MF_MT_INTERLACE_MODE, reinterpret_cast<UINT32*>(&interlace))) ||
-						interlace != MFVideoInterlace_Progressive)
-						return MF_E_INVALIDMEDIATYPE;
-				}
+				if(!IsValidType(pType, this->input.get()))
+					return MF_E_INVALIDMEDIATYPE;
 				// Set when no test
 				if(!(dwFlags & MFT_SET_TYPE_TEST_ONLY))
 					this->output.reset(pType),
@@ -353,16 +325,11 @@ namespace MediaF{
 						{
 							if(!this->input)
 								return MF_E_TRANSFORM_TYPE_NOT_SET;
-							auto image_header = get_image_header(this->input.get());
-							FilterBase::ColorType ct;
-							if(image_header.subtype == MFVideoFormat_RGB24)
-								ct = FilterBase::ColorType::BGR;
-							else if(image_header.subtype == MFVideoFormat_RGB32)
-								ct = FilterBase::ColorType::BGRX;
-							else // image_header.subtype == MFVideoFormat_ARGB32
-								ct = FilterBase::ColorType::BGRA;
+							auto image_header = GetImageHeader(this->input.get());
 							try{
-								FilterBase::MediaF::start({static_cast<int>(image_header.width), static_cast<int>(image_header.height), ct, 0, 0}, static_cast<FilterBase::MediaF::IFilterConfig*>(this));
+								FilterBase::MediaF::start({static_cast<int>(image_header.width), static_cast<int>(image_header.height),
+											image_header.subtype == MFVideoFormat_RGB24 ? FilterBase::ColorType::BGR : (image_header.subtype == MFVideoFormat_RGB32 ? FilterBase::ColorType::BGRX : FilterBase::ColorType::BGRA),
+											0, 0}, static_cast<FilterBase::MediaF::IFilterConfig*>(this));
 							}catch(std::string message){
 								MessageBoxA(NULL, message.c_str(), FilterBase::get_name(), MB_OK);
 								return E_UNEXPECTED;
@@ -412,7 +379,7 @@ namespace MediaF{
 				// Get sample stride
 				LONG stride;
 				if(!SUCCEEDED(this->input->GetUINT32(MF_MT_DEFAULT_STRIDE, reinterpret_cast<UINT32*>(&stride)))){
-					auto image_header = get_image_header(this->input.get());
+					auto image_header = GetImageHeader(this->input.get());
 					stride = image_header.width * (image_header.subtype == MFVideoFormat_RGB24 ? 3 : 4);
 				}
 				// Get sample data
