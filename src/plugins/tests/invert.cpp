@@ -13,18 +13,19 @@ Permission is granted to anyone to use this software for any purpose, including 
 */
 
 #include "../FilterBase.hpp"
-#ifdef _MSC_VER
-#include <initguid.h>
-// {7607EC1E-B547-4780-8217-F407C9D2C78F}
-DEFINE_GUID(CLSID_TestFilter,
-0x7607ec1e, 0xb547, 0x4780, 0x82, 0x17, 0xf4, 0x7, 0xc9, 0xd2, 0xc7, 0x8f);
-// {69F30E60-8F45-4c99-8315-0598CAE1E395}
-DEFINE_GUID(IID_TestConfig,
-0x69f30e60, 0x8f45, 0x4c99, 0x83, 0x15, 0x5, 0x98, 0xca, 0xe1, 0xe3, 0x95);
-#endif // _MSC_VER
 #include <iostream>
 #include <algorithm>
 #include <iterator>
+
+#ifdef _WIN32
+#include <initguid.h>
+// {7607EC1E-B547-4780-8217-F407C9D2C78F}
+DEFINE_GUID(CLSID_Filter,
+0x7607ec1e, 0xb547, 0x4780, 0x82, 0x17, 0xf4, 0x7, 0xc9, 0xd2, 0xc7, 0x8f);
+// {69F30E60-8F45-4c99-8315-0598CAE1E395}
+DEFINE_GUID(IID_Config,
+0x69f30e60, 0x8f45, 0x4c99, 0x83, 0x15, 0x5, 0x98, 0xca, 0xe1, 0xe3, 0x95);
+#endif
 
 namespace FilterBase{
 	const char* get_id(){
@@ -33,14 +34,14 @@ namespace FilterBase{
 	const char* get_namespace(){
 		return "tests";
 	}
-	#ifdef _MSC_VER
+	#ifdef _WIN32
 	const CLSID* get_filter_guid(){
 		return &CLSID_Filter;
 	}
 	const CLSID* get_filter_config_guid(){
 		return &IID_Config;
 	}
-	#endif // _MSC_VER
+	#endif
 	const char* get_name(){
 		return "Test";
 	}
@@ -86,6 +87,42 @@ namespace FilterBase{
 			delete reinterpret_cast<int*>(userdata);
 		}
 	}
+	namespace CSRI{
+		bool init(const char* filename, void** userdata){
+			std::cout << "CSRI - Tried to load file: " << filename << std::endl;
+			*userdata = new int(0);
+			return true;
+		}
+		bool init(std::istream& stream, void** userdata){
+			std::cout << "### CSRI - Tried to load data ###\n--------------------------\n";
+			std::copy(std::istream_iterator<char>(stream), std::istream_iterator<char>(), std::ostream_iterator<char>(std::cout));
+			std::cout << std::endl;
+			*userdata = new int(0);
+			return true;
+		}
+		void setup(VideoInfo vinfo, void** userdata){
+			std::cout << "CSRI - Tried to setup: " << vinfo.width << "x" << vinfo.height;
+			switch(vinfo.format){
+				case ColorType::BGR: std::cout << " BGR"; break;
+				case ColorType::BGRA: std::cout << " BGRA"; break;
+				case ColorType::BGRX: std::cout << " BGRX"; break;
+				case ColorType::UNKNOWN: std::cout << " UNKNOWN"; break;
+			}
+			std::cout << ' ' << vinfo.fps << "fps #" << vinfo.frames << std::endl;
+			*(reinterpret_cast<int*>(*userdata)) = vinfo.height;
+		}
+		void filter_frame(unsigned char* image_data, int stride, unsigned long ms, void** userdata){
+			std::cout << "CSRI - Filter on time: " << ms << "ms" << std::endl;
+			std::transform(image_data, image_data + ::abs(*(reinterpret_cast<int*>(*userdata))) * stride,
+					image_data,
+					[](unsigned char elem){return 255 - elem;});
+		}
+		void deinit(void* userdata){
+			std::cout << "CSRI - Tried to close." << std::endl;
+			delete reinterpret_cast<int*>(userdata);
+		}
+	}
+#ifdef _WIN32
 	namespace VDub{
 		void init(void**) throw(std::string){
 			std::cout << "VDub - Tried to initialize." << std::endl;
@@ -121,41 +158,6 @@ namespace FilterBase{
 		}
 		void deinit(void*){
 			std::cout << "VDub - Tried to close." << std::endl;
-		}
-	}
-	namespace CSRI{
-		bool init(const char* filename, void** userdata){
-			std::cout << "CSRI - Tried to load file: " << filename << std::endl;
-			*userdata = new int(0);
-			return true;
-		}
-		bool init(std::istream& stream, void** userdata){
-			std::cout << "### CSRI - Tried to load data ###\n--------------------------\n";
-			std::copy(std::istream_iterator<char>(stream), std::istream_iterator<char>(), std::ostream_iterator<char>(std::cout));
-			std::cout << std::endl;
-			*userdata = new int(0);
-			return true;
-		}
-		void setup(VideoInfo vinfo, void** userdata){
-			std::cout << "CSRI - Tried to setup: " << vinfo.width << "x" << vinfo.height;
-			switch(vinfo.format){
-				case ColorType::BGR: std::cout << " BGR"; break;
-				case ColorType::BGRA: std::cout << " BGRA"; break;
-				case ColorType::BGRX: std::cout << " BGRX"; break;
-				case ColorType::UNKNOWN: std::cout << " UNKNOWN"; break;
-			}
-			std::cout << ' ' << vinfo.fps << "fps #" << vinfo.frames << std::endl;
-			*(reinterpret_cast<int*>(*userdata)) = vinfo.height;
-		}
-		void filter_frame(unsigned char* image_data, int stride, unsigned long ms, void** userdata){
-			std::cout << "CSRI - Filter on time: " << ms << "ms" << std::endl;
-			std::transform(image_data, image_data + ::abs(*(reinterpret_cast<int*>(*userdata))) * stride,
-					image_data,
-					[](unsigned char elem){return 255 - elem;});
-		}
-		void deinit(void* userdata){
-			std::cout << "CSRI - Tried to close." << std::endl;
-			delete reinterpret_cast<int*>(userdata);
 		}
 	}
 	namespace MediaF{
@@ -199,4 +201,5 @@ namespace FilterBase{
 			std::cout << "MediaF - Tried to close." << std::endl;
 		}
 	}
+#endif
 }
