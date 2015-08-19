@@ -23,8 +23,6 @@ Permission is granted to anyone to use this software for any purpose, including 
 #include <mutex>
 #include <memory>
 
-extern const IID IID_IUNKNOWN;	// Found in uuid library but not in MinGW CGuid.h
-
 namespace MediaF{
 	// IUnknown deleters
 	auto iunknown_deleter = [](IUnknown* p){p->Release();};
@@ -116,7 +114,7 @@ namespace MediaF{
 			HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject) override{
 				if(!ppvObject)
 					return E_POINTER;
-				if(riid == IID_IUNKNOWN)
+				if(riid == IID_IUnknown)
 					*ppvObject = static_cast<IUnknown*>(static_cast<IMFTransform*>(this)); // Because of multiple inheritance of IUnknown, one has to be chosen
 				else if(riid == __uuidof(IMFTransform))
 					*ppvObject = static_cast<IMFTransform*>(this);
