@@ -21,6 +21,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 #include <atomic>
 #include <mutex>
 #include <memory>
+#include <Strmif.h>
 
 extern const IID IID_IUNKNOWN;	// Found in uuid library but not in MinGW CGuid.h
 
@@ -34,10 +35,11 @@ namespace MediaF{
 		GUID subtype;
 	};
 	static ImageHeader get_image_header(IMFMediaType* pmt){
-		MFVIDEOFORMAT* mvf;
-		if(SUCCEEDED(pmt->GetRepresentation(FORMAT_MFVideoFormat, reinterpret_cast<void**>(&mvf)))){
+		AM_MEDIA_TYPE* amt;
+		if(SUCCEEDED(pmt->GetRepresentation(FORMAT_MFVideoFormat, reinterpret_cast<void**>(&amt)))){
+			const MFVIDEOFORMAT* mvf = reinterpret_cast<MFVIDEOFORMAT*>(amt->pbFormat);
 			ImageHeader result = {mvf->videoInfo.dwWidth, mvf->videoInfo.dwHeight, mvf->guidFormat};
-			pmt->FreeRepresentation(FORMAT_MFVideoFormat, mvf);
+			pmt->FreeRepresentation(FORMAT_MFVideoFormat, amt);
 			return result;
 		}
 		return {0, 0, GUID_NULL};
