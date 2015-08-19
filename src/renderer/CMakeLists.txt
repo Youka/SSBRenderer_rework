@@ -25,7 +25,7 @@ target_include_directories(ssbrenderer PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 # Add library links
 set(RENDERER_LINKS ssbparser)
 if(WIN32)
-	set(RENDERER_LINKS ${RENDERER_LINKS} mfuuid strmiids mfplat mf evr)
+	set(RENDERER_LINKS ${RENDERER_LINKS} mfuuid mfplat)
 endif()
 target_link_libraries(ssbrenderer ${RENDERER_LINKS})
 

@@ -13,7 +13,7 @@ if(${TEST_PLUGINS})
 	# Create color inversion plugin
 	add_library(ssbplugins_invert SHARED tests/invert.cpp $<TARGET_OBJECTS:ssbplugins>)
 	if(WIN32)
-		target_link_libraries(ssbplugins_invert mfuuid strmiids mfplat mf evr)
+		target_link_libraries(ssbplugins_invert mfuuid mfplat)
 	endif()
 	# Create CSRI test
 	add_executable(ssbplugins_csri_host tests/csri_host.cpp)
