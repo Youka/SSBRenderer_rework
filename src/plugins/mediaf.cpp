@@ -65,8 +65,8 @@ class MyFilter : public IMFTransform, public IMyFilterConfig{
 		// Any MyFilter instance is still locked?
 		static bool active_instances(){return instances_n != 0;}
 		// Ctors&assignment
-		MyFilter() : refcount(1), input(nullptr, iunknown_deleter), output(nullptr, iunknown_deleter), sample(nullptr, iunknown_deleter){
-			++instances_n,
+		MyFilter() throw(std::string) : refcount(1), input(nullptr, iunknown_deleter), output(nullptr, iunknown_deleter), sample(nullptr, iunknown_deleter){
+			++instances_n;
 			FilterBase::MediaF::init(static_cast<FilterBase::MediaF::IFilterConfig*>(this));
 		}
 		MyFilter(const MyFilter&) = delete;
@@ -357,7 +357,12 @@ class MyFilter : public IMFTransform, public IMyFilterConfig{
 							ct = FilterBase::ColorType::BGRX;
 						else // image_header.subtype == MFVideoFormat_ARGB32
 							ct = FilterBase::ColorType::BGRA;
-						FilterBase::MediaF::start({static_cast<int>(image_header.width), static_cast<int>(image_header.height), ct, 0, 0}, static_cast<FilterBase::MediaF::IFilterConfig*>(this));
+						try{
+							FilterBase::MediaF::start({static_cast<int>(image_header.width), static_cast<int>(image_header.height), ct, 0, 0}, static_cast<FilterBase::MediaF::IFilterConfig*>(this));
+						}catch(std::string message){
+							MessageBoxA(NULL, message.c_str(), FilterBase::get_name(), MB_OK);
+							return E_UNEXPECTED;
+						}
 					}
 					break;
 				case MFT_MESSAGE_NOTIFY_END_STREAMING:
@@ -401,11 +406,8 @@ class MyFilter : public IMFTransform, public IMyFilterConfig{
 			if(!this->sample)
 				return MF_E_TRANSFORM_NEED_MORE_INPUT;
 			// Get sample data
-			std::unique_ptr<IMFMediaBuffer, std::function<void(IUnknown* p)>> sample_in(nullptr, iunknown_deleter), sample_out(nullptr, iunknown_deleter);
-
 
 			// TODO
-
 
 			return S_OK;
 		}
@@ -526,10 +528,14 @@ STDAPI __declspec(dllexport) DllCanUnloadNow(){
 
 STDAPI __declspec(dllexport) DllGetClassObject(REFCLSID clsid, REFIID riid, void** ppv){
 	IUnknown* inst;
-	if(clsid == *FilterBase::get_filter_guid() && (inst = static_cast<IUnknown*>(static_cast<IMFTransform*>(new MyFilter)))){
-		HRESULT status = inst->QueryInterface(riid, ppv);
-		inst->Release();
-		return status;
+	try{
+		if(clsid == *FilterBase::get_filter_guid() && (inst = static_cast<IUnknown*>(static_cast<IMFTransform*>(new MyFilter)))){
+			HRESULT status = inst->QueryInterface(riid, ppv);
+			inst->Release();
+			return status;
+		}
+	}catch(std::string message){
+		MessageBoxA(NULL, message.c_str(), FilterBase::get_name(), MB_OK);
 	}
 	return E_NOINTERFACE;
 }
