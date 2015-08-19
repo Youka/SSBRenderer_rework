@@ -328,30 +328,43 @@ namespace FilterBase{
 		}
 	}
 	namespace MediaF{
+		struct Userdata{
+			std::string script;
+			bool warnings;
+			std::unique_ptr<SSB::Renderer> renderer;
+		};
 		void init(IFilterConfig* config) throw(std::string){
-
-			// TODO
-
+			*config->LockData() = new Userdata{"", true, nullptr};
+			config->UnlockData();
 		}
 		void start(VideoInfo vinfo, IFilterConfig* config) throw(std::string){
-
-			// TODO
-
+			Userdata* myuserdata = reinterpret_cast<Userdata*>(*config->LockData());
+			SSB::Renderer::Colorspace color_space;
+			switch(vinfo.format){
+				case ColorType::BGRX: color_space = SSB::Renderer::Colorspace::BGRX; break;
+				case ColorType::BGR:
+				case ColorType::BGRA:
+				case ColorType::UNKNOWN:
+				default: throw std::string("Invalid color format");	// Should never happen
+			}
+			try{
+				myuserdata->renderer.reset(new SSB::Renderer(vinfo.width, vinfo.height, color_space, myuserdata->script, myuserdata->warnings));
+			}catch(SSB::Exception e){
+				config->UnlockData();
+				throw std::string(e.what());
+			}
+			config->UnlockData();
 		}
-		void filter_frame(unsigned char* image_data, int stride, unsigned long start_ms, unsigned long end_ms, IFilterConfig* config){
-
-			// TODO
-
+		void filter_frame(unsigned char* image_data, int stride, unsigned long start_ms, unsigned long, IFilterConfig* config){
+			reinterpret_cast<Userdata*>(*config->LockData())->renderer->render(image_data, stride, start_ms);
 		}
 		void end(IFilterConfig* config){
-
-			// TODO
-
+			reinterpret_cast<Userdata*>(*config->LockData())->renderer.reset();
+			config->UnlockData();
 		}
 		void deinit(IFilterConfig* config){
-
-			// TODO
-
+			delete reinterpret_cast<Userdata*>(*config->LockData());
+			config->UnlockData();
 		}
 	}
 #endif

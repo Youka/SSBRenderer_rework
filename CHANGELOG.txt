@@ -1,4 +1,3 @@
 TODO:
-- Plugin interfaces (Media Foundation)
 - Glyph caching (Font: text -> glyphs)
 - Renderer backends (Hardware: OpenGL+CGAL; Software: Cairo)
