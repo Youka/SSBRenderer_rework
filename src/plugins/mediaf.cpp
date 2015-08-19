@@ -24,427 +24,429 @@ Permission is granted to anyone to use this software for any purpose, including 
 
 extern const IID IID_IUNKNOWN;	// Found in uuid library but not in MinGW CGuid.h
 
-// IUnknown deleters
-auto iunknown_deleter = [](IUnknown* p){p->Release();};
-auto imfmediabuffer_deleter = [](IMFMediaBuffer* p){p->Unlock(); p->Release();};
-// Extracts image meta informations from MediaType
-struct ImageHeader{
-	DWORD width, height;
-	GUID subtype;
-};
-static ImageHeader get_image_header(IMFMediaType* pmt){
-	MFVIDEOFORMAT* mvf;
-	if(SUCCEEDED(pmt->GetRepresentation(FORMAT_MFVideoFormat, reinterpret_cast<void**>(&mvf)))){
-		ImageHeader result = {mvf->videoInfo.dwWidth, mvf->videoInfo.dwHeight, mvf->guidFormat};
-		pmt->FreeRepresentation(FORMAT_MFVideoFormat, mvf);
-		return result;
+namespace MediaF{
+	// IUnknown deleters
+	auto iunknown_deleter = [](IUnknown* p){p->Release();};
+	auto imfmediabuffer_deleter = [](IMFMediaBuffer* p){p->Unlock(); p->Release();};
+	// Extracts image meta informations from MediaType
+	struct ImageHeader{
+		DWORD width, height;
+		GUID subtype;
+	};
+	static ImageHeader get_image_header(IMFMediaType* pmt){
+		MFVIDEOFORMAT* mvf;
+		if(SUCCEEDED(pmt->GetRepresentation(FORMAT_MFVideoFormat, reinterpret_cast<void**>(&mvf)))){
+			ImageHeader result = {mvf->videoInfo.dwWidth, mvf->videoInfo.dwHeight, mvf->guidFormat};
+			pmt->FreeRepresentation(FORMAT_MFVideoFormat, mvf);
+			return result;
+		}
+		return {0, 0, GUID_NULL};
 	}
-	return {0, 0, GUID_NULL};
-}
 
-// Filter configuration interface
-struct IMyFilterConfig : public FilterBase::MediaF::IFilterConfig, public IUnknown{};
+	// Filter configuration interface
+	struct IMyFilterConfig : public FilterBase::MediaF::IFilterConfig, public IUnknown{};
 
-// Filter class
-class MyFilter : public IMFTransform, public IMyFilterConfig{
-	private:
-		// Number of active MyFilter instances
-		static std::atomic_uint instances_n; // Member-initialization not allowed...
-		// Instance references counter
-		std::atomic_ulong refcount;
-		// Instance userdata & video format
-		void *userdata = nullptr;
-		std::unique_ptr<IMFMediaType, std::function<void(IUnknown*)>> input, output;
-                std::unique_ptr<IMFSample, std::function<void(IUnknown*)>> sample;
-		std::mutex mutex;
-		// Destruction of COM object by IUnknown instance->Release
-		virtual ~MyFilter(){
-			FilterBase::MediaF::deinit(static_cast<FilterBase::MediaF::IFilterConfig*>(this)),
-			--instances_n;
-		}
-	public:
-		// Any MyFilter instance is still locked?
-		static bool active_instances(){return instances_n != 0;}
-		// Ctors&assignment
-		MyFilter() throw(std::string) : refcount(1), input(nullptr, iunknown_deleter), output(nullptr, iunknown_deleter), sample(nullptr, iunknown_deleter){
-			++instances_n;
-			FilterBase::MediaF::init(static_cast<FilterBase::MediaF::IFilterConfig*>(this));
-		}
-		MyFilter(const MyFilter&) = delete;
-		MyFilter(MyFilter&&) = delete;
-		MyFilter& operator=(const MyFilter&) = delete;
-		MyFilter& operator=(MyFilter&&) = delete;
-		// IUnknown implementation
-		HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject) override{
-			if(!ppvObject)
-				return E_POINTER;
-			if(riid == IID_IUNKNOWN)
-				*ppvObject = static_cast<IUnknown*>(static_cast<IMFTransform*>(this)); // Because of multiple inheritance of IUnknown, one has to be chosen
-			else if(riid == __uuidof(IMFTransform))
-				*ppvObject = static_cast<IMFTransform*>(this);
-			else if(riid == *FilterBase::get_filter_guid())
-				*ppvObject = this;
-			else if(riid == *FilterBase::get_filter_config_guid())
-				*ppvObject = static_cast<IMyFilterConfig*>(this);
-			else{
-				*ppvObject = NULL;
-				return E_NOINTERFACE;
+	// Filter class
+	class MyFilter : public IMFTransform, public IMyFilterConfig{
+		private:
+			// Number of active MyFilter instances
+			static std::atomic_uint instances_n; // Member-initialization not allowed...
+			// Instance references counter
+			std::atomic_ulong refcount;
+			// Instance userdata & video format
+			void *userdata = nullptr;
+			std::unique_ptr<IMFMediaType, std::function<void(IUnknown*)>> input, output;
+			std::unique_ptr<IMFSample, std::function<void(IUnknown*)>> sample;
+			std::mutex userdata_mutex, transform_mutex;
+			// Destruction of COM object by IUnknown instance->Release
+			virtual ~MyFilter(){
+				FilterBase::MediaF::deinit(static_cast<FilterBase::MediaF::IFilterConfig*>(this)),
+				--instances_n;
 			}
-			this->AddRef();
-			return S_OK;
-		}
-		ULONG STDMETHODCALLTYPE AddRef(void) override{
-			return ++this->refcount;
-		}
-		ULONG STDMETHODCALLTYPE Release(void) override{
-			ULONG count = --this->refcount;
-			if(count == 0)
-				delete this;
-			return count;
-		}
-		// IMyFilterConfig implementation
-		void** LockData() override{
-			this->mutex.lock();
-			return &this->userdata;
-		}
-		void UnlockData() override{
-			this->mutex.unlock();
-		}
-		void* GetData() override{
-			return this->userdata;
-		}
-		// IMFTransform implementation
-		HRESULT STDMETHODCALLTYPE GetStreamLimits(DWORD *pdwInputMinimum, DWORD *pdwInputMaximum, DWORD *pdwOutputMinimum, DWORD *pdwOutputMaximum) override{
-			if(!pdwInputMinimum || !pdwInputMaximum || !pdwOutputMinimum || !pdwOutputMaximum)
-				return E_POINTER;
-			*pdwInputMinimum = *pdwInputMaximum = *pdwOutputMinimum = *pdwOutputMaximum = 1;
-			return S_OK;
-		}
-		HRESULT STDMETHODCALLTYPE GetStreamCount(DWORD *pcInputStreams, DWORD *pcOutputStreams) override{
-			if(!pcInputStreams || !pcOutputStreams)
-				return E_POINTER;
-			*pcInputStreams = *pcOutputStreams = 1;
-			return S_OK;
-		}
-		HRESULT STDMETHODCALLTYPE GetStreamIDs(DWORD, DWORD *, DWORD, DWORD *) override{
-			return E_NOTIMPL; // Fixed number of streams, so ID==INDEX
-		}
-		HRESULT STDMETHODCALLTYPE GetInputStreamInfo(DWORD dwInputStreamID, MFT_INPUT_STREAM_INFO *pStreamInfo) override{
-			if(!pStreamInfo)
-				return E_POINTER;
-			if(dwInputStreamID != 0) // Just one input stream
-				return MF_E_INVALIDSTREAMNUMBER;
-			std::unique_lock<std::mutex>(this->mutex);
-			pStreamInfo->hnsMaxLatency = 0, // No time difference between input&output sample
-			pStreamInfo->dwFlags = MFT_INPUT_STREAM_WHOLE_SAMPLES | MFT_INPUT_STREAM_SINGLE_SAMPLE_PER_BUFFER | MFT_INPUT_STREAM_FIXED_SAMPLE_SIZE,
-			pStreamInfo->cbMaxLookahead = 0, // No holding data to look
-			pStreamInfo->cbAlignment = 0; // No special alignment requirements
-			if(this->input){
-				auto image_header = get_image_header(this->input.get());
-				pStreamInfo->cbSize = image_header.width * image_header.height * (image_header.subtype == MFVideoFormat_RGB24 ? 3 : 4);
-			}else
-				pStreamInfo->cbSize = 0;
-			return S_OK;
-		}
-		HRESULT STDMETHODCALLTYPE GetOutputStreamInfo(DWORD dwOutputStreamID, MFT_OUTPUT_STREAM_INFO *pStreamInfo) override{
-			if(!pStreamInfo)
-				return E_POINTER;
-			if(dwOutputStreamID != 0) // Just one output stream
-				return MF_E_INVALIDSTREAMNUMBER;
-			std::unique_lock<std::mutex>(this->mutex);
-			pStreamInfo->dwFlags = MFT_OUTPUT_STREAM_WHOLE_SAMPLES | MFT_OUTPUT_STREAM_SINGLE_SAMPLE_PER_BUFFER | MFT_OUTPUT_STREAM_FIXED_SAMPLE_SIZE,
-			pStreamInfo->cbAlignment = 0;
-			if(this->output){
-				auto image_header = get_image_header(this->output.get());
-				pStreamInfo->cbSize = image_header.width * image_header.height * (image_header.subtype == MFVideoFormat_RGB24 ? 3 : 4);
-			}else
-				pStreamInfo->cbSize = 0;
-			return S_OK;
-		}
-		HRESULT STDMETHODCALLTYPE GetAttributes(IMFAttributes **) override{
-			return E_NOTIMPL; // No attributes
-		}
-		HRESULT STDMETHODCALLTYPE GetInputStreamAttributes(DWORD, IMFAttributes **) override{
-			return E_NOTIMPL; // No attributes
-		}
-		HRESULT STDMETHODCALLTYPE GetOutputStreamAttributes(DWORD, IMFAttributes **) override{
-			return E_NOTIMPL; // No attributes
-		}
-		HRESULT STDMETHODCALLTYPE DeleteInputStream(DWORD) override{
-			return E_NOTIMPL; // One default input stream, no change
-		}
-		HRESULT STDMETHODCALLTYPE AddInputStreams(DWORD, DWORD *) override{
-			return E_NOTIMPL; // One default input stream, no change
-		}
-		HRESULT STDMETHODCALLTYPE GetInputAvailableType(DWORD dwInputStreamID, DWORD dwTypeIndex, IMFMediaType **ppType) override{
-			if(!ppType)
-				return E_POINTER;
-			if(dwInputStreamID != 0)
-				return MF_E_INVALIDSTREAMNUMBER;
-			std::unique_lock<std::mutex>(this->mutex);
-			// Accept already given output type or RGB type
-			if(this->output){
-				if(dwTypeIndex > 0)
-					return MF_E_NO_MORE_TYPES;
-				*ppType = this->output.get(),
-				this->output->AddRef();
-				return S_OK;
-			}else{
-				if(dwTypeIndex > 2)
-					return MF_E_NO_MORE_TYPES;
-				IMFMediaType* pmt;
-				HRESULT status = MFCreateMediaType(&pmt);
-				if(SUCCEEDED(status)){
-					static const GUID subtypes[] = {MFVideoFormat_RGB24, MFVideoFormat_RGB32, MFVideoFormat_ARGB32};
-					pmt->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Video),
-					pmt->SetGUID(MF_MT_SUBTYPE, subtypes[dwTypeIndex]);
+		public:
+			// Any MyFilter instance is still locked?
+			static bool active_instances(){return instances_n != 0;}
+			// Ctors&assignment
+			MyFilter() throw(std::string) : refcount(1), input(nullptr, iunknown_deleter), output(nullptr, iunknown_deleter), sample(nullptr, iunknown_deleter){
+				++instances_n;
+				FilterBase::MediaF::init(static_cast<FilterBase::MediaF::IFilterConfig*>(this));
+			}
+			MyFilter(const MyFilter&) = delete;
+			MyFilter(MyFilter&&) = delete;
+			MyFilter& operator=(const MyFilter&) = delete;
+			MyFilter& operator=(MyFilter&&) = delete;
+			// IUnknown implementation
+			HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject) override{
+				if(!ppvObject)
+					return E_POINTER;
+				if(riid == IID_IUNKNOWN)
+					*ppvObject = static_cast<IUnknown*>(static_cast<IMFTransform*>(this)); // Because of multiple inheritance of IUnknown, one has to be chosen
+				else if(riid == __uuidof(IMFTransform))
+					*ppvObject = static_cast<IMFTransform*>(this);
+				else if(riid == *FilterBase::get_filter_guid())
+					*ppvObject = this;
+				else if(riid == *FilterBase::get_filter_config_guid())
+					*ppvObject = static_cast<IMyFilterConfig*>(this);
+				else{
+					*ppvObject = NULL;
+					return E_NOINTERFACE;
 				}
-				return status;
+				this->AddRef();
+				return S_OK;
 			}
-		}
-		HRESULT STDMETHODCALLTYPE GetOutputAvailableType(DWORD dwOutputStreamID, DWORD dwTypeIndex, IMFMediaType **ppType) override{
-			if(!ppType)
-				return E_POINTER;
-			if(dwOutputStreamID != 0)
-				return MF_E_INVALIDSTREAMNUMBER;
-			std::unique_lock<std::mutex>(this->mutex);
-			// Accept already given input type or RGB type
-			if(this->input){
-				if(dwTypeIndex > 0)
-					return MF_E_NO_MORE_TYPES;
+			ULONG STDMETHODCALLTYPE AddRef(void) override{
+				return ++this->refcount;
+			}
+			ULONG STDMETHODCALLTYPE Release(void) override{
+				ULONG count = --this->refcount;
+				if(count == 0)
+					delete this;
+				return count;
+			}
+			// IMyFilterConfig implementation
+			void** LockData() override{
+				this->userdata_mutex.lock();
+				return &this->userdata;
+			}
+			void UnlockData() override{
+				this->userdata_mutex.unlock();
+			}
+			void* GetData() override{
+				return this->userdata;
+			}
+			// IMFTransform implementation
+			HRESULT STDMETHODCALLTYPE GetStreamLimits(DWORD *pdwInputMinimum, DWORD *pdwInputMaximum, DWORD *pdwOutputMinimum, DWORD *pdwOutputMaximum) override{
+				if(!pdwInputMinimum || !pdwInputMaximum || !pdwOutputMinimum || !pdwOutputMaximum)
+					return E_POINTER;
+				*pdwInputMinimum = *pdwInputMaximum = *pdwOutputMinimum = *pdwOutputMaximum = 1;
+				return S_OK;
+			}
+			HRESULT STDMETHODCALLTYPE GetStreamCount(DWORD *pcInputStreams, DWORD *pcOutputStreams) override{
+				if(!pcInputStreams || !pcOutputStreams)
+					return E_POINTER;
+				*pcInputStreams = *pcOutputStreams = 1;
+				return S_OK;
+			}
+			HRESULT STDMETHODCALLTYPE GetStreamIDs(DWORD, DWORD *, DWORD, DWORD *) override{
+				return E_NOTIMPL; // Fixed number of streams, so ID==INDEX
+			}
+			HRESULT STDMETHODCALLTYPE GetInputStreamInfo(DWORD dwInputStreamID, MFT_INPUT_STREAM_INFO *pStreamInfo) override{
+				if(!pStreamInfo)
+					return E_POINTER;
+				if(dwInputStreamID != 0) // Just one input stream
+					return MF_E_INVALIDSTREAMNUMBER;
+				std::unique_lock<std::mutex>(this->transform_mutex);
+				pStreamInfo->hnsMaxLatency = 0, // No time difference between input&output sample
+				pStreamInfo->dwFlags = MFT_INPUT_STREAM_WHOLE_SAMPLES | MFT_INPUT_STREAM_SINGLE_SAMPLE_PER_BUFFER | MFT_INPUT_STREAM_FIXED_SAMPLE_SIZE,
+				pStreamInfo->cbMaxLookahead = 0, // No holding data to look
+				pStreamInfo->cbAlignment = 0; // No special alignment requirements
+				if(this->input){
+					auto image_header = get_image_header(this->input.get());
+					pStreamInfo->cbSize = image_header.width * image_header.height * (image_header.subtype == MFVideoFormat_RGB24 ? 3 : 4);
+				}else
+					pStreamInfo->cbSize = 0;
+				return S_OK;
+			}
+			HRESULT STDMETHODCALLTYPE GetOutputStreamInfo(DWORD dwOutputStreamID, MFT_OUTPUT_STREAM_INFO *pStreamInfo) override{
+				if(!pStreamInfo)
+					return E_POINTER;
+				if(dwOutputStreamID != 0) // Just one output stream
+					return MF_E_INVALIDSTREAMNUMBER;
+				std::unique_lock<std::mutex>(this->transform_mutex);
+				pStreamInfo->dwFlags = MFT_OUTPUT_STREAM_WHOLE_SAMPLES | MFT_OUTPUT_STREAM_SINGLE_SAMPLE_PER_BUFFER | MFT_OUTPUT_STREAM_FIXED_SAMPLE_SIZE,
+				pStreamInfo->cbAlignment = 0;
+				if(this->output){
+					auto image_header = get_image_header(this->output.get());
+					pStreamInfo->cbSize = image_header.width * image_header.height * (image_header.subtype == MFVideoFormat_RGB24 ? 3 : 4);
+				}else
+					pStreamInfo->cbSize = 0;
+				return S_OK;
+			}
+			HRESULT STDMETHODCALLTYPE GetAttributes(IMFAttributes **) override{
+				return E_NOTIMPL; // No attributes
+			}
+			HRESULT STDMETHODCALLTYPE GetInputStreamAttributes(DWORD, IMFAttributes **) override{
+				return E_NOTIMPL; // No attributes
+			}
+			HRESULT STDMETHODCALLTYPE GetOutputStreamAttributes(DWORD, IMFAttributes **) override{
+				return E_NOTIMPL; // No attributes
+			}
+			HRESULT STDMETHODCALLTYPE DeleteInputStream(DWORD) override{
+				return E_NOTIMPL; // One default input stream, no change
+			}
+			HRESULT STDMETHODCALLTYPE AddInputStreams(DWORD, DWORD *) override{
+				return E_NOTIMPL; // One default input stream, no change
+			}
+			HRESULT STDMETHODCALLTYPE GetInputAvailableType(DWORD dwInputStreamID, DWORD dwTypeIndex, IMFMediaType **ppType) override{
+				if(!ppType)
+					return E_POINTER;
+				if(dwInputStreamID != 0)
+					return MF_E_INVALIDSTREAMNUMBER;
+				std::unique_lock<std::mutex>(this->transform_mutex);
+				// Accept already given output type or RGB type
+				if(this->output){
+					if(dwTypeIndex > 0)
+						return MF_E_NO_MORE_TYPES;
+					*ppType = this->output.get(),
+					this->output->AddRef();
+					return S_OK;
+				}else{
+					if(dwTypeIndex > 2)
+						return MF_E_NO_MORE_TYPES;
+					IMFMediaType* pmt;
+					HRESULT status = MFCreateMediaType(&pmt);
+					if(SUCCEEDED(status)){
+						static const GUID subtypes[] = {MFVideoFormat_RGB24, MFVideoFormat_RGB32, MFVideoFormat_ARGB32};
+						pmt->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Video),
+						pmt->SetGUID(MF_MT_SUBTYPE, subtypes[dwTypeIndex]);
+					}
+					return status;
+				}
+			}
+			HRESULT STDMETHODCALLTYPE GetOutputAvailableType(DWORD dwOutputStreamID, DWORD dwTypeIndex, IMFMediaType **ppType) override{
+				if(!ppType)
+					return E_POINTER;
+				if(dwOutputStreamID != 0)
+					return MF_E_INVALIDSTREAMNUMBER;
+				std::unique_lock<std::mutex>(this->transform_mutex);
+				// Accept already given input type or RGB type
+				if(this->input){
+					if(dwTypeIndex > 0)
+						return MF_E_NO_MORE_TYPES;
+					*ppType = this->input.get(),
+					this->input->AddRef();
+					return S_OK;
+				}else{
+					if(dwTypeIndex > 2)
+						return MF_E_NO_MORE_TYPES;
+					IMFMediaType* pmt;
+					HRESULT status = MFCreateMediaType(&pmt);
+					if(SUCCEEDED(status)){
+						static const GUID subtypes[] = {MFVideoFormat_RGB24, MFVideoFormat_RGB32, MFVideoFormat_ARGB32};
+						pmt->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Video),
+						pmt->SetGUID(MF_MT_SUBTYPE, subtypes[dwTypeIndex]);
+					}
+					return status;
+				}
+				return S_OK;
+			}
+			HRESULT STDMETHODCALLTYPE SetInputType(DWORD dwInputStreamID, IMFMediaType *pType, DWORD dwFlags) override{
+				if(dwInputStreamID != 0)
+					return MF_E_INVALIDSTREAMNUMBER;
+				if(dwFlags & ~MFT_SET_TYPE_TEST_ONLY)
+					return E_INVALIDARG;
+				std::unique_lock<std::mutex>(this->transform_mutex);
+				// Pending sample operation?
+				if(this->sample)
+					return MF_E_TRANSFORM_CANNOT_CHANGE_MEDIATYPE_WHILE_PROCESSING;
+				// Valid type?
+				if(this->output){
+					DWORD flag;
+					if(!SUCCEEDED(pType->IsEqual(this->output.get(), &flag)) || flag != S_OK)
+						return MF_E_INVALIDMEDIATYPE;
+				}else{
+					GUID guid;
+					MFVideoInterlaceMode interlace;
+					if(!SUCCEEDED(pType->GetGUID(MF_MT_MAJOR_TYPE, &guid)) ||
+						guid != MFMediaType_Video ||
+						!SUCCEEDED(pType->GetGUID(MF_MT_SUBTYPE, &guid)) ||
+						(guid != MFVideoFormat_RGB24 && guid != MFVideoFormat_RGB32 && guid != MFVideoFormat_ARGB32) ||
+						!SUCCEEDED(pType->GetUINT32(MF_MT_INTERLACE_MODE, reinterpret_cast<UINT32*>(&interlace))) ||
+						interlace != MFVideoInterlace_Progressive)
+						return MF_E_INVALIDMEDIATYPE;
+				}
+				// Set when no test
+				if(!(dwFlags & MFT_SET_TYPE_TEST_ONLY))
+					this->input.reset(pType),
+					pType->AddRef();
+				return S_OK;
+			}
+			HRESULT STDMETHODCALLTYPE SetOutputType(DWORD dwOutputStreamID, IMFMediaType *pType, DWORD dwFlags) override{
+				if(dwOutputStreamID != 0)
+					return MF_E_INVALIDSTREAMNUMBER;
+				if(dwFlags & ~MFT_SET_TYPE_TEST_ONLY)
+					return E_INVALIDARG;
+				std::unique_lock<std::mutex>(this->transform_mutex);
+				// Pending sample operation?
+				if(this->sample)
+					return MF_E_TRANSFORM_CANNOT_CHANGE_MEDIATYPE_WHILE_PROCESSING;
+				// Valid type?
+				if(this->input){
+					DWORD flag;
+					if(!SUCCEEDED(pType->IsEqual(this->input.get(), &flag)) || flag != S_OK)
+						return MF_E_INVALIDMEDIATYPE;
+				}else{
+					GUID guid;
+					MFVideoInterlaceMode interlace;
+					if(!SUCCEEDED(pType->GetGUID(MF_MT_MAJOR_TYPE, &guid)) ||
+						guid != MFMediaType_Video ||
+						!SUCCEEDED(pType->GetGUID(MF_MT_SUBTYPE, &guid)) ||
+						(guid != MFVideoFormat_RGB24 && guid != MFVideoFormat_RGB32 && guid != MFVideoFormat_ARGB32) ||
+						!SUCCEEDED(pType->GetUINT32(MF_MT_INTERLACE_MODE, reinterpret_cast<UINT32*>(&interlace))) ||
+						interlace != MFVideoInterlace_Progressive)
+						return MF_E_INVALIDMEDIATYPE;
+				}
+				// Set when no test
+				if(!(dwFlags & MFT_SET_TYPE_TEST_ONLY))
+					this->output.reset(pType),
+					pType->AddRef();
+				return S_OK;
+			}
+			HRESULT STDMETHODCALLTYPE GetInputCurrentType(DWORD dwInputStreamID, IMFMediaType **ppType) override{
+				if(!ppType)
+					return E_POINTER;
+				if(dwInputStreamID != 0)
+					return MF_E_INVALIDSTREAMNUMBER;
+				std::unique_lock<std::mutex>(this->transform_mutex);
+				if(!this->input)
+					return MF_E_TRANSFORM_TYPE_NOT_SET;
 				*ppType = this->input.get(),
 				this->input->AddRef();
 				return S_OK;
-			}else{
-				if(dwTypeIndex > 2)
-					return MF_E_NO_MORE_TYPES;
-				IMFMediaType* pmt;
-				HRESULT status = MFCreateMediaType(&pmt);
-				if(SUCCEEDED(status)){
-					static const GUID subtypes[] = {MFVideoFormat_RGB24, MFVideoFormat_RGB32, MFVideoFormat_ARGB32};
-					pmt->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Video),
-					pmt->SetGUID(MF_MT_SUBTYPE, subtypes[dwTypeIndex]);
-				}
-				return status;
 			}
-			return S_OK;
-		}
-		HRESULT STDMETHODCALLTYPE SetInputType(DWORD dwInputStreamID, IMFMediaType *pType, DWORD dwFlags) override{
-			if(dwInputStreamID != 0)
-				return MF_E_INVALIDSTREAMNUMBER;
-			if(dwFlags & ~MFT_SET_TYPE_TEST_ONLY)
-				return E_INVALIDARG;
-			std::unique_lock<std::mutex>(this->mutex);
-			// Pending sample operation?
-			if(this->sample)
-				return MF_E_TRANSFORM_CANNOT_CHANGE_MEDIATYPE_WHILE_PROCESSING;
-			// Valid type?
-			if(this->output){
-				DWORD flag;
-				if(!SUCCEEDED(pType->IsEqual(this->output.get(), &flag)) || flag != S_OK)
-					return MF_E_INVALIDMEDIATYPE;
-			}else{
-				GUID guid;
-				MFVideoInterlaceMode interlace;
-				if(!SUCCEEDED(pType->GetGUID(MF_MT_MAJOR_TYPE, &guid)) ||
-					guid != MFMediaType_Video ||
-					!SUCCEEDED(pType->GetGUID(MF_MT_SUBTYPE, &guid)) ||
-					(guid != MFVideoFormat_RGB24 && guid != MFVideoFormat_RGB32 && guid != MFVideoFormat_ARGB32) ||
-					!SUCCEEDED(pType->GetUINT32(MF_MT_INTERLACE_MODE, reinterpret_cast<UINT32*>(&interlace))) ||
-					interlace != MFVideoInterlace_Progressive)
-					return MF_E_INVALIDMEDIATYPE;
+			HRESULT STDMETHODCALLTYPE GetOutputCurrentType(DWORD dwOutputStreamID, IMFMediaType **ppType) override{
+				if(!ppType)
+					return E_POINTER;
+				if(dwOutputStreamID != 0)
+					return MF_E_INVALIDSTREAMNUMBER;
+				std::unique_lock<std::mutex>(this->transform_mutex);
+				if(!this->output)
+					return MF_E_TRANSFORM_TYPE_NOT_SET;
+				*ppType = this->output.get(),
+				this->output->AddRef();
+				return S_OK;
 			}
-			// Set when no test
-			if(!(dwFlags & MFT_SET_TYPE_TEST_ONLY))
-				this->input.reset(pType),
-				pType->AddRef();
-			return S_OK;
-		}
-		HRESULT STDMETHODCALLTYPE SetOutputType(DWORD dwOutputStreamID, IMFMediaType *pType, DWORD dwFlags) override{
-			if(dwOutputStreamID != 0)
-				return MF_E_INVALIDSTREAMNUMBER;
-			if(dwFlags & ~MFT_SET_TYPE_TEST_ONLY)
-				return E_INVALIDARG;
-			std::unique_lock<std::mutex>(this->mutex);
-			// Pending sample operation?
-			if(this->sample)
-				return MF_E_TRANSFORM_CANNOT_CHANGE_MEDIATYPE_WHILE_PROCESSING;
-			// Valid type?
-			if(this->input){
-				DWORD flag;
-				if(!SUCCEEDED(pType->IsEqual(this->input.get(), &flag)) || flag != S_OK)
-					return MF_E_INVALIDMEDIATYPE;
-			}else{
-				GUID guid;
-				MFVideoInterlaceMode interlace;
-				if(!SUCCEEDED(pType->GetGUID(MF_MT_MAJOR_TYPE, &guid)) ||
-					guid != MFMediaType_Video ||
-					!SUCCEEDED(pType->GetGUID(MF_MT_SUBTYPE, &guid)) ||
-					(guid != MFVideoFormat_RGB24 && guid != MFVideoFormat_RGB32 && guid != MFVideoFormat_ARGB32) ||
-					!SUCCEEDED(pType->GetUINT32(MF_MT_INTERLACE_MODE, reinterpret_cast<UINT32*>(&interlace))) ||
-					interlace != MFVideoInterlace_Progressive)
-					return MF_E_INVALIDMEDIATYPE;
+			HRESULT STDMETHODCALLTYPE GetInputStatus(DWORD dwInputStreamID, DWORD *pdwFlags) override{
+				if(!pdwFlags)
+					return E_POINTER;
+				if(dwInputStreamID != 0)
+					return MF_E_INVALIDSTREAMNUMBER;
+				std::unique_lock<std::mutex>(this->transform_mutex);
+				*pdwFlags = !this->sample ? MFT_INPUT_STATUS_ACCEPT_DATA : 0x0;
+				return S_OK;
 			}
-			// Set when no test
-			if(!(dwFlags & MFT_SET_TYPE_TEST_ONLY))
-				this->output.reset(pType),
-				pType->AddRef();
-			return S_OK;
-		}
-		HRESULT STDMETHODCALLTYPE GetInputCurrentType(DWORD dwInputStreamID, IMFMediaType **ppType) override{
-			if(!ppType)
-				return E_POINTER;
-			if(dwInputStreamID != 0)
-				return MF_E_INVALIDSTREAMNUMBER;
-			std::unique_lock<std::mutex>(this->mutex);
-			if(!this->input)
-				return MF_E_TRANSFORM_TYPE_NOT_SET;
-			*ppType = this->input.get(),
-			this->input->AddRef();
-			return S_OK;
-		}
-		HRESULT STDMETHODCALLTYPE GetOutputCurrentType(DWORD dwOutputStreamID, IMFMediaType **ppType) override{
-			if(!ppType)
-				return E_POINTER;
-			if(dwOutputStreamID != 0)
-				return MF_E_INVALIDSTREAMNUMBER;
-			std::unique_lock<std::mutex>(this->mutex);
-			if(!this->output)
-				return MF_E_TRANSFORM_TYPE_NOT_SET;
-			*ppType = this->output.get(),
-			this->output->AddRef();
-			return S_OK;
-		}
-		HRESULT STDMETHODCALLTYPE GetInputStatus(DWORD dwInputStreamID, DWORD *pdwFlags) override{
-			if(!pdwFlags)
-				return E_POINTER;
-			if(dwInputStreamID != 0)
-				return MF_E_INVALIDSTREAMNUMBER;
-			std::unique_lock<std::mutex>(this->mutex);
-			*pdwFlags = !this->sample ? MFT_INPUT_STATUS_ACCEPT_DATA : 0x0;
-			return S_OK;
-		}
-		HRESULT STDMETHODCALLTYPE GetOutputStatus(DWORD *pdwFlags) override{
-			if(!pdwFlags)
-				return E_POINTER;
-			std::unique_lock<std::mutex>(this->mutex);
-			*pdwFlags = this->sample ? MFT_OUTPUT_STATUS_SAMPLE_READY : 0x0;
-			return S_OK;
-		}
-		HRESULT STDMETHODCALLTYPE SetOutputBounds(LONGLONG, LONGLONG) override{
-			return E_NOTIMPL; // Optional informations
-		}
-		HRESULT STDMETHODCALLTYPE ProcessEvent(DWORD, IMFMediaEvent *) override{
-			return E_NOTIMPL; // Not event processing
-		}
-		HRESULT STDMETHODCALLTYPE ProcessMessage(MFT_MESSAGE_TYPE eMessage, ULONG_PTR) override{
-			std::unique_lock<std::mutex>(this->mutex);
-			switch(eMessage){
-				case MFT_MESSAGE_COMMAND_FLUSH:
-					this->sample.reset();
-					break;
-				case MFT_MESSAGE_SET_D3D_MANAGER:
-					return E_NOTIMPL;
-				case MFT_MESSAGE_COMMAND_DRAIN:
-				case MFT_MESSAGE_NOTIFY_BEGIN_STREAMING:
-					{
-						if(!this->input)
-							return MF_E_TRANSFORM_TYPE_NOT_SET;
-						auto image_header = get_image_header(this->input.get());
-                                                FilterBase::ColorType ct;
-                                                if(image_header.subtype == MFVideoFormat_RGB24)
-							ct = FilterBase::ColorType::BGR;
-						else if(image_header.subtype == MFVideoFormat_RGB32)
-							ct = FilterBase::ColorType::BGRX;
-						else // image_header.subtype == MFVideoFormat_ARGB32
-							ct = FilterBase::ColorType::BGRA;
-						try{
-							FilterBase::MediaF::start({static_cast<int>(image_header.width), static_cast<int>(image_header.height), ct, 0, 0}, static_cast<FilterBase::MediaF::IFilterConfig*>(this));
-						}catch(std::string message){
-							MessageBoxA(NULL, message.c_str(), FilterBase::get_name(), MB_OK);
-							return E_UNEXPECTED;
+			HRESULT STDMETHODCALLTYPE GetOutputStatus(DWORD *pdwFlags) override{
+				if(!pdwFlags)
+					return E_POINTER;
+				std::unique_lock<std::mutex>(this->transform_mutex);
+				*pdwFlags = this->sample ? MFT_OUTPUT_STATUS_SAMPLE_READY : 0x0;
+				return S_OK;
+			}
+			HRESULT STDMETHODCALLTYPE SetOutputBounds(LONGLONG, LONGLONG) override{
+				return E_NOTIMPL; // Optional informations
+			}
+			HRESULT STDMETHODCALLTYPE ProcessEvent(DWORD, IMFMediaEvent *) override{
+				return E_NOTIMPL; // Not event processing
+			}
+			HRESULT STDMETHODCALLTYPE ProcessMessage(MFT_MESSAGE_TYPE eMessage, ULONG_PTR) override{
+				std::unique_lock<std::mutex>(this->transform_mutex);
+				switch(eMessage){
+					case MFT_MESSAGE_COMMAND_FLUSH:
+						this->sample.reset();
+						break;
+					case MFT_MESSAGE_SET_D3D_MANAGER:
+						return E_NOTIMPL;
+					case MFT_MESSAGE_COMMAND_DRAIN:
+					case MFT_MESSAGE_NOTIFY_BEGIN_STREAMING:
+						{
+							if(!this->input)
+								return MF_E_TRANSFORM_TYPE_NOT_SET;
+							auto image_header = get_image_header(this->input.get());
+							FilterBase::ColorType ct;
+							if(image_header.subtype == MFVideoFormat_RGB24)
+								ct = FilterBase::ColorType::BGR;
+							else if(image_header.subtype == MFVideoFormat_RGB32)
+								ct = FilterBase::ColorType::BGRX;
+							else // image_header.subtype == MFVideoFormat_ARGB32
+								ct = FilterBase::ColorType::BGRA;
+							try{
+								FilterBase::MediaF::start({static_cast<int>(image_header.width), static_cast<int>(image_header.height), ct, 0, 0}, static_cast<FilterBase::MediaF::IFilterConfig*>(this));
+							}catch(std::string message){
+								MessageBoxA(NULL, message.c_str(), FilterBase::get_name(), MB_OK);
+								return E_UNEXPECTED;
+							}
 						}
-					}
-					break;
-				case MFT_MESSAGE_NOTIFY_END_STREAMING:
-					FilterBase::MediaF::end(static_cast<FilterBase::MediaF::IFilterConfig*>(this));
-					break;
-				case MFT_MESSAGE_NOTIFY_END_OF_STREAM:
-				case MFT_MESSAGE_NOTIFY_START_OF_STREAM:
-				case MFT_MESSAGE_COMMAND_MARKER:
-					break;
+						break;
+					case MFT_MESSAGE_NOTIFY_END_STREAMING:
+						FilterBase::MediaF::end(static_cast<FilterBase::MediaF::IFilterConfig*>(this));
+						break;
+					case MFT_MESSAGE_NOTIFY_END_OF_STREAM:
+					case MFT_MESSAGE_NOTIFY_START_OF_STREAM:
+					case MFT_MESSAGE_COMMAND_MARKER:
+						break;
+				}
+				return S_OK;
 			}
-			return S_OK;
-		}
-		HRESULT STDMETHODCALLTYPE ProcessInput(DWORD dwInputStreamID, IMFSample *pSample, DWORD dwFlags) override{
-			if(!pSample)
-				return E_POINTER;
-			if(dwInputStreamID != 0)
-				return MF_E_INVALIDSTREAMNUMBER;
-			if(dwFlags != 0)
-				return E_INVALIDARG;
-			std::unique_lock<std::mutex>(this->mutex);
-			// All needed data available?
-			if(!this->input || !this->output || this->sample)
-				return MF_E_NOTACCEPTING;
-                        DWORD buffer_count;
-                        if(!SUCCEEDED(pSample->GetBufferCount(&buffer_count)) || buffer_count == 0)
-				return E_FAIL;
-			if(buffer_count > 1)
-				return MF_E_SAMPLE_HAS_TOO_MANY_BUFFERS;
-			// Save sample
-			this->sample.reset(pSample),
-			pSample->AddRef();
-			return S_OK;
-		}
-		HRESULT STDMETHODCALLTYPE ProcessOutput(DWORD dwFlags, DWORD cOutputBufferCount, MFT_OUTPUT_DATA_BUFFER *pOutputSamples, DWORD *pdwStatus) override{
-			if(!pOutputSamples || !pdwStatus)
-				return E_POINTER;
-			if(dwFlags != 0 || cOutputBufferCount != 1 || !pOutputSamples[0].pSample)
-				return E_INVALIDARG;
-			std::unique_lock<std::mutex>(this->mutex);
-			// Sample to process?
-			if(!this->sample)
-				return MF_E_TRANSFORM_NEED_MORE_INPUT;
-			// Get sample stride
-			LONG stride;
-			if(!SUCCEEDED(this->input->GetUINT32(MF_MT_DEFAULT_STRIDE, reinterpret_cast<UINT32*>(&stride)))){
-				auto image_header = get_image_header(this->input.get());
-				stride = image_header.width * (image_header.subtype == MFVideoFormat_RGB24 ? 3 : 4);
+			HRESULT STDMETHODCALLTYPE ProcessInput(DWORD dwInputStreamID, IMFSample *pSample, DWORD dwFlags) override{
+				if(!pSample)
+					return E_POINTER;
+				if(dwInputStreamID != 0)
+					return MF_E_INVALIDSTREAMNUMBER;
+				if(dwFlags != 0)
+					return E_INVALIDARG;
+				std::unique_lock<std::mutex>(this->transform_mutex);
+				// All needed data available?
+				if(!this->input || !this->output || this->sample)
+					return MF_E_NOTACCEPTING;
+				DWORD buffer_count;
+				if(!SUCCEEDED(pSample->GetBufferCount(&buffer_count)) || buffer_count == 0)
+					return E_FAIL;
+				if(buffer_count > 1)
+					return MF_E_SAMPLE_HAS_TOO_MANY_BUFFERS;
+				// Save sample
+				this->sample.reset(pSample),
+				pSample->AddRef();
+				return S_OK;
 			}
-			// Get sample data
-			IMFMediaBuffer* buffer_in, *buffer_out;
-			if(!SUCCEEDED(this->sample->ConvertToContiguousBuffer(&buffer_in)))
-				return MF_E_NOT_AVAILABLE;
-			std::unique_ptr<IMFMediaBuffer, std::function<void(IMFMediaBuffer*)>> buffer_in_storage(buffer_in, imfmediabuffer_deleter);
-			if(!SUCCEEDED(pOutputSamples[0].pSample->ConvertToContiguousBuffer(&buffer_out)))
-				return MF_E_SAMPLE_NOT_WRITABLE;
-			std::unique_ptr<IMFMediaBuffer, std::function<void(IMFMediaBuffer*)>> buffer_out_storage(buffer_out, imfmediabuffer_deleter);
-			BYTE* data_in, *data_out;
-			DWORD current_data_length;
-			buffer_in->Lock(&data_in, NULL, &current_data_length),
-			buffer_out->Lock(&data_out, NULL, NULL);
-			// Copy data to output
-			std::copy(data_in, data_in+current_data_length, data_out),
-			buffer_out->SetCurrentLength(current_data_length);
-			// Copy sample time&duration to output (100ns units)
-			LONGLONG time, duration;
-			if(!SUCCEEDED(this->sample->GetSampleTime(&time)))
-				return MF_E_NO_SAMPLE_TIMESTAMP;
-			pOutputSamples[0].pSample->SetSampleTime(time);
-			if(!SUCCEEDED(this->sample->GetSampleDuration(&duration)))
-				return MF_E_NO_SAMPLE_DURATION;
-			pOutputSamples[0].pSample->SetSampleDuration(duration);
-			// Process sample data
-			FilterBase::MediaF::filter_frame(data_out, stride, time / 10000, (time + duration) / 10000, static_cast<FilterBase::MediaF::IFilterConfig*>(this));
-			// Set output status
-			pOutputSamples[0].dwStatus = *pdwStatus = 0x0;
-			// Release sample
-			this->sample.reset();
-			return S_OK;
-		}
-};
-std::atomic_uint MyFilter::instances_n(0);	// ...but direct-initialization
+			HRESULT STDMETHODCALLTYPE ProcessOutput(DWORD dwFlags, DWORD cOutputBufferCount, MFT_OUTPUT_DATA_BUFFER *pOutputSamples, DWORD *pdwStatus) override{
+				if(!pOutputSamples || !pdwStatus)
+					return E_POINTER;
+				if(dwFlags != 0 || cOutputBufferCount != 1 || !pOutputSamples[0].pSample)
+					return E_INVALIDARG;
+				std::unique_lock<std::mutex>(this->transform_mutex);
+				// Sample to process?
+				if(!this->sample)
+					return MF_E_TRANSFORM_NEED_MORE_INPUT;
+				// Get sample stride
+				LONG stride;
+				if(!SUCCEEDED(this->input->GetUINT32(MF_MT_DEFAULT_STRIDE, reinterpret_cast<UINT32*>(&stride)))){
+					auto image_header = get_image_header(this->input.get());
+					stride = image_header.width * (image_header.subtype == MFVideoFormat_RGB24 ? 3 : 4);
+				}
+				// Get sample data
+				IMFMediaBuffer* buffer_in, *buffer_out;
+				if(!SUCCEEDED(this->sample->ConvertToContiguousBuffer(&buffer_in)))
+					return MF_E_NOT_AVAILABLE;
+				std::unique_ptr<IMFMediaBuffer, std::function<void(IMFMediaBuffer*)>> buffer_in_storage(buffer_in, imfmediabuffer_deleter);
+				if(!SUCCEEDED(pOutputSamples[0].pSample->ConvertToContiguousBuffer(&buffer_out)))
+					return MF_E_SAMPLE_NOT_WRITABLE;
+				std::unique_ptr<IMFMediaBuffer, std::function<void(IMFMediaBuffer*)>> buffer_out_storage(buffer_out, imfmediabuffer_deleter);
+				BYTE* data_in, *data_out;
+				DWORD current_data_length;
+				buffer_in->Lock(&data_in, NULL, &current_data_length),
+				buffer_out->Lock(&data_out, NULL, NULL);
+				// Copy data to output
+				std::copy(data_in, data_in+current_data_length, data_out),
+				buffer_out->SetCurrentLength(current_data_length);
+				// Copy sample time&duration to output (100ns units)
+				LONGLONG time, duration;
+				if(!SUCCEEDED(this->sample->GetSampleTime(&time)))
+					return MF_E_NO_SAMPLE_TIMESTAMP;
+				pOutputSamples[0].pSample->SetSampleTime(time);
+				if(!SUCCEEDED(this->sample->GetSampleDuration(&duration)))
+					return MF_E_NO_SAMPLE_DURATION;
+				pOutputSamples[0].pSample->SetSampleDuration(duration);
+				// Process sample data
+				FilterBase::MediaF::filter_frame(data_out, stride, time / 10000, (time + duration) / 10000, static_cast<FilterBase::MediaF::IFilterConfig*>(this));
+				// Set output status
+				pOutputSamples[0].dwStatus = *pdwStatus = 0x0;
+				// Release sample
+				this->sample.reset();
+				return S_OK;
+			}
+	};
+	std::atomic_uint MyFilter::instances_n(0);	// ...but direct-initialization
+}
 
 // Filter registration to server
 static inline std::wstring gen_clsid_keyname(const GUID& guid){
@@ -555,19 +557,18 @@ STDAPI __declspec(dllexport) DllUnregisterServer(){
 }
 
 STDAPI __declspec(dllexport) DllCanUnloadNow(){
-	return MyFilter::active_instances() ? S_FALSE : S_OK;
+	return MediaF::MyFilter::active_instances() ? S_FALSE : S_OK;
 }
 
 STDAPI __declspec(dllexport) DllGetClassObject(REFCLSID clsid, REFIID riid, void** ppv){
-	IUnknown* inst;
-	try{
-		if(clsid == *FilterBase::get_filter_guid() && (inst = static_cast<IUnknown*>(static_cast<IMFTransform*>(new MyFilter)))){
+	if(clsid == *FilterBase::get_filter_guid())
+		try{
+			IUnknown* inst = static_cast<IUnknown*>(static_cast<IMFTransform*>(new MediaF::MyFilter));
 			HRESULT status = inst->QueryInterface(riid, ppv);
 			inst->Release();
 			return status;
+		}catch(std::string message){
+			MessageBoxA(NULL, message.c_str(), FilterBase::get_name(), MB_OK);
 		}
-	}catch(std::string message){
-		MessageBoxA(NULL, message.c_str(), FilterBase::get_name(), MB_OK);
-	}
 	return E_NOINTERFACE;
 }
