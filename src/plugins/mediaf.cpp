@@ -18,10 +18,10 @@ Permission is granted to anyone to use this software for any purpose, including 
 #include <mftransform.h>
 #include <mfapi.h>
 #include <mferror.h>
+#include <strmif.h>
 #include <atomic>
 #include <mutex>
 #include <memory>
-#include <strmif.h>
 
 extern const IID IID_IUNKNOWN;	// Found in uuid library but not in MinGW CGuid.h
 
@@ -35,7 +35,7 @@ namespace MediaF{
 		DWORD width, height;
 		GUID subtype;
 	};
-	static ImageHeader GetImageHeader(IMFMediaType* pmt){
+	static inline ImageHeader GetImageHeader(IMFMediaType* pmt){
 		AM_MEDIA_TYPE* amt;
 		if(SUCCEEDED(pmt->GetRepresentation(FORMAT_MFVideoFormat, reinterpret_cast<void**>(&amt)))){
 			const MFVIDEOFORMAT* mvf = reinterpret_cast<MFVIDEOFORMAT*>(amt->pbFormat);
@@ -47,7 +47,7 @@ namespace MediaF{
 	}
 
 	// Generate available media type
-	static HRESULT GetAvailableType(IMFMediaType* xput, DWORD dwTypeIndex, IMFMediaType **ppType){
+	static inline HRESULT GetAvailableType(IMFMediaType* xput, DWORD dwTypeIndex, IMFMediaType **ppType){
 		if(xput){
 			if(dwTypeIndex > 0)
 				return MF_E_NO_MORE_TYPES;
@@ -68,7 +68,7 @@ namespace MediaF{
 	}
 
 	// Check type for support
-	static bool IsValidType(IMFMediaType* pType, IMFMediaType* xput){
+	static inline bool IsValidType(IMFMediaType* pType, IMFMediaType* xput){
 		if(xput){
 			DWORD flag;
 			return SUCCEEDED(pType->IsEqual(xput, &flag)) && flag == S_OK;
@@ -418,57 +418,47 @@ namespace MediaF{
 }
 
 // Filter registration to server
-static inline std::wstring gen_clsid_keyname(const GUID& guid){
+static inline std::wstring GenCLSIDKeyName(const GUID& guid){
 	wchar_t guid_str[39];
 	return StringFromGUID2(guid, guid_str, 39) ? std::wstring(L"CLSID\\") + guid_str : L"";
 }
-static std::wstring get_module_name(){
+static std::wstring GetModuleName(){
 	HMODULE module;
 	wchar_t module_name[MAX_PATH];
 	return GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, reinterpret_cast<LPCSTR>(&module), &module) && GetModuleFileNameW(module, module_name, MAX_PATH) ? module_name : L"";
 }
-STDAPI __declspec(dllexport) DllRegisterServer(){
-	// Create CLSID for CoCreateInstance entry in registry
-	HKEY key;
-	HRESULT status = __HRESULT_FROM_WIN32(
+static inline HRESULT RegCreateKeyExW_short(HKEY key, const wchar_t* name, HKEY* out){
+	return __HRESULT_FROM_WIN32(
 		RegCreateKeyExW(
-			HKEY_CLASSES_ROOT,
-			gen_clsid_keyname(*FilterBase::get_filter_guid()).c_str(),
+			key,
+			name,
 			0,
 			NULL,
 			REG_OPTION_NON_VOLATILE,
 			KEY_ALL_ACCESS,
 			NULL,
-			&key,
+			out,
 			NULL
 		)
 	);
+}
+static inline HRESULT RegSetValueExW_short(HKEY key, const wchar_t* name, const wchar_t* value){
+	LONG result = RegSetValueExW(key, name, 0, REG_SZ, reinterpret_cast<const BYTE*>(value), (wcslen(value)+1)*sizeof(wchar_t));
+	return result == ERROR_SUCCESS ? S_OK : HRESULT_FROM_WIN32(result);
+}
+STDAPI __declspec(dllexport) DllRegisterServer(){
+	// Create CLSID for CoCreateInstance entry in registry
+	HKEY key;
+	HRESULT status = RegCreateKeyExW_short(HKEY_CLASSES_ROOT, GenCLSIDKeyName(*FilterBase::get_filter_guid()).c_str(), &key);
 	if(SUCCEEDED(status)){
-		const wchar_t* key_value = FilterBase::get_namew();
-		LONG result = RegSetValueExW(key, NULL, 0, REG_SZ, reinterpret_cast<const BYTE*>(key_value), (wcslen(key_value)+1)*sizeof(wchar_t));
-		status = result == ERROR_SUCCESS ? S_OK : HRESULT_FROM_WIN32(result);
+		status = RegSetValueExW_short(key, NULL, FilterBase::get_namew());
 		if(SUCCEEDED(status)){
 			HKEY subkey;
-			status = __HRESULT_FROM_WIN32(
-				RegCreateKeyExW(
-					key,
-					L"InprocServer32",
-					0,
-					NULL,
-					REG_OPTION_NON_VOLATILE,
-					KEY_ALL_ACCESS,
-					NULL,
-					&subkey,
-					NULL
-				)
-			);
+			status = RegCreateKeyExW_short(key, L"InprocServer32", &subkey);
 			if(SUCCEEDED(status)){
-				std::wstring module_name = get_module_name();
-				result = RegSetValueExW(subkey, NULL, 0, REG_SZ, reinterpret_cast<const BYTE*>(module_name.c_str()), (module_name.length()+1)*sizeof(wchar_t)),
-				status = result == ERROR_SUCCESS ? S_OK : HRESULT_FROM_WIN32(result);
+				status = RegSetValueExW_short(subkey, NULL, GetModuleName().c_str());
 				if(SUCCEEDED(status)){
-					result = RegSetValueExW(subkey, L"ThreadingModel", 0, REG_SZ, reinterpret_cast<const BYTE*>("Both"), 10),
-					status = result == ERROR_SUCCESS ? S_OK : HRESULT_FROM_WIN32(result);
+					status = RegSetValueExW_short(subkey, L"ThreadingModel", L"Both");
 					if(SUCCEEDED(status)){
 						// Create MFT enumeration entry in registry
 						MFT_REGISTER_TYPE_INFO media_types[] = {
@@ -494,25 +484,10 @@ STDAPI __declspec(dllexport) DllRegisterServer(){
 		}
 		RegCloseKey(key);
 	}
-	status = __HRESULT_FROM_WIN32(
-		RegCreateKeyExW(
-			HKEY_CLASSES_ROOT,
-			gen_clsid_keyname(*FilterBase::get_filter_config_guid()).c_str(),
-			0,
-			NULL,
-			REG_OPTION_NON_VOLATILE,
-			KEY_ALL_ACCESS,
-			NULL,
-			&key,
-			NULL
-		)
-	);
-	if(SUCCEEDED(status)){
-		std::wstring key_value = std::wstring(FilterBase::get_namew()) + L" configuration";
-		LONG result = RegSetValueExW(key, NULL, 0, REG_SZ, reinterpret_cast<const BYTE*>(key_value.c_str()), (key_value.length()+1)*sizeof(wchar_t));
-		status = result == ERROR_SUCCESS ? S_OK : HRESULT_FROM_WIN32(result),
+	status = RegCreateKeyExW_short(HKEY_CLASSES_ROOT, GenCLSIDKeyName(*FilterBase::get_filter_config_guid()).c_str(), &key);
+	if(SUCCEEDED(status))
+		status = RegSetValueExW_short(key, NULL, (std::wstring(FilterBase::get_namew()) + L" configuration").c_str()),
 		RegCloseKey(key);
-	}
 	return status;
 }
 
@@ -520,8 +495,8 @@ STDAPI __declspec(dllexport) DllUnregisterServer(){
 	// Remove MFT enumeration entry in registry
 	MFTUnregister(*FilterBase::get_filter_guid());
 	// Remove CLSID for CoCreateInstance in registry
-	RegDeleteTreeW(HKEY_CLASSES_ROOT, gen_clsid_keyname(*FilterBase::get_filter_guid()).c_str());
-	RegDeleteTreeW(HKEY_CLASSES_ROOT, gen_clsid_keyname(*FilterBase::get_filter_config_guid()).c_str());
+	RegDeleteTreeW(HKEY_CLASSES_ROOT, GenCLSIDKeyName(*FilterBase::get_filter_guid()).c_str());
+	RegDeleteTreeW(HKEY_CLASSES_ROOT, GenCLSIDKeyName(*FilterBase::get_filter_config_guid()).c_str());
 	return S_OK;
 }
 
