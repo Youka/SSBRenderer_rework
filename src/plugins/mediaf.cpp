@@ -24,8 +24,9 @@ Permission is granted to anyone to use this software for any purpose, including 
 
 extern const IID IID_IUNKNOWN;	// Found in uuid library but not in MinGW CGuid.h
 
-// IUnknown deleter
+// IUnknown deleters
 auto iunknown_deleter = [](IUnknown* p){p->Release();};
+auto imfmediabuffer_deleter = [](IMFMediaBuffer* p){p->Unlock(); p->Release();};
 // Extracts image meta informations from MediaType
 struct ImageHeader{
 	DWORD width, height;
@@ -405,10 +406,41 @@ class MyFilter : public IMFTransform, public IMyFilterConfig{
 			// Sample to process?
 			if(!this->sample)
 				return MF_E_TRANSFORM_NEED_MORE_INPUT;
+			// Get sample stride
+			LONG stride;
+			if(!SUCCEEDED(this->input->GetUINT32(MF_MT_DEFAULT_STRIDE, reinterpret_cast<UINT32*>(&stride)))){
+				auto image_header = get_image_header(this->input.get());
+				stride = image_header.width * (image_header.subtype == MFVideoFormat_RGB24 ? 3 : 4);
+			}
 			// Get sample data
-
-			// TODO
-
+			IMFMediaBuffer* buffer_in, *buffer_out;
+			if(!SUCCEEDED(this->sample->ConvertToContiguousBuffer(&buffer_in)))
+				return MF_E_NOT_AVAILABLE;
+			std::unique_ptr<IMFMediaBuffer, std::function<void(IMFMediaBuffer*)>> buffer_in_storage(buffer_in, imfmediabuffer_deleter);
+			if(!SUCCEEDED(pOutputSamples[0].pSample->ConvertToContiguousBuffer(&buffer_out)))
+				return MF_E_SAMPLE_NOT_WRITABLE;
+			std::unique_ptr<IMFMediaBuffer, std::function<void(IMFMediaBuffer*)>> buffer_out_storage(buffer_out, imfmediabuffer_deleter);
+			BYTE* data_in, *data_out;
+			DWORD current_data_length;
+			buffer_in->Lock(&data_in, NULL, &current_data_length),
+			buffer_out->Lock(&data_out, NULL, NULL);
+			// Copy data to output
+			std::copy(data_in, data_in+current_data_length, data_out),
+			buffer_out->SetCurrentLength(current_data_length);
+			// Copy sample time&duration to output (100ns units)
+			LONGLONG time, duration;
+			if(!SUCCEEDED(this->sample->GetSampleTime(&time)))
+				return MF_E_NO_SAMPLE_TIMESTAMP;
+			pOutputSamples[0].pSample->SetSampleTime(time);
+			if(!SUCCEEDED(this->sample->GetSampleDuration(&duration)))
+				return MF_E_NO_SAMPLE_DURATION;
+			pOutputSamples[0].pSample->SetSampleDuration(duration);
+			// Process sample data
+			FilterBase::MediaF::filter_frame(data_out, stride, time / 10000, (time + duration) / 10000, static_cast<FilterBase::MediaF::IFilterConfig*>(this));
+			// Set output status
+			pOutputSamples[0].dwStatus = *pdwStatus = 0x0;
+			// Release sample
+			this->sample.reset();
 			return S_OK;
 		}
 };
