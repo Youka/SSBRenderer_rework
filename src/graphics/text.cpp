@@ -163,6 +163,11 @@ namespace GUtils{
 			static_cast<double>(metrics.tmExternalLeading) / FONT_UPSCALE
 		};
 	}
+	double Font::text_width(const std::vector<Glyph_t>& glyphs){
+		SIZE sz;
+		GetTextExtentPointI(this->dc, const_cast<Glyph_t*>(glyphs.data()), glyphs.size(), &sz);
+		return static_cast<double>(sz.cx) / FONT_UPSCALE + glyphs.size() * this->spacing;
+	}
 	double Font::text_width(const std::string& text){
 		return this->text_width(Utf8::to_utf16(text));
 	}
@@ -171,28 +176,8 @@ namespace GUtils{
 		GetTextExtentPoint32W(this->dc, text.data(), text.length(), &sz);
 		return static_cast<double>(sz.cx) / FONT_UPSCALE + text.length() * this->spacing;
 	}
-	std::vector<Font::PathSegment> Font::text_path(const std::string& text) throw(FontException){
-		return this->text_path(Utf8::to_utf16(text));
-	}
-	std::vector<Font::PathSegment> Font::text_path(const std::wstring& text) throw(FontException){
-		// Check valid text length
-		if(text.length() > 8192)	// See ExtTextOut limitation
-			throw FontException("Text length exceeds 8192");
-		// Get characters width
-		std::vector<int> distance_x;
-		if(this->spacing != 0){
-			distance_x.reserve(text.length());
-			SIZE sz;
-			const int spacing_upscaled = this->spacing * FONT_UPSCALE;
-			for(auto c : text)
-				GetTextExtentPoint32W(this->dc, &c, 1, &sz),
-				distance_x.push_back(sz.cx + spacing_upscaled);
-		}
-		// Add text path to context
-		BeginPath(this->dc);
-		ExtTextOutW(this->dc, 0, 0, 0x0, NULL, text.data(), text.length(), distance_x.empty() ? NULL : distance_x.data());
-		EndPath(this->dc);
-		// Get path points
+	inline std::vector<Font::PathSegment> Font::extract_path()  throw(FontException){
+		// Collect path points
 		std::vector<Font::PathSegment> path;
 		const int points_n = GetPath(this->dc, NULL, NULL, 0);
 		if(points_n){
@@ -225,6 +210,51 @@ namespace GUtils{
 		AbortPath(this->dc);
 		// ...and return collected points
 		return path;
+	}
+	std::vector<Font::PathSegment> Font::text_path(const std::vector<Glyph_t>& glyphs) throw(FontException){
+		// Check valid glyphs number
+		if(glyphs.size() > 8192)	// See ExtTextOut limitation
+			throw FontException("Glyphs number exceeds 8192");
+		// Get glyphs width
+		std::vector<int> distance_x;
+		if(this->spacing != 0){
+			distance_x.reserve(glyphs.size());
+			SIZE sz;
+			const int spacing_upscaled = this->spacing * FONT_UPSCALE;
+			for(auto c : glyphs)
+				GetTextExtentPointI(this->dc, &c, 1, &sz),
+				distance_x.push_back(sz.cx + spacing_upscaled);
+		}
+		// Add glyphs path to context
+		BeginPath(this->dc);
+		ExtTextOutW(this->dc, 0, 0, ETO_GLYPH_INDEX, NULL, reinterpret_cast<LPCWSTR>(glyphs.data()), glyphs.size(), distance_x.empty() ? NULL : distance_x.data());
+		EndPath(this->dc);
+		// Extract & return path
+		return this->extract_path();
+	}
+	std::vector<Font::PathSegment> Font::text_path(const std::string& text) throw(FontException){
+		return this->text_path(Utf8::to_utf16(text));
+	}
+	std::vector<Font::PathSegment> Font::text_path(const std::wstring& text) throw(FontException){
+		// Check valid text length
+		if(text.length() > 8192)	// See ExtTextOut limitation
+			throw FontException("Text length exceeds 8192");
+		// Get characters width
+		std::vector<int> distance_x;
+		if(this->spacing != 0){
+			distance_x.reserve(text.length());
+			SIZE sz;
+			const int spacing_upscaled = this->spacing * FONT_UPSCALE;
+			for(auto c : text)
+				GetTextExtentPoint32W(this->dc, &c, 1, &sz),
+				distance_x.push_back(sz.cx + spacing_upscaled);
+		}
+		// Add text path to context
+		BeginPath(this->dc);
+		ExtTextOutW(this->dc, 0, 0, 0x0, NULL, text.data(), text.length(), distance_x.empty() ? NULL : distance_x.data());
+		EndPath(this->dc);
+		// Extract & return path
+		return this->extract_path();
 	}
 #else
 	Font::Font() : surface(nullptr), context(nullptr), layout(nullptr){}
@@ -344,19 +374,18 @@ namespace GUtils{
 		pango_font_metrics_unref(metrics);
 		return result;
 	}
+	double Font::text_width(const std::vector<Glyph_t>& glyphs){
+
+		// TODO
+
+	}
 	double Font::text_width(const std::string& text){
 		pango_layout_set_text(this->layout, text.data(), text.length());
 		PangoRectangle rect;
 		pango_layout_get_pixel_extents(this->layout, NULL, &rect);
 		return static_cast<double>(rect.width) / FONT_UPSCALE;
 	}
-	std::vector<Font::PathSegment> Font::text_path(const std::string& text) throw(FontException){
-		// Add text path to context
-		pango_layout_set_text(this->layout, text.data(), text.length()),
-		cairo_save(this->context),
-		cairo_scale(ctx, 1.0 / FONT_UPSCALE, 1.0 / FONT_UPSCALE),
-		pango_cairo_layout_path(this->context, this->layout),
-		cairo_restore(this->context);
+	inline std::vector<Font::PathSegment> Font::extract_path() throw(FontException){
 		// Get path points
 		std::unique_ptr<cairo_path_t, std::function<void(cairo_path_t*)>> cpath(cairo_copy_path(this->context), [](cairo_path_t* path){cairo_path_destroy(path);});
 		if(cpath->status != CAIRO_STATUS_SUCCESS){
@@ -386,6 +415,21 @@ namespace GUtils{
 		cairo_new_path(this->context);
 		// ...and return collected points
 		return path;
+	}
+	std::vector<Font::PathSegment> Font::text_path(const std::vector<Glyph_t>& glyphs) throw(FontException){
+
+		// TODO
+
+	}
+	std::vector<Font::PathSegment> Font::text_path(const std::string& text) throw(FontException){
+		// Add text path to context
+		pango_layout_set_text(this->layout, text.data(), text.length()),
+		cairo_save(this->context),
+		cairo_scale(ctx, 1.0 / FONT_UPSCALE, 1.0 / FONT_UPSCALE),
+		pango_cairo_layout_path(this->context, this->layout),
+		cairo_restore(this->context);
+		// Extract & return path
+		return this->extract_path();
 	}
 #endif
 }

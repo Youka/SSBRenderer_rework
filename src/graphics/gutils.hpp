@@ -101,6 +101,13 @@ namespace GUtils{
 			const char* what() const noexcept override{return this->message.c_str();}
 	};
 
+	// Glyph type
+#ifdef _WIN32
+	using Glyph_t = WORD;
+#else
+	using Glyph_t = PangoGlyph;
+#endif
+
 	// Native font wrapper
 	class Font{
 		private:
@@ -148,6 +155,7 @@ namespace GUtils{
 			};
 			Metrics metrics();
 			// Text width by extents (height from metrics)
+			double text_width(const std::vector<Glyph_t>& glyphs);
 			double text_width(const std::string& text);
 #ifdef _WIN32
 			double text_width(const std::wstring& text);
@@ -157,9 +165,12 @@ namespace GUtils{
 				enum class Type{MOVE, LINE, CURVE/*Cubic bezier*/, CLOSE} type;
 				double x, y;
 			};
+			std::vector<PathSegment> text_path(const std::vector<Glyph_t>& glyphs) throw(FontException);
 			std::vector<PathSegment> text_path(const std::string& text) throw(FontException);
 #ifdef _WIN32
 			std::vector<PathSegment> text_path(const std::wstring& text) throw(FontException);
 #endif
+		private:
+			inline std::vector<PathSegment> extract_path() throw(FontException);
 	};
 }
