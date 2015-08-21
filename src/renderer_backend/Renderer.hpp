@@ -17,15 +17,8 @@ Permission is granted to anyone to use this software for any purpose, including 
 // RGBA renderer on CPU or GPU (holding own image)
 class Renderer{
 	private:
-#ifdef USE_GPU
-
-                // TODO: Native GPU data?
-
-#else
-
-                // TODO: Native CPU data?
-
-#endif
+		// Resources by implementation
+		void* data;
 	public:
 		// Setters
 		Renderer();
@@ -38,7 +31,12 @@ class Renderer{
 		Renderer(Renderer&&) = delete;
 		Renderer& operator=(const Renderer&) = delete;
 		Renderer& operator=(Renderer&&) = delete;
+		// Getter
+		unsigned width();
+		unsigned height();
+		void copy_image(unsigned char* image, unsigned padding);
+		// Processing
 
-		// TODO: Processing methods
+		// TODO
 
 };

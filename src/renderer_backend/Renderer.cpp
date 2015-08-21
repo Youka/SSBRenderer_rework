@@ -14,6 +14,16 @@ Permission is granted to anyone to use this software for any purpose, including 
 
 #include "Renderer.hpp"
 
+#ifdef USE_GPU
+
+// TODO
+
+#else
+
+// TODO
+
+#endif
+
 Renderer::Renderer(){
 
 	// TODO
@@ -33,6 +43,26 @@ void Renderer::set_size(unsigned width, unsigned height){
 }
 
 Renderer::~Renderer(){
+
+	// TODO
+
+}
+
+unsigned width(){
+
+	// TODO
+
+	return 0;
+}
+
+unsigned height(){
+
+	// TODO
+
+	return 0;
+}
+
+void copy_image(unsigned char* image, unsigned padding){
 
 	// TODO
 
