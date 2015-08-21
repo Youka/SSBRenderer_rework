@@ -1,9 +1,7 @@
 # Request build options from user
 set(BUILD_FONT_PRECISION 64 CACHE STRING "Internal font up- & downscale for better calculation results.")
-option(TEST_GRAPHICS "Build graphics tests?" OFF)
-
-# Request dependencies locations
 set(DEPEND_LIBDIVIDE "" CACHE PATH "Libdivide directory (containing header file).")
+option(TEST_GRAPHICS "Build graphics tests?" OFF)
 
 # Generate configuration header
 configure_file(

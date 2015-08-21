@@ -1,6 +1,6 @@
 /*
 Project: SSBRenderer
-File: Renderer.cpp
+File: Renderer_cairo.cpp
 
 Copyright (c) 2015, Christoph "Youka" Spanknebel
 
@@ -13,16 +13,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 */
 
 #include "Renderer.hpp"
-
-#ifdef USE_GPU
-
-// TODO
-
-#else
-
-// TODO
-
-#endif
+#include <cairo.h>
 
 Renderer::Renderer(){
 
