@@ -47,4 +47,8 @@ message(STATUS "Package condig installation path: ${CMAKE_INSTALL_PREFIX}/share/
 
 # Add functionality tests
 if(${TEST_RENDERER})
+	# Create minimal test
+	add_executable(ssbrenderer_minimal tests/minimal.c)
+	target_link_libraries(ssbrenderer_minimal ssbrenderer)
+	add_test(ssbrenderer_minimal_test ssbrenderer_minimal)
 endif()
