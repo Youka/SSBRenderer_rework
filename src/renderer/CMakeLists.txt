@@ -2,13 +2,6 @@
 option(TEST_RENDERER "Build renderer tests?" OFF)
 option(BUILD_AEGISUB_CSRI "Should the CRSI interface convert ASS data input to SSB?" OFF)
 
-# Reinterpret options for configuration
-if(BUILD_AEGISUB_CSRI)
-	set(USE_AEGISUB_INTERFACE 1)
-else()
-	set(USE_AEGISUB_INTERFACE 0)
-endif()
-
 # Generate configuration header
 configure_file(
 	${CMAKE_CURRENT_SOURCE_DIR}/config.h.in
@@ -21,6 +14,11 @@ add_library(ssbrenderer SHARED ${RENDERER_SOURCES} $<TARGET_OBJECTS:ssbplugins>)
 
 # Add library include directories
 target_include_directories(ssbrenderer PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+
+# Add library definitions
+if(BUILD_AEGISUB_CSRI)
+	target_compile_definitions(ssbrenderer PUBLIC USE_AEGISUB_INTERFACE)
+endif()
 
 # Add library links
 set(RENDERER_LINKS ssbparser)

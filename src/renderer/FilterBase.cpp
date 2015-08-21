@@ -16,7 +16,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 #include <config.h>
 #include "Renderer.hpp"
 
-#if USE_AEGISUB_INTERFACE
+#ifdef USE_AEGISUB_INTERFACE
 #include <regex>
 #include "../utils/string.hpp"
 #include <iomanip>
@@ -100,7 +100,7 @@ namespace FilterBase{
 		}
 	}
 	namespace CSRI{
-#if USE_AEGISUB_INTERFACE
+#ifdef USE_AEGISUB_INTERFACE
 		static std::iostream& convert_ass_ssb(std::istream& in, std::iostream& out){
 			// Regex pattern
 			static const std::regex_constants::syntax_option_type setting = std::regex_constants::optimize|std::regex_constants::ECMAScript;
@@ -173,7 +173,7 @@ namespace FilterBase{
 			return true;
 		}
 		bool init(std::istream& stream, void** userdata){
-#if USE_AEGISUB_INTERFACE
+#ifdef USE_AEGISUB_INTERFACE
 			std::stringstream ssb_stream;
 			try{
 				*userdata = new SSB::Renderer(0, 0, SSB::Renderer::Colorspace::BGR, convert_ass_ssb(stream, ssb_stream), false);
