@@ -106,13 +106,17 @@ message(STATUS "Processed parser")
 add_subdirectory(plugins)
 message(STATUS "Processed plugin interfaces")
 
-#Process graphics utilities
+# Process graphics utilities
 add_subdirectory(graphics)
 message(STATUS "Processed graphics utilities")
 
-#Process general utilities
+# Process general utilities
 add_subdirectory(utils)
 message(STATUS "Processed general utilities")
+
+# Process renderer backend
+add_subdirectory(renderer_backend)
+message(STATUS "Processed renderer backend")
 
 # Process renderer
 add_subdirectory(renderer)

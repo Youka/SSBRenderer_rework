@@ -18,10 +18,8 @@ Permission is granted to anyone to use this software for any purpose, including 
 
 namespace SSB{
 	void Renderer::init(int width, int height, Renderer::Colorspace format, std::istream& data, bool warnings) throw(Exception){
+		this->set_target(width, height, format);
 		Parser(warnings ? Parser::Level::ALL : Parser::Level::OFF).parse_script(this->data, data);
-
-		// TODO: backend renderer creation
-
 	}
 
 	Renderer::Renderer(int width, int height, Renderer::Colorspace format, const std::string& script, bool warnings) throw(Exception)
@@ -39,9 +37,10 @@ namespace SSB{
 	}
 
 	void Renderer::set_target(int width, int height, Renderer::Colorspace format){
-
-		// TODO
-
+		this->width = width,
+		this->height = height,
+		this->format = format,
+		this->renderer.set_size(::abs(width), ::abs(height));
 	}
 
 	void Renderer::render(unsigned char* image, unsigned pitch, unsigned long start_ms){

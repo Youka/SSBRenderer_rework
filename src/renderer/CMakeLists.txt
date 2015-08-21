@@ -21,7 +21,7 @@ if(BUILD_AEGISUB_CSRI)
 endif()
 
 # Add library links
-set(RENDERER_LINKS ssbparser)
+set(RENDERER_LINKS ssbparser ssbrenderer_backend)
 if(WIN32)
 	set(RENDERER_LINKS ${RENDERER_LINKS} mfuuid mfplat)
 endif()

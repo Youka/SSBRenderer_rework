@@ -15,6 +15,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 #pragma once
 
 #include "../parser/SSBData.hpp"
+#include "../renderer_backend/Renderer.hpp"
 
 namespace SSB{
 	// Frontend renderer for SSB content
@@ -22,13 +23,27 @@ namespace SSB{
 		public:
 			enum class Colorspace{BGR, BGRX, BGRA};
 		private:
+			// Image data
+			int width, height;
+			Colorspace format;
+			// Backend renderer
+			::Renderer renderer;
+			// Script data
 			Data data;
 			const std::string script_directory;
+			// Initialization
 			void init(int width, int height, Colorspace format, std::istream& data, bool warnings) throw(Exception);
 		public:
+			// Setters
 			Renderer(int width, int height, Colorspace format, const std::string& script, bool warnings) throw(Exception);
 			Renderer(int width, int height, Colorspace format, std::istream& data, bool warnings) throw(Exception);
 			void set_target(int width, int height, Colorspace format);
+			// Processing
 			void render(unsigned char* image, unsigned pitch, unsigned long start_ms);
+			// No copy&move (-> backend renderer limitation)
+			Renderer(const Renderer&) = delete;
+			Renderer(Renderer&&) = delete;
+			Renderer& operator=(const Renderer&) = delete;
+			Renderer& operator=(Renderer&&) = delete;
 	};
 }
