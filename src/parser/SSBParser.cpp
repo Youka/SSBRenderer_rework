@@ -1063,7 +1063,7 @@ namespace SSB{
 								break;
 							}
 							// Check valid times
-							if(event.start_ms < event.end_ms){
+							if(event.start_ms > event.end_ms){
 								THROW_WEAK_ERROR("Start time mustn't be after end time");
 								break;
 							}
