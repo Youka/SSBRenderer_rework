@@ -432,9 +432,46 @@ namespace GUtils{
 		return result;
 	}
 	std::vector<GlyphRun> Font::text_glyphs(const std::string& text){
-
-		// TODO
-
+		// Output storage
+		std::vector<GlyphRun> runs;
+		// Itemize text
+		std::unique_ptr<GList, std::function<void(GList*)>> items(
+			pango_itemize(
+				pango_layout_get_context(this->layout),
+				text.data(),
+				0,
+				text.length(),
+				NULL,
+				NULL
+			),
+			[](GList* l){
+				g_list_foreach(l, [](gpointer data, gpointer){pango_item_free(reinterpret_cast<PangoItem*>(data));}, NULL);
+				g_list_free(l);
+			}
+		);
+		if(items){
+			// Shape items
+			std::unique_ptr<PangoGlyphString, std::function<void(PangoGlyphString*)>> glyphstring(
+				pango_glyph_string_new(),
+				[](PangoGlyphString* s){pango_glyph_string_free(s);}
+			);
+			for(GList* pitems = items.get(); pitems != NULL; pitems = pitems->next){
+				PangoItem* item = reinterpret_cast<PangoItem*>(pitems->data);
+				pango_shape(
+					text.data() + item->offset,
+					item->length,
+					item->analysis,
+					glyphstring.get()
+				);
+				// Save glyphs + direction
+				std::vector<Glyph_t> glyphs(glyphstring->num_glyphs);
+				for(unsigned glyph_i = 0; glyph_i < glyphs.size(); ++glyph_i)
+					glyphs[glyph_i] = glyphstring->glyphs[glyph_i].glyph;
+				runs.push_back({glyphs, glyphstring->num_glyphs > 1 && glyphstring->log_clusters[0] > glyphstring->log_clusters[1] ? GlyphDir::RTL : GlyphDir::LTR});
+			}
+		}
+		// Return what we got
+		return runs;
 	}
 	double Font::text_width(const std::vector<Glyph_t>& glyphs){
 		std::unique_ptr<PangoFont, std::function<void(PangoFont*)>> font(
