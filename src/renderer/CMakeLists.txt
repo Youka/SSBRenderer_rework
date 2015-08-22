@@ -1,6 +1,7 @@
 # Request build options from user
-option(TEST_RENDERER "Build renderer tests?" OFF)
 option(BUILD_AEGISUB_CSRI "Should the CRSI interface convert ASS data input to SSB?" OFF)
+set(BUILD_CACHE_SIZE 64 CACHE STRING "Maximal number of cached objects.")
+option(TEST_RENDERER "Build renderer tests?" OFF)
 
 # Generate configuration header
 configure_file(

@@ -18,6 +18,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 #include "../renderer_backend/Renderer.hpp"
 #include "../graphics/gutils.hpp"
 #include "../utils/memory.hpp"
+#include <config.h>
 
 namespace SSB{
 	// Frontend renderer for SSB content
@@ -40,7 +41,7 @@ namespace SSB{
 				Blend::Mode op;
 				Time fade_in, fade_out;
 			};
-			stdex::Cache<Event*, std::vector<Overlay>, 64> event_cache;
+			stdex::Cache<Event*, std::vector<Overlay>, MAX_CACHE> event_cache;
 			// Initialization
 			void init(int width, int height, Colorspace format, std::istream& data, bool warnings) throw(Exception);
 		public:
