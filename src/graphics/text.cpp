@@ -218,12 +218,11 @@ namespace GUtils{
 		// Get glyphs width
 		std::vector<int> distance_x;
 		if(this->spacing != 0){
-			distance_x.reserve(glyphs.size());
-			SIZE sz;
+			distance_x.resize(glyphs.size()),
+			GetCharWidthI(this->dc, 0, glyphs.size(), const_cast<LPWORD>(glyphs.data()), distance_x.data());
 			const int spacing_upscaled = this->spacing * FONT_UPSCALE;
-			for(auto c : glyphs)
-				GetTextExtentPointI(this->dc, &c, 1, &sz),
-				distance_x.push_back(sz.cx + spacing_upscaled);
+			for(auto& x : distance_x)
+				x += spacing_upscaled;
 		}
 		// Add glyphs path to context
 		BeginPath(this->dc);
@@ -243,11 +242,11 @@ namespace GUtils{
 		std::vector<int> distance_x;
 		if(this->spacing != 0){
 			distance_x.reserve(text.length());
-			SIZE sz;
+			INT width;
 			const int spacing_upscaled = this->spacing * FONT_UPSCALE;
 			for(auto c : text)
-				GetTextExtentPoint32W(this->dc, &c, 1, &sz),
-				distance_x.push_back(sz.cx + spacing_upscaled);
+				GetCharWidth32W(this->dc, c, c, &width),
+				distance_x.push_back(width + spacing_upscaled);
 		}
 		// Add text path to context
 		BeginPath(this->dc);
