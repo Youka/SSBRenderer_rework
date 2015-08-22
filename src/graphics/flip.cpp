@@ -14,7 +14,6 @@ Permission is granted to anyone to use this software for any purpose, including 
 
 #include "gutils.hpp"
 #include <memory>
-#include <algorithm>
 
 namespace GUtils{
 	void flip(unsigned char* data, const unsigned height, const unsigned stride){

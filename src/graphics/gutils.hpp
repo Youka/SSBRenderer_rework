@@ -24,6 +24,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 #include <string>
 #include <exception>
 #include <vector>
+#include <algorithm>
 
 namespace GUtils{
 	class Matrix4x4d{
@@ -75,6 +76,52 @@ namespace GUtils{
 			Matrix4x4d& shear_x(double y, double z, Order order = Order::PREPEND);
 			Matrix4x4d& shear_y(double x, double z, Order order = Order::PREPEND);
 			Matrix4x4d& shear_z(double x, double y, Order order = Order::PREPEND);
+	};
+
+	// Simple 2D image container
+	template<typename Format = char>
+	class Image2D{
+		private:
+			// Image header
+			unsigned width, height, stride;
+			Format format;
+			// Image data
+			std::vector<unsigned char> data;
+		public:
+			// Ctors
+			Image2D() : width(0), height(0), stride(0), format(Format()), data(0){}
+			Image2D(unsigned width, unsigned height, unsigned stride, Format format = Format())
+			: width(width), height(height), stride(stride), format(format), data(this->height * this->stride){}
+			Image2D(unsigned width, unsigned height, unsigned stride, Format format, const unsigned char* data)
+			: width(width), height(height), stride(stride), format(format), data(data, data + this->height * this->stride){}
+			// Getters
+			unsigned get_width() const{return this->width;}
+			unsigned get_height() const{return this->height;}
+			unsigned get_stride() const{return this->stride;}
+			Format get_format() const{return this->format;}
+			unsigned char* get_data() const{return this->data.data();}
+			size_t get_size() const{return this->data.size();}
+			// Setters
+			void set_width(unsigned width){
+				this->width = width;
+			}
+			void set_height(unsigned height){
+				this->height = height,
+				this->data.resize(height * this->stride);
+			}
+			void set_stride(unsigned stride){
+				decltype(this->data) new_data(this->height * stride);
+				for(auto iter = this->data.begin(), new_iter = new_data.begin(); iter != this->data.end(); iter += this->stride, new_iter += stride)
+					std::copy(iter, iter + stride, new_iter);
+				this->stride = stride,
+				this->data = std::move(new_data);
+			}
+			void set_format(Format format){
+				this->format = format;
+			}
+			void set_data(const unsigned char* data){
+				this->data.assign(data, data + this->data.size());
+			}
 	};
 
 	// Flip image vertically

@@ -13,7 +13,6 @@ Permission is granted to anyone to use this software for any purpose, including 
 */
 
 #include "gutils.hpp"
-#include <algorithm>
 #include <cstdint>
 #include <cmath>
 #include "simd.h"

@@ -16,7 +16,6 @@ Permission is granted to anyone to use this software for any purpose, including 
 #include "simd.h"
 #define _USE_MATH_DEFINES
 #include <cmath>
-#include <algorithm>
 #include "threads.hpp"
 #include <libdivide.h>
 
