@@ -374,9 +374,16 @@ namespace GUtils{
 		return result;
 	}
 	double Font::text_width(const std::vector<Glyph_t>& glyphs){
-
-		// TODO
-
+		std::unique_ptr<PangoFont, std::function<void(PangoFont*)> font(
+			pango_context_load_font(pango_layout_get_context(this->layout), pango_layout_get_font_description(this->layout)),
+			[](PangoFont* p){g_object_unref(p);}
+		);
+		int width = 0;
+		PangoRectangle rect;
+		for(auto glyph : glyphs)
+			pango_font_get_glyph_extents(font.get(), glyph, NULL, &rect),
+			width += rect.width;
+		return static_cast<double>(width) / PANGO_SCALE / FONT_UPSCALE + glyphs.size() * this->get_spacing();
 	}
 	double Font::text_width(const std::string& text){
 		pango_layout_set_text(this->layout, text.data(), text.length());
