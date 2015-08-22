@@ -101,12 +101,17 @@ namespace GUtils{
 			const char* what() const noexcept override{return this->message.c_str();}
 	};
 
-	// Glyph type
+	// Glyph types
 #ifdef _WIN32
 	using Glyph_t = WORD;
 #else
 	using Glyph_t = PangoGlyph;
 #endif
+	enum class GlyphDir{LTR, RTL};
+	struct GlyphRun{
+		std::vector<Glyph_t> glyphs;
+		GlyphDir dir;
+	};
 
 	// Native font wrapper
 	class Font{
@@ -154,6 +159,11 @@ namespace GUtils{
 				double height, ascent, descent, internal_leading, external_leading;
 			};
 			Metrics metrics();
+			// Text to glyphs
+			std::vector<GlyphRun> text_glyphs(const std::string& text);
+#ifdef _WIN32
+			std::vector<GlyphRun> text_glyphs(const std::wstring& text);
+#endif
 			// Text width by extents (height from metrics)
 			double text_width(const std::vector<Glyph_t>& glyphs);
 			double text_width(const std::string& text);

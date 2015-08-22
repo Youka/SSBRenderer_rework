@@ -16,6 +16,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 #include <config.h>
 #ifdef _WIN32
 	#include <Wingdi.h>
+	#include <Usp10.h>
 	#include "../utils/utf8.hpp"
 #else
 	#include <pango/pangocairo.h>
@@ -162,6 +163,14 @@ namespace GUtils{
 			static_cast<double>(metrics.tmInternalLeading) / FONT_UPSCALE,
 			static_cast<double>(metrics.tmExternalLeading) / FONT_UPSCALE
 		};
+	}
+	std::vector<GlyphRun> Font::text_glyphs(const std::string& text){
+		return this->text_glyphs(Utf8::to_utf16(text));
+	}
+	std::vector<GlyphRun> Font::text_glyphs(const std::wstring& text){
+
+		// TODO
+
 	}
 	double Font::text_width(const std::vector<Glyph_t>& glyphs){
 		SIZE sz;
@@ -372,6 +381,11 @@ namespace GUtils{
 		result.external_lead = static_cast<double>(pango_layout_get_spacing(this->layout)) / PANGO_SCALE / FONT_UPSCALE,
 		pango_font_metrics_unref(metrics);
 		return result;
+	}
+	std::vector<GlyphRun> Font::text_glyphs(const std::string& text){
+
+		// TODO
+
 	}
 	double Font::text_width(const std::vector<Glyph_t>& glyphs){
 		std::unique_ptr<PangoFont, std::function<void(PangoFont*)>> font(
