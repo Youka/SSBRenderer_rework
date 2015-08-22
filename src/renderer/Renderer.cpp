@@ -19,7 +19,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 namespace SSB{
 	void Renderer::init(int width, int height, Renderer::Colorspace format, std::istream& data, bool warnings) throw(Exception){
 		this->set_target(width, height, format);
-		Parser(warnings ? Parser::Level::ALL : Parser::Level::OFF).parse_script(this->data, data);
+		Parser(warnings ? Parser::Level::ALL : Parser::Level::OFF).parse_script(this->script_data, data);
 	}
 
 	Renderer::Renderer(int width, int height, Renderer::Colorspace format, const std::string& script, bool warnings) throw(Exception)
@@ -40,12 +40,26 @@ namespace SSB{
 		this->width = width,
 		this->height = height,
 		this->format = format,
-		this->renderer.set_size(::abs(width), ::abs(height));
+		this->renderer.set_size(::abs(width), ::abs(height)),
+		this->event_cache.clear();	// New positions by margin -> change!
 	}
 
 	void Renderer::render(unsigned char* image, unsigned pitch, unsigned long start_ms){
+		// Iterate through SSB events
+		for(Event& event : this->script_data.events)
+			// Active SSB event?
+			if(start_ms >= event.start_ms && start_ms < event.end_ms){
+				// Reuse event from cache
+				if(this->event_cache.contains(&event)){
 
-		// TODO
+					// TODO
 
+				// Draw event
+				}else{
+
+					// TODO
+
+				}
+			}
 	}
 }

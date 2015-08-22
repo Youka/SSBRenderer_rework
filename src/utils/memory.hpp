@@ -84,7 +84,7 @@ namespace stdex{
 					this->memory.pop_back();
 				this->memory.push_front({key, value});
                         }
-			void clear() const{
+			void clear(){
 				this->memory.clear();
 			}
 	};

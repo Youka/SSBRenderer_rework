@@ -1,3 +1,4 @@
 TODO:
-- Glyph caching (Font: text -> glyphs)
+- Pango glyphs path with attributes
+- Image caches: static SSB lines, font-bound glyphs, loaded PNGs
 - Renderer backends (Hardware: OpenGL+???; Software: Cairo)
