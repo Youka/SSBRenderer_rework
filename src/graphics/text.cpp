@@ -168,9 +168,58 @@ namespace GUtils{
 		return this->text_glyphs(Utf8::to_utf16(text));
 	}
 	std::vector<GlyphRun> Font::text_glyphs(const std::wstring& text){
-
-		// TODO
-
+		// Output storage
+		std::vector<GlyphRun> runs;
+		// Check for complex-scripting need
+		if(ScriptIsComplex(text.data(), text.length(), SIC_COMPLEX|SIC_NEUTRAL) == S_OK){
+			// Itemize text
+			std::vector<SCRIPT_ITEM> items(text.length() + 1);
+			int items_n;
+			if(ScriptItemize(
+					text.data(),	// Characters to itemize
+					text.length(),	// Number of character
+					items.size()-1,	// Maximal number of items
+					NULL,		// Optional script control
+					NULL,		// Optional script state
+					items.data(),	// Store processed items
+					&items_n	// Number of processed items
+			) == S_OK){
+				items.resize(items_n);
+				// Shape items
+				SCRIPT_CACHE cache = NULL;
+				for(unsigned item_i = 0; item_i < items.size(); ++item_i){
+					SCRIPT_ITEM& item = items[item_i];
+					std::wstring item_text = text.substr(item.iCharPos, item_i == items.size()-1 ? std::wstring::npos : items[item_i+1].iCharPos - item.iCharPos);
+					std::vector<Glyph_t> glyphs(1.5 * item_text.length() + 16);
+					std::vector<WORD> clusters(item_text.length());
+					std::vector<SCRIPT_VISATTR> vattr(glyphs.size());
+					int glyphs_n;
+					if(ScriptShape(
+						this->dc,
+						&cache,
+						item_text.data(),
+						item_text.length(),
+						glyphs.size(),
+						&item.a,
+						glyphs.data(),
+						clusters.data(),
+						vattr.data(),
+						&glyphs_n
+					) == S_OK)
+						glyphs.resize(glyphs_n),
+						// Save glyphs + direction
+						runs.push_back({glyphs, item.a.fRTL ? GlyphDir::RTL : GlyphDir::LTR});
+				}
+				ScriptFreeCache(&cache);
+			}
+		}else{
+			// Simple character to glyph conversion because not complex
+                        std::vector<Glyph_t> glyphs(text.length());
+			GetGlyphIndicesW(this->dc, text.data(), text.length(), glyphs.data(), 0x0);
+			runs.push_back({glyphs, GlyphDir::LTR});
+		}
+		// Return what we got
+		return runs;
 	}
 	double Font::text_width(const std::vector<Glyph_t>& glyphs){
 		SIZE sz;
