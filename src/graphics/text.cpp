@@ -423,21 +423,24 @@ namespace GUtils{
 		return path;
 	}
 	std::vector<Font::PathSegment> Font::text_path(const std::vector<Glyph_t>& glyphs) throw(FontException){
+		// Get layout font
+		std::unique_ptr<PangoFont, std::function<void(PangoFont*)>> font(
+			pango_context_load_font(pango_layout_get_context(this->layout), pango_layout_get_font_description(this->layout)),
+			[](PangoFont* p){g_object_unref(p);}
+		);
 		// Construct glyph string
 		std::unique_ptr<PangoGlyphString, std::function<void(PangoGlyphString*)>> str(
 			pango_glyph_string_new(),
 			[](PangoGlyphString* p){pango_glyph_string_free(p);}
 		);
 		pango_glyph_string_set_size(str.get(), glyphs.size());
+		PangoRectangle rect;
 		for(unsigned i = 0; i < str->num_glyphs; ++i)
+			pango_font_get_glyph_extents(font.get(), glyphs[i], NULL, &rect),
+			str->glyphs[i].geometry.width = rect.width,
 			str->glyphs[i].glyph = glyphs[i];
-		// Get layout font
-		std::unique_ptr<PangoFont, std::function<void(PangoFont*)>> font(
-			pango_context_load_font(pango_layout_get_context(this->layout), pango_layout_get_font_description(this->layout)),
-			[](PangoFont* p){g_object_unref(p);}
-		);
 
-		// TODO: Check glyph string sizes
+		// TODO: Check glyphs offset
 		// TODO: Check attributes: underline, strikeout, letter spacing
 
 		// Add glyphs path to context
