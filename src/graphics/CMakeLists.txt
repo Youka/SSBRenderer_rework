@@ -16,6 +16,13 @@ add_library(ssbgraphics STATIC ${GRAPHICS_SOURCES})
 # Add library include directories
 target_include_directories(ssbgraphics PUBLIC ${CMAKE_CURRENT_BINARY_DIR} ${DEPEND_LIBDIVIDE})
 
+# Add library links
+if(WIN32)
+	target_link_libraries(ssbgraphics usp10)
+else()
+	target_link_libraries(ssbgraphics cairo pango-1.0 pangocairo-1.0)
+endif()
+
 # Add functionality tests
 if(${TEST_GRAPHICS})
 	# Create transformation test
