@@ -374,7 +374,7 @@ namespace GUtils{
 		return result;
 	}
 	double Font::text_width(const std::vector<Glyph_t>& glyphs){
-		std::unique_ptr<PangoFont, std::function<void(PangoFont*)> font(
+		std::unique_ptr<PangoFont, std::function<void(PangoFont*)>> font(
 			pango_context_load_font(pango_layout_get_context(this->layout), pango_layout_get_font_description(this->layout)),
 			[](PangoFont* p){g_object_unref(p);}
 		);
@@ -423,9 +423,30 @@ namespace GUtils{
 		return path;
 	}
 	std::vector<Font::PathSegment> Font::text_path(const std::vector<Glyph_t>& glyphs) throw(FontException){
+		// Construct glyph string
+		std::unique_ptr<PangoGlyphString, std::function<void(PangoGlyphString*)>> str(
+			pango_glyph_string_new(),
+			[](PangoGlyphString* p){pango_glyph_string_free(p);}
+		);
+		pango_glyph_string_set_size(str.get(), glyphs.size());
+		for(unsigned i = 0; i < str->num_glyphs; ++i)
+			str->glyphs[i].glyph = glyphs[i];
+		// Get layout font
+		std::unique_ptr<PangoFont, std::function<void(PangoFont*)>> font(
+			pango_context_load_font(pango_layout_get_context(this->layout), pango_layout_get_font_description(this->layout)),
+			[](PangoFont* p){g_object_unref(p);}
+		);
 
-		// TODO
+		// TODO: Check glyph string sizes
+		// TODO: Check attributes: underline, strikeout, letter spacing
 
+		// Add glyphs path to context
+		cairo_save(this->context),
+		cairo_scale(ctx, 1.0 / FONT_UPSCALE, 1.0 / FONT_UPSCALE),
+		pango_cairo_glyph_string_path(this->context, font.get(), str.get()),
+		cairo_restore(this->context);
+		// Extract & return path
+		return this->extract_path();
 	}
 	std::vector<Font::PathSegment> Font::text_path(const std::string& text) throw(FontException){
 		// Add text path to context
