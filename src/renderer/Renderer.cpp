@@ -49,16 +49,22 @@ namespace SSB{
 		for(Event& event : this->script_data.events)
 			// Active SSB event?
 			if(start_ms >= event.start_ms && start_ms < event.end_ms){
-				// Reuse event from cache
-				if(this->event_cache.contains(&event)){
+				// Recycle event overlays from cache
+				if(this->event_cache.contains(&event))
+					for(Renderer::Overlay& overlay : this->event_cache.get(&event))
 
-					// TODO
+						;// TODO: fade image and blend on target
 
 				// Draw event
-				}else{
+				else{
+					// Event overlays collection
+					std::vector<Renderer::Overlay> overlays;
 
-					// TODO
+					// TODO: all rendering stuff
 
+					// Save event overlays to cache
+					if(!overlays.empty())
+						this->event_cache.add(&event, overlays);
 				}
 			}
 	}

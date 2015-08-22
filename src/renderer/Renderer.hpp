@@ -40,7 +40,7 @@ namespace SSB{
 				Blend::Mode op;
 				Time fade_in, fade_out;
 			};
-			stdex::Cache<Event*, Overlay, 64> event_cache;
+			stdex::Cache<Event*, std::vector<Overlay>, 64> event_cache;
 			// Initialization
 			void init(int width, int height, Colorspace format, std::istream& data, bool warnings) throw(Exception);
 		public:

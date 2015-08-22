@@ -12,9 +12,9 @@ Permission is granted to anyone to use this software for any purpose, including 
     3. This notice may not be removed or altered from any source distribution.
 */
 
-#include "../gutils.hpp"
 #define _USE_MATH_DEFINES
 #include <cmath>
+#include "../gutils.hpp"
 #include <iostream>
 #include <iterator>
 #include <algorithm>
