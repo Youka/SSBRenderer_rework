@@ -52,7 +52,8 @@ namespace SSB{
 				// Recycle event overlays from cache
 				if(this->event_cache.contains(&event))
 					for(Overlay& overlay : this->event_cache.get(&event))
-						blend_overlay();
+						blend_overlay(event.start_ms, event.end_ms, start_ms,
+								overlay);
 				// Draw event
 				else{
 					// Event overlays collection

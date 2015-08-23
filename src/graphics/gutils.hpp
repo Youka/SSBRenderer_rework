@@ -99,7 +99,7 @@ namespace GUtils{
 			unsigned get_height() const{return this->height;}
 			unsigned get_stride() const{return this->stride;}
 			Format get_format() const{return this->format;}
-			unsigned char* get_data() const{return this->data.data();}
+			unsigned char* get_data() const{return const_cast<unsigned char*>(this->data.data());}
 			size_t get_size() const{return this->data.size();}
 			// Setters
 			void set_width(unsigned width){

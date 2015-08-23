@@ -18,6 +18,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 #include "../parser/SSBData.hpp"
 
 namespace SSB{
+	// Image with overlay instruction
 	struct Overlay{
 		GUtils::Image2D<> image;
 		int x, y;
@@ -25,9 +26,33 @@ namespace SSB{
 		Time fade_in, fade_out;
 	};
 
-	inline void blend_overlay(){
+	// Fades overlay and blends on target
+	inline void blend_overlay(Time start_ms, Time end_ms, Time cur_ms,
+				Overlay& overlay){
+		// Cast SSB blend mode to GUtils blend operation
+		GUtils::BlendOp op;
+		switch(overlay.op){
+			case Blend::Mode::OVER: op = GUtils::BlendOp::OVER; break;
+			case Blend::Mode::ADDITION: op = GUtils::BlendOp::ADD; break;
+			case Blend::Mode::SUBTRACT: op = GUtils::BlendOp::SUB; break;
+			case Blend::Mode::MULTIPLY: op = GUtils::BlendOp::MUL; break;
+			case Blend::Mode::SCREEN: op = GUtils::BlendOp::SCR; break;
+			case Blend::Mode::DIFFERENCES: op = GUtils::BlendOp::DIFF; break;
+		}
+		// Calculate fade factor
+		Time inner_ms = cur_ms - start_ms,
+			inv_inner_ms = end_ms - cur_ms;
+		double alpha = inner_ms < overlay.fade_in ? static_cast<double>(inner_ms) / overlay.fade_in : (inv_inner_ms < overlay.fade_out ? static_cast<double>(inv_inner_ms) / overlay.fade_out : 1);
+		// Fade image
+		if(alpha != 1)
+			std::for_each(overlay.image.get_data(), overlay.image.get_data() + overlay.image.get_size(), [&alpha](unsigned char& x){x /= alpha;});
+		// Convert target from BGRX to BGRA for blending
 
-		// TODO: fade image and blend on target
+                // TODO
+
+		// Blend overlay on target
+
+		// TODO
 
 	}
 }
