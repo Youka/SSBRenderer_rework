@@ -51,14 +51,12 @@ namespace SSB{
 			if(start_ms >= event.start_ms && start_ms < event.end_ms){
 				// Recycle event overlays from cache
 				if(this->event_cache.contains(&event))
-					for(Renderer::Overlay& overlay : this->event_cache.get(&event))
-
-						;// TODO: fade image and blend on target
-
+					for(Overlay& overlay : this->event_cache.get(&event))
+						blend_overlay();
 				// Draw event
 				else{
 					// Event overlays collection
-					std::vector<Renderer::Overlay> overlays;
+					std::vector<Overlay> overlays;
 
 					// TODO: all rendering stuff
 

@@ -14,9 +14,8 @@ Permission is granted to anyone to use this software for any purpose, including 
 
 #pragma once
 
-#include "../parser/SSBData.hpp"
+#include "Overlay.hpp"
 #include "../renderer_backend/Renderer.hpp"
-#include "../graphics/gutils.hpp"
 #include "../utils/memory.hpp"
 #include <config.h>
 
@@ -35,13 +34,8 @@ namespace SSB{
 			Data script_data;
 			const std::string script_directory;
 			// Caches
-			struct Overlay{
-				GUtils::Image2D<> image;
-				int x, y;
-				Blend::Mode op;
-				Time fade_in, fade_out;
-			};
 			stdex::Cache<Event*, std::vector<Overlay>, MAX_CACHE> event_cache;
+			stdex::Cache<std::string, GUtils::Image2D<>, MAX_CACHE> image_cache;
 			// Initialization
 			void init(int width, int height, Colorspace format, std::istream& data, bool warnings) throw(Exception);
 		public:
