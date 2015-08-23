@@ -20,7 +20,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 namespace SSB{
 	// Image with overlay instruction
 	struct Overlay{
-		GUtils::Image2D<> image;
+		GUtils::Image2D<> image; // Always RGBA
 		int x, y;
 		Blend::Mode op;
 		Time fade_in, fade_out;
@@ -32,7 +32,31 @@ namespace SSB{
 	// Fades overlay and blends on target
 	inline void blend_overlay(Time start_ms, Time end_ms, Time cur_ms,
 				Overlay& overlay,
-				unsigned char* dst_data, unsigned width, unsigned height, unsigned stride, Colorspace format){
+				unsigned char* data, unsigned width, unsigned height, unsigned stride, Colorspace format){
+		// Calculate fade factor
+		Time inner_ms = cur_ms - start_ms,
+			inv_inner_ms = end_ms - cur_ms;
+		double alpha = inner_ms < overlay.fade_in ? static_cast<double>(inner_ms) / overlay.fade_in : (inv_inner_ms < overlay.fade_out ? static_cast<double>(inv_inner_ms) / overlay.fade_out : 1.0);
+		// Fade image
+		if(alpha != 1.0){
+			unsigned char* pdata = overlay.image.get_data();
+			const unsigned char* const data_end = pdata + overlay.image.get_size();
+			while(pdata != data_end)
+				*pdata++ *= alpha;
+		}
+		// Convert target from BGRX to BGRA for blending requirements
+		if(format == Colorspace::BGRX){
+			unsigned char* pdata = overlay.image.get_data();
+			const unsigned char* const data_end = pdata + overlay.image.get_size();
+			const unsigned row_length = overlay.image.get_width() << 2,
+				offset = overlay.image.get_stride() - row_length;
+			const unsigned char* pdata_row_end;
+			while(pdata != data_end){
+				for(pdata_row_end = pdata + row_length; pdata != pdata_row_end; pdata += 4)
+					pdata[3] = 255;
+				pdata += offset;
+			}
+		}
 		// Cast SSB blend mode to GUtils blend operation
 		GUtils::BlendOp op;
 		switch(overlay.op){
@@ -42,22 +66,13 @@ namespace SSB{
 			case Blend::Mode::MULTIPLY: op = GUtils::BlendOp::MUL; break;
 			case Blend::Mode::SCREEN: op = GUtils::BlendOp::SCR; break;
 			case Blend::Mode::DIFFERENCES: op = GUtils::BlendOp::DIFF; break;
+			default: op = GUtils::BlendOp::OVER; break;	// Compiler nonsense, all possibles cases were already handled
 		}
-		// Calculate fade factor
-		Time inner_ms = cur_ms - start_ms,
-			inv_inner_ms = end_ms - cur_ms;
-		double alpha = inner_ms < overlay.fade_in ? static_cast<double>(inner_ms) / overlay.fade_in : (inv_inner_ms < overlay.fade_out ? static_cast<double>(inv_inner_ms) / overlay.fade_out : 1);
-		// Fade image
-		if(alpha != 1)
-			for(unsigned char* pdata = overlay.image.get_data(), *pdata_end = pdata + overlay.image.get_size(); pdata != pdata_end; ++pdata)
-				*pdata *= alpha;
-		// Convert target from BGRX to BGRA for blending requirements
-
-                // TODO
-
 		// Blend overlay on target
-
-		// TODO
-
+		GUtils::blend(
+			overlay.image.get_data(), overlay.image.get_width(), overlay.image.get_height(), overlay.image.get_stride(), true,
+			data, width, height, stride, format != Colorspace::BGR,
+			overlay.x, overlay.y, op
+		);
 	}
 }
