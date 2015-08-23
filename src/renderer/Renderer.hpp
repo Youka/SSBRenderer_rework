@@ -22,8 +22,6 @@ Permission is granted to anyone to use this software for any purpose, including 
 namespace SSB{
 	// Frontend renderer for SSB content
 	class Renderer{
-		public:
-			enum class Colorspace{BGR, BGRX, BGRA};
 		private:
 			// Image data
 			int width, height;
@@ -44,7 +42,7 @@ namespace SSB{
 			Renderer(int width, int height, Colorspace format, std::istream& data, bool warnings) throw(Exception);
 			void set_target(int width, int height, Colorspace format);
 			// Processing
-			void render(unsigned char* image, unsigned pitch, unsigned long start_ms);
+			void render(unsigned char* image, unsigned stride, unsigned long start_ms);
 			// No copy&move (-> backend renderer limitation)
 			Renderer(const Renderer&) = delete;
 			Renderer(Renderer&&) = delete;

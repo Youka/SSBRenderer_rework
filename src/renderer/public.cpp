@@ -19,11 +19,11 @@ Permission is granted to anyone to use this software for any purpose, including 
 #include <config.h>
 
 ssb_renderer ssb_create_renderer(int width, int height, char format, const char* script, char* warning){
-	SSB::Renderer::Colorspace rformat;
+	SSB::Colorspace rformat;
 	switch(format){
-		case SSB_BGR: rformat = SSB::Renderer::Colorspace::BGR; break;
-		case SSB_BGRX: rformat = SSB::Renderer::Colorspace::BGRX; break;
-		case SSB_BGRA: rformat = SSB::Renderer::Colorspace::BGRA; break;
+		case SSB_BGR: rformat = SSB::Colorspace::BGR; break;
+		case SSB_BGRX: rformat = SSB::Colorspace::BGRX; break;
+		case SSB_BGRA: rformat = SSB::Colorspace::BGRA; break;
 		default: return 0;
 	}
 	try{
@@ -36,11 +36,11 @@ ssb_renderer ssb_create_renderer(int width, int height, char format, const char*
 }
 
 ssb_renderer ssb_create_renderer_from_memory(int width, int height, char format, const char* data, char* warning){
-	SSB::Renderer::Colorspace rformat;
+	SSB::Colorspace rformat;
 	switch(format){
-		case SSB_BGR: rformat = SSB::Renderer::Colorspace::BGR; break;
-		case SSB_BGRX: rformat = SSB::Renderer::Colorspace::BGRX; break;
-		case SSB_BGRA: rformat = SSB::Renderer::Colorspace::BGRA; break;
+		case SSB_BGR: rformat = SSB::Colorspace::BGR; break;
+		case SSB_BGRX: rformat = SSB::Colorspace::BGRX; break;
+		case SSB_BGRA: rformat = SSB::Colorspace::BGRA; break;
 		default: return 0;
 	}
 	std::istringstream data_stream(data);
@@ -55,11 +55,11 @@ ssb_renderer ssb_create_renderer_from_memory(int width, int height, char format,
 
 void ssb_set_target(ssb_renderer renderer, int width, int height, char format){
 	if(renderer){
-		SSB::Renderer::Colorspace rformat;
+		SSB::Colorspace rformat;
 		switch(format){
-			case SSB_BGR: rformat = SSB::Renderer::Colorspace::BGR; break;
-			case SSB_BGRX: rformat = SSB::Renderer::Colorspace::BGRX; break;
-			case SSB_BGRA: rformat = SSB::Renderer::Colorspace::BGRA; break;
+			case SSB_BGR: rformat = SSB::Colorspace::BGR; break;
+			case SSB_BGRX: rformat = SSB::Colorspace::BGRX; break;
+			case SSB_BGRA: rformat = SSB::Colorspace::BGRA; break;
 			default: return;
 		}
 		reinterpret_cast<SSB::Renderer*>(renderer)->set_target(width, height, rformat);

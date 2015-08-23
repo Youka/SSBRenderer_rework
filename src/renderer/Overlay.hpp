@@ -26,9 +26,13 @@ namespace SSB{
 		Time fade_in, fade_out;
 	};
 
+	// Colorspace type
+	enum class Colorspace{BGR, BGRX, BGRA};
+
 	// Fades overlay and blends on target
 	inline void blend_overlay(Time start_ms, Time end_ms, Time cur_ms,
-				Overlay& overlay){
+				Overlay& overlay,
+				unsigned char* dst_data, unsigned width, unsigned height, unsigned stride, Colorspace format){
 		// Cast SSB blend mode to GUtils blend operation
 		GUtils::BlendOp op;
 		switch(overlay.op){
@@ -45,8 +49,9 @@ namespace SSB{
 		double alpha = inner_ms < overlay.fade_in ? static_cast<double>(inner_ms) / overlay.fade_in : (inv_inner_ms < overlay.fade_out ? static_cast<double>(inv_inner_ms) / overlay.fade_out : 1);
 		// Fade image
 		if(alpha != 1)
-			std::for_each(overlay.image.get_data(), overlay.image.get_data() + overlay.image.get_size(), [&alpha](unsigned char& x){x /= alpha;});
-		// Convert target from BGRX to BGRA for blending
+			for(unsigned char* pdata = overlay.image.get_data(), *pdata_end = pdata + overlay.image.get_size(); pdata != pdata_end; ++pdata)
+				*pdata *= alpha;
+		// Convert target from BGRX to BGRA for blending requirements
 
                 // TODO
 

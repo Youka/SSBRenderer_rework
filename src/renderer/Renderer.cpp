@@ -17,12 +17,12 @@ Permission is granted to anyone to use this software for any purpose, including 
 #include "../utils/io.hpp"
 
 namespace SSB{
-	void Renderer::init(int width, int height, Renderer::Colorspace format, std::istream& data, bool warnings) throw(Exception){
+	void Renderer::init(int width, int height, Colorspace format, std::istream& data, bool warnings) throw(Exception){
 		this->set_target(width, height, format);
 		Parser(warnings ? Parser::Level::ALL : Parser::Level::OFF).parse_script(this->script_data, data);
 	}
 
-	Renderer::Renderer(int width, int height, Renderer::Colorspace format, const std::string& script, bool warnings) throw(Exception)
+	Renderer::Renderer(int width, int height, Colorspace format, const std::string& script, bool warnings) throw(Exception)
 	: script_directory(stdex::get_file_dir(script)){
 		stdex::fstream file(script, stdex::fstream::in);
 		if(!file)
@@ -30,13 +30,13 @@ namespace SSB{
 		this->init(width, height, format, file, warnings);
 	}
 
-	Renderer::Renderer(int width, int height, Renderer::Colorspace format, std::istream& data, bool warnings) throw(Exception){
+	Renderer::Renderer(int width, int height, Colorspace format, std::istream& data, bool warnings) throw(Exception){
 		if(!data)
 			throw Exception("Bad data stream");
 		this->init(width, height, format, data, warnings);
 	}
 
-	void Renderer::set_target(int width, int height, Renderer::Colorspace format){
+	void Renderer::set_target(int width, int height, Colorspace format){
 		this->width = width,
 		this->height = height,
 		this->format = format,
@@ -44,7 +44,7 @@ namespace SSB{
 		this->event_cache.clear();	// New positions by margin -> change!
 	}
 
-	void Renderer::render(unsigned char* image, unsigned pitch, unsigned long start_ms){
+	void Renderer::render(unsigned char* image, unsigned stride, unsigned long start_ms){
 		// Iterate through SSB events
 		for(Event& event : this->script_data.events)
 			// Active SSB event?
@@ -53,7 +53,8 @@ namespace SSB{
 				if(this->event_cache.contains(&event))
 					for(Overlay& overlay : this->event_cache.get(&event))
 						blend_overlay(event.start_ms, event.end_ms, start_ms,
-								overlay);
+								overlay,
+								image, this->width, this->height, stride, this->format);
 				// Draw event
 				else{
 					// Event overlays collection

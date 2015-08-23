@@ -78,10 +78,10 @@ namespace FilterBase{
 		void init(VideoInfo vinfo, std::vector<Variant> args, void** userdata) throw(std::string){
 			if(args[0].type == ArgType::NONE)
 				throw std::string("Script filename expected");
-			SSB::Renderer::Colorspace color_space;
+			SSB::Colorspace color_space;
 			switch(vinfo.format){
-				case ColorType::BGR: color_space = SSB::Renderer::Colorspace::BGR; break;
-				case ColorType::BGRA: color_space = SSB::Renderer::Colorspace::BGRA; break;
+				case ColorType::BGR: color_space = SSB::Colorspace::BGR; break;
+				case ColorType::BGRA: color_space = SSB::Colorspace::BGRA; break;
 				case ColorType::BGRX:
 				case ColorType::UNKNOWN:
 				default: throw std::string("Invalid color format");	// Should never happen
@@ -166,7 +166,7 @@ namespace FilterBase{
 #endif
 		bool init(const char* filename, void** userdata){
 			try{
-				*userdata = new SSB::Renderer(0, 0, SSB::Renderer::Colorspace::BGR, filename, false);
+				*userdata = new SSB::Renderer(0, 0, SSB::Colorspace::BGR, filename, false);
 			}catch(SSB::Exception){
 				return false;
 			}
@@ -176,10 +176,10 @@ namespace FilterBase{
 #ifdef USE_AEGISUB_INTERFACE
 			std::stringstream ssb_stream;
 			try{
-				*userdata = new SSB::Renderer(0, 0, SSB::Renderer::Colorspace::BGR, convert_ass_ssb(stream, ssb_stream), false);
+				*userdata = new SSB::Renderer(0, 0, SSB::Colorspace::BGR, convert_ass_ssb(stream, ssb_stream), false);
 #else
 			try{
-				*userdata = new SSB::Renderer(0, 0, SSB::Renderer::Colorspace::BGR, stream, false);
+				*userdata = new SSB::Renderer(0, 0, SSB::Colorspace::BGR, stream, false);
 #endif
 			}catch(SSB::Exception){
 				return false;
@@ -187,11 +187,11 @@ namespace FilterBase{
 			return true;
 		}
 		void setup(VideoInfo vinfo, void** userdata){
-			SSB::Renderer::Colorspace color_space;
+			SSB::Colorspace color_space;
 			switch(vinfo.format){
-				case ColorType::BGR: color_space = SSB::Renderer::Colorspace::BGR; break;
-				case ColorType::BGRA: color_space = SSB::Renderer::Colorspace::BGRA; break;
-				case ColorType::BGRX: color_space = SSB::Renderer::Colorspace::BGRX; break;
+				case ColorType::BGR: color_space = SSB::Colorspace::BGR; break;
+				case ColorType::BGRA: color_space = SSB::Colorspace::BGRA; break;
+				case ColorType::BGRX: color_space = SSB::Colorspace::BGRX; break;
 				case ColorType::UNKNOWN:
 				default: throw SSB::Exception("Something terrible happened with CSRI interface");	// Should never happen
 			}
@@ -303,9 +303,9 @@ namespace FilterBase{
 		}
 		void start(VideoInfo vinfo, void** userdata) throw(std::string){
 			Userdata* myuserdata = reinterpret_cast<Userdata*>(*userdata);
-			SSB::Renderer::Colorspace color_space;
+			SSB::Colorspace color_space;
 			switch(vinfo.format){
-				case ColorType::BGRX: color_space = SSB::Renderer::Colorspace::BGRX; break;
+				case ColorType::BGRX: color_space = SSB::Colorspace::BGRX; break;
 				case ColorType::BGR:
 				case ColorType::BGRA:
 				case ColorType::UNKNOWN:
@@ -339,9 +339,9 @@ namespace FilterBase{
 		}
 		void start(VideoInfo vinfo, IFilterConfig* config) throw(std::string){
 			Userdata* myuserdata = reinterpret_cast<Userdata*>(*config->LockData());
-			SSB::Renderer::Colorspace color_space;
+			SSB::Colorspace color_space;
 			switch(vinfo.format){
-				case ColorType::BGRX: color_space = SSB::Renderer::Colorspace::BGRX; break;
+				case ColorType::BGRX: color_space = SSB::Colorspace::BGRX; break;
 				case ColorType::BGR:
 				case ColorType::BGRA:
 				case ColorType::UNKNOWN:
