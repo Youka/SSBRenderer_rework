@@ -83,7 +83,12 @@ namespace stdex{
 				if(this->memory.size() == Limit)
 					this->memory.pop_back();
 				this->memory.push_front({key, value});
-                        }
+			}
+			void add(const Key& key, Value&& value){
+				if(this->memory.size() == Limit)
+					this->memory.pop_back();
+				this->memory.push_front({key, std::forward<Value>(value)});
+			}
 			void clear(){
 				this->memory.clear();
 			}

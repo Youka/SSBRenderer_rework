@@ -64,7 +64,7 @@ namespace SSB{
 
 					// Save event overlays to cache
 					if(!overlays.empty())
-						this->event_cache.add(&event, overlays);
+						this->event_cache.add(&event, std::move(overlays));
 				}
 			}
 	}
