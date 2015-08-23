@@ -1,5 +1,4 @@
 TODO:
 - (Pango glyphs path with attributes)
-- Frame flip
 - Image caches: static SSB lines, loaded PNGs, font-bound glyphs
 - Renderer backends (Hardware: OpenGL+???; Software: Cairo)

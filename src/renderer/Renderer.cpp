@@ -45,16 +45,22 @@ namespace SSB{
 	}
 
 	void Renderer::render(unsigned char* image, unsigned stride, unsigned long start_ms){
+		// Flag for correct image flipping
+		bool image_flipped = false;
 		// Iterate through SSB events
 		for(Event& event : this->script_data.events)
 			// Active SSB event?
 			if(start_ms >= event.start_ms && start_ms < event.end_ms){
+				// Flip image for right row alignment
+				if(this->height < 0 && !image_flipped)
+					GUtils::flip(image, ::abs(this->height), stride),
+					image_flipped = true;
 				// Recycle event overlays from cache
 				if(this->event_cache.contains(&event))
 					for(Overlay& overlay : this->event_cache.get(&event))
 						blend_overlay(event.start_ms, event.end_ms, start_ms,
 								overlay,
-								image, this->width, this->height, stride, this->format);
+								image, ::abs(this->width), ::abs(this->height), stride, this->format);
 				// Draw event
 				else{
 					// Event overlays collection
@@ -67,5 +73,8 @@ namespace SSB{
 						this->event_cache.add(&event, std::move(overlays));
 				}
 			}
+		// Image needs to get flipped back?
+		if(image_flipped)
+			GUtils::flip(image, ::abs(this->height), stride);
 	}
 }
