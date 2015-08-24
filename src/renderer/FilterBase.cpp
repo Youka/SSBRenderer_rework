@@ -28,6 +28,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 #include <commdlg.h>
 #include "vdub_resources.h"
 #include "../utils/utf8.hpp"
+#include <sstream>
 
 #include <initguid.h>
 // {2C80A3B9-6A38-4416-A6E1-8982A37FD3FA}
