@@ -36,5 +36,7 @@ int main(){
 	std::istringstream ss(s);
 	if(stdex::has_empty_last_line(ss, ' ') || !stdex::has_empty_last_line(ss, '?'))
 		throw std::logic_error("Couldn't detect empty last line correctly");
+	if(!STR_LIT_EQU_FIRST(std::string("Foo bar"), "Foo"))
+		throw std::logic_error("Couldn't find existing substring at target string beginning");
 	return 0;
 }
