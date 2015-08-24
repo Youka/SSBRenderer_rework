@@ -13,6 +13,8 @@ Permission is granted to anyone to use this software for any purpose, including 
 */
 
 #include "Renderer.hpp"
+#include <glfw3.h>
+#include <png.h>
 
 Renderer::Renderer(){
 
