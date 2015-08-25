@@ -16,16 +16,37 @@ Permission is granted to anyone to use this software for any purpose, including 
 #include <glfw3.h>
 #include <png.h>
 
-Renderer::Renderer(){
+#include <thread>
+#include <mutex>
+#include <unordered_map>
 
-	// TODO
+// Manage GL context by thread & instance number
+std::unordered_map<std::thread::id,unsigned> ctx_ref_count;
+std::mutex ctx_ref_count_mutex;
+
+Renderer::Renderer(){
+	// Update context reference counter for increment
+	{
+		std::unique_lock<std::mutex> lock(ctx_ref_count_mutex);
+		auto thread_id = std::this_thread::get_id();
+		if(ctx_ref_count.count(thread_id))
+			++ctx_ref_count[thread_id];
+		else{
+			ctx_ref_count[thread_id] = 1;
+			if(ctx_ref_count.size() == 1)
+				glfwInit();
+
+			// TODO: create context
+
+		}
+	}
+
+	// TODO: create resources
 
 }
 
-Renderer::Renderer(unsigned width, unsigned height){
-
-	// TODO
-
+Renderer::Renderer(unsigned width, unsigned height) : Renderer(){
+	this->set_size(width, height);
 }
 
 void Renderer::set_size(unsigned width, unsigned height){
@@ -35,8 +56,21 @@ void Renderer::set_size(unsigned width, unsigned height){
 }
 
 Renderer::~Renderer(){
+	{
+		// Update context reference counter for decrement
+		std::unique_lock<std::mutex> lock(ctx_ref_count_mutex);
+		auto thread_id = std::this_thread::get_id();
+		if(--ctx_ref_count[thread_id] == 0){
+			ctx_ref_count.erase(thread_id);
 
-	// TODO
+			// TODO: destroy context
+
+			if(ctx_ref_count.empty())
+				glfwTerminate();
+		}
+	}
+
+	// TODO: delete resources
 
 }
 
