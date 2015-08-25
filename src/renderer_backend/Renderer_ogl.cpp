@@ -20,24 +20,33 @@ Permission is granted to anyone to use this software for any purpose, including 
 #include <mutex>
 #include <unordered_map>
 
-// Manage GL context by thread & instance number
-std::unordered_map<std::thread::id,unsigned> ctx_ref_count;
-std::mutex ctx_ref_count_mutex;
+// Manage GL context by thread & references
+struct Context{
+	std::unique_ptr<GLFWwindow,std::function<void(GLFWwindow*)>> window;
+	unsigned ref_count;
+};
+static std::unordered_map<std::thread::id,Context> contexts;
+static std::mutex contexts_mutex;
 
 Renderer::Renderer(){
 	// Update context reference counter for increment
 	{
-		std::unique_lock<std::mutex> lock(ctx_ref_count_mutex);
+		std::unique_lock<std::mutex> lock(contexts_mutex);
 		auto thread_id = std::this_thread::get_id();
-		if(ctx_ref_count.count(thread_id))
-			++ctx_ref_count[thread_id];
+		if(contexts.count(thread_id))
+			++contexts[thread_id].ref_count;
 		else{
-			ctx_ref_count[thread_id] = 1;
-			if(ctx_ref_count.size() == 1)
+			// Initialize GLFW on first context
+			if(contexts.empty())
 				glfwInit();
-
-			// TODO: create context
-
+			// Create context
+			GLFWwindow* window = glfwCreateWindow(1, 1, "Dummy", NULL, NULL);
+			glfwHideWindow(window);
+			glfwMakeContextCurrent(window);
+			contexts[thread_id] = {
+				std::unique_ptr<GLFWwindow,std::function<void(GLFWwindow*)>>(window, [](GLFWwindow* w){glfwMakeContextCurrent(NULL);glfwDestroyWindow(w);}),
+				1
+			};
 		}
 	}
 
@@ -58,14 +67,13 @@ void Renderer::set_size(unsigned width, unsigned height){
 Renderer::~Renderer(){
 	{
 		// Update context reference counter for decrement
-		std::unique_lock<std::mutex> lock(ctx_ref_count_mutex);
+		std::unique_lock<std::mutex> lock(contexts_mutex);
 		auto thread_id = std::this_thread::get_id();
-		if(--ctx_ref_count[thread_id] == 0){
-			ctx_ref_count.erase(thread_id);
-
-			// TODO: destroy context
-
-			if(ctx_ref_count.empty())
+		if(--contexts[thread_id].ref_count == 0){
+			// Destroy context
+			contexts.erase(thread_id);
+			// Terminate GLFW on non-remaining context
+			if(contexts.empty())
 				glfwTerminate();
 		}
 	}
