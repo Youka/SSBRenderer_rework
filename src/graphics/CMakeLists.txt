@@ -10,7 +10,12 @@ configure_file(
 )
 
 # Plan static library compiling
-file(GLOB GRAPHICS_SOURCES *.cpp *.hpp *.h)
+set(GRAPHICS_SOURCES blend.cpp blur.cpp flip.cpp matrix.cpp simd.h threads.hpp gutils.hpp)
+if(WIN32)
+	set(GRAPHICS_SOURCES ${GRAPHICS_SOURCES} text_win.cpp)
+else()
+	set(GRAPHICS_SOURCES ${GRAPHICS_SOURCES} text_unix.cpp)
+endif()
 add_library(ssbgraphics STATIC ${GRAPHICS_SOURCES})
 
 # Add library include directories

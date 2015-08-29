@@ -29,7 +29,7 @@ static std::unordered_map<std::thread::id,Context> contexts;
 static std::mutex contexts_mutex;
 
 Renderer::Renderer(){
-	// Update context reference counter for increment
+	// Update contexts for new creation
 	{
 		std::unique_lock<std::mutex> lock(contexts_mutex);
 		auto thread_id = std::this_thread::get_id();
@@ -44,7 +44,7 @@ Renderer::Renderer(){
 			glfwHideWindow(window);
 			glfwMakeContextCurrent(window);
 			contexts[thread_id] = {
-				std::unique_ptr<GLFWwindow,std::function<void(GLFWwindow*)>>(window, [](GLFWwindow* w){glfwMakeContextCurrent(NULL);glfwDestroyWindow(w);}),
+				std::unique_ptr<GLFWwindow,std::function<void(GLFWwindow*)>>(window, [](GLFWwindow* w){glfwMakeContextCurrent(NULL); glfwDestroyWindow(w);}),
 				1
 			};
 		}
@@ -65,8 +65,8 @@ void Renderer::set_size(unsigned width, unsigned height){
 }
 
 Renderer::~Renderer(){
+	// Update contexts for one deletion
 	{
-		// Update context reference counter for decrement
 		std::unique_lock<std::mutex> lock(contexts_mutex);
 		auto thread_id = std::this_thread::get_id();
 		if(--contexts[thread_id].ref_count == 0){

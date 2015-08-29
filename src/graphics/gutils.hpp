@@ -139,15 +139,6 @@ namespace GUtils{
 	void blur(unsigned char* data, const unsigned width, const unsigned height, const unsigned stride, const ColorDepth depth,
 		const float strength_h, const float strength_v);
 
-	// Exception for font problems (see Font class below)
-	class FontException : public std::exception{
-		private:
-			std::string message;
-		public:
-			FontException(const std::string& message) : message(message){}
-			const char* what() const noexcept override{return this->message.c_str();}
-	};
-
 	// Glyph types
 #ifdef _WIN32
 	using Glyph_t = WORD;
@@ -158,6 +149,21 @@ namespace GUtils{
 	struct GlyphRun{
 		std::vector<Glyph_t> glyphs;
 		GlyphDir dir;
+	};
+
+	// Path data
+	struct PathSegment{
+		enum class Type{MOVE, LINE, CURVE/*Cubic bezier*/, CLOSE} type;
+		double x, y;
+	};
+
+	// Exception for font problems (see Font class below)
+	class FontException : public std::exception{
+		private:
+			std::string message;
+		public:
+			FontException(const std::string& message) : message(message){}
+			const char* what() const noexcept override{return this->message.c_str();}
 	};
 
 	// Native font wrapper
@@ -218,10 +224,6 @@ namespace GUtils{
 			double text_width(const std::wstring& text);
 #endif
 			// Text to graphical path
-			struct PathSegment{
-				enum class Type{MOVE, LINE, CURVE/*Cubic bezier*/, CLOSE} type;
-				double x, y;
-			};
 			std::vector<PathSegment> text_path(const std::vector<Glyph_t>& glyphs) throw(FontException);
 			std::vector<PathSegment> text_path(const std::string& text) throw(FontException);
 #ifdef _WIN32
