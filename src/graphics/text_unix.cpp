@@ -135,67 +135,19 @@ namespace GUtils{
 		pango_font_metrics_unref(metrics);
 		return result;
 	}
-	std::vector<GlyphRun> Font::text_glyphs(const std::string& text){
-		// Output storage
-		std::vector<GlyphRun> runs;
-		// Itemize text
-		std::unique_ptr<GList, std::function<void(GList*)>> items(
-			pango_itemize(
-				pango_layout_get_context(this->layout),
-				text.data(),
-				0,
-				text.length(),
-				NULL,
-				NULL
-			),
-			[](GList* l){
-				g_list_foreach(l, [](gpointer data, gpointer){pango_item_free(reinterpret_cast<PangoItem*>(data));}, NULL);
-				g_list_free(l);
-			}
-		);
-		if(items){
-			// Shape items
-			std::unique_ptr<PangoGlyphString, std::function<void(PangoGlyphString*)>> glyphstring(
-				pango_glyph_string_new(),
-				[](PangoGlyphString* s){pango_glyph_string_free(s);}
-			);
-			for(GList* pitems = items.get(); pitems != NULL; pitems = pitems->next){
-				PangoItem* item = reinterpret_cast<PangoItem*>(pitems->data);
-				pango_shape(
-					text.data() + item->offset,
-					item->length,
-					item->analysis,
-					glyphstring.get()
-				);
-				// Save glyphs + direction
-				std::vector<Glyph_t> glyphs(glyphstring->num_glyphs);
-				for(unsigned glyph_i = 0; glyph_i < glyphs.size(); ++glyph_i)
-					glyphs[glyph_i] = glyphstring->glyphs[glyph_i].glyph;
-				runs.push_back({glyphs, glyphstring->num_glyphs > 1 && glyphstring->log_clusters[0] > glyphstring->log_clusters[1] ? GlyphDir::RTL : GlyphDir::LTR});
-			}
-		}
-		// Return what we got
-		return runs;
-	}
-	double Font::text_width(const std::vector<Glyph_t>& glyphs){
-		std::unique_ptr<PangoFont, std::function<void(PangoFont*)>> font(
-			pango_context_load_font(pango_layout_get_context(this->layout), pango_layout_get_font_description(this->layout)),
-			[](PangoFont* p){g_object_unref(p);}
-		);
-		int width = 0;
-		PangoRectangle rect;
-		for(auto glyph : glyphs)
-			pango_font_get_glyph_extents(font.get(), glyph, NULL, &rect),
-			width += rect.width;
-		return static_cast<double>(width) / PANGO_SCALE / FONT_UPSCALE + glyphs.size() * this->get_spacing();
-	}
 	double Font::text_width(const std::string& text){
 		pango_layout_set_text(this->layout, text.data(), text.length());
 		PangoRectangle rect;
 		pango_layout_get_pixel_extents(this->layout, NULL, &rect);
 		return static_cast<double>(rect.width) / FONT_UPSCALE;
 	}
-	inline std::vector<PathSegment> Font::extract_path() throw(FontException){
+	std::vector<PathSegment> Font::text_path(const std::string& text) throw(FontException){
+		// Add text path to context
+		pango_layout_set_text(this->layout, text.data(), text.length()),
+		cairo_save(this->context),
+		cairo_scale(ctx, 1.0 / FONT_UPSCALE, 1.0 / FONT_UPSCALE),
+		pango_cairo_layout_path(this->context, this->layout),
+		cairo_restore(this->context);
 		// Get path points
 		std::unique_ptr<cairo_path_t, std::function<void(cairo_path_t*)>> cpath(cairo_copy_path(this->context), [](cairo_path_t* path){cairo_path_destroy(path);});
 		if(cpath->status != CAIRO_STATUS_SUCCESS){
@@ -225,44 +177,5 @@ namespace GUtils{
 		cairo_new_path(this->context);
 		// ...and return collected points
 		return path;
-	}
-	std::vector<PathSegment> Font::text_path(const std::vector<Glyph_t>& glyphs) throw(FontException){
-		// Get layout font
-		std::unique_ptr<PangoFont, std::function<void(PangoFont*)>> font(
-			pango_context_load_font(pango_layout_get_context(this->layout), pango_layout_get_font_description(this->layout)),
-			[](PangoFont* p){g_object_unref(p);}
-		);
-		// Construct glyph string
-		std::unique_ptr<PangoGlyphString, std::function<void(PangoGlyphString*)>> str(
-			pango_glyph_string_new(),
-			[](PangoGlyphString* p){pango_glyph_string_free(p);}
-		);
-		pango_glyph_string_set_size(str.get(), glyphs.size());
-		PangoRectangle rect;
-		for(unsigned i = 0; i < str->num_glyphs; ++i)
-			pango_font_get_glyph_extents(font.get(), glyphs[i], NULL, &rect),
-			str->glyphs[i].geometry.width = rect.width,
-			str->glyphs[i].glyph = glyphs[i];
-
-		// TODO: Check glyphs offset
-		// TODO: Check attributes: underline, strikeout, letter spacing
-
-		// Add glyphs path to context
-		cairo_save(this->context),
-		cairo_scale(ctx, 1.0 / FONT_UPSCALE, 1.0 / FONT_UPSCALE),
-		pango_cairo_glyph_string_path(this->context, font.get(), str.get()),
-		cairo_restore(this->context);
-		// Extract & return path
-		return this->extract_path();
-	}
-	std::vector<PathSegment> Font::text_path(const std::string& text) throw(FontException){
-		// Add text path to context
-		pango_layout_set_text(this->layout, text.data(), text.length()),
-		cairo_save(this->context),
-		cairo_scale(ctx, 1.0 / FONT_UPSCALE, 1.0 / FONT_UPSCALE),
-		pango_cairo_layout_path(this->context, this->layout),
-		cairo_restore(this->context);
-		// Extract & return path
-		return this->extract_path();
 	}
 }

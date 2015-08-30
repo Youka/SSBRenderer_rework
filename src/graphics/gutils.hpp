@@ -139,18 +139,6 @@ namespace GUtils{
 	void blur(unsigned char* data, const unsigned width, const unsigned height, const unsigned stride, const ColorDepth depth,
 		const float strength_h, const float strength_v);
 
-	// Glyph types
-#ifdef _WIN32
-	using Glyph_t = WORD;
-#else
-	using Glyph_t = PangoGlyph;
-#endif
-	enum class GlyphDir{LTR, RTL};
-	struct GlyphRun{
-		std::vector<Glyph_t> glyphs;
-		GlyphDir dir;
-	};
-
 	// Path data
 	struct PathSegment{
 		enum class Type{MOVE, LINE, CURVE/*Cubic bezier*/, CLOSE} type;
@@ -212,24 +200,15 @@ namespace GUtils{
 				double height, ascent, descent, internal_leading, external_leading;
 			};
 			Metrics metrics();
-			// Text to glyphs
-			std::vector<GlyphRun> text_glyphs(const std::string& text);
-#ifdef _WIN32
-			std::vector<GlyphRun> text_glyphs(const std::wstring& text);
-#endif
 			// Text width by extents (height from metrics)
-			double text_width(const std::vector<Glyph_t>& glyphs);
 			double text_width(const std::string& text);
 #ifdef _WIN32
 			double text_width(const std::wstring& text);
 #endif
 			// Text to graphical path
-			std::vector<PathSegment> text_path(const std::vector<Glyph_t>& glyphs) throw(FontException);
 			std::vector<PathSegment> text_path(const std::string& text) throw(FontException);
 #ifdef _WIN32
 			std::vector<PathSegment> text_path(const std::wstring& text) throw(FontException);
 #endif
-		private:
-			inline std::vector<PathSegment> extract_path() throw(FontException);
 	};
 }

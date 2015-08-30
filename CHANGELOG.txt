@@ -1,5 +1,3 @@
 TODO:
-- (Pango glyphs path with attributes)
-- (Font fallback on missing glyphs)
 - Image caches: Loaded PNGs, font-bound glyphs
 - Renderer backends (Hardware: OpenGL+???; Software: Cairo)

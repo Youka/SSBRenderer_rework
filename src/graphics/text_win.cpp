@@ -15,7 +15,6 @@ Permission is granted to anyone to use this software for any purpose, including 
 #include "gutils.hpp"
 #include <config.h>
 #include <Wingdi.h>
-#include <Usp10.h>
 #include "../utils/utf8.hpp"
 
 
@@ -159,68 +158,6 @@ namespace GUtils{
 			static_cast<double>(metrics.tmExternalLeading) / FONT_UPSCALE
 		};
 	}
-	std::vector<GlyphRun> Font::text_glyphs(const std::string& text){
-		return this->text_glyphs(Utf8::to_utf16(text));
-	}
-	std::vector<GlyphRun> Font::text_glyphs(const std::wstring& text){
-		// Output storage
-		std::vector<GlyphRun> runs;
-		// Check for complex-scripting need
-		if(ScriptIsComplex(text.data(), text.length(), SIC_COMPLEX|SIC_NEUTRAL) == S_OK){
-			// Itemize text
-			std::vector<SCRIPT_ITEM> items(text.length() + 1);
-			int items_n;
-			if(ScriptItemize(
-					text.data(),	// Characters to itemize
-					text.length(),	// Number of character
-					items.size()-1,	// Maximal number of items
-					NULL,		// Optional script control
-					NULL,		// Optional script state
-					items.data(),	// Store processed items
-					&items_n	// Number of processed items
-			) == S_OK){
-				items.resize(items_n);
-				// Shape items
-				SCRIPT_CACHE cache = NULL;
-				for(unsigned item_i = 0; item_i < items.size(); ++item_i){
-					SCRIPT_ITEM& item = items[item_i];
-					std::wstring item_text = text.substr(item.iCharPos, item_i == items.size()-1 ? std::wstring::npos : items[item_i+1].iCharPos - item.iCharPos);
-					std::vector<Glyph_t> glyphs(1.5 * item_text.length() + 16);
-					std::vector<WORD> clusters(item_text.length());
-					std::vector<SCRIPT_VISATTR> vattr(glyphs.size());
-					int glyphs_n;
-					if(ScriptShape(
-						this->dc,
-						&cache,
-						item_text.data(),
-						item_text.length(),
-						glyphs.size(),
-						&item.a,
-						glyphs.data(),
-						clusters.data(),
-						vattr.data(),
-						&glyphs_n
-					) == S_OK)
-						glyphs.resize(glyphs_n),
-						// Save glyphs + direction
-						runs.push_back({glyphs, item.a.fRTL ? GlyphDir::RTL : GlyphDir::LTR});
-				}
-				ScriptFreeCache(&cache);
-			}
-		}else{
-			// Simple character to glyph conversion because not complex
-                        std::vector<Glyph_t> glyphs(text.length());
-			GetGlyphIndicesW(this->dc, text.data(), text.length(), glyphs.data(), 0x0);
-			runs.push_back({glyphs, GlyphDir::LTR});
-		}
-		// Return what we got
-		return runs;
-	}
-	double Font::text_width(const std::vector<Glyph_t>& glyphs){
-		SIZE sz;
-		GetTextExtentPointI(this->dc, const_cast<Glyph_t*>(glyphs.data()), glyphs.size(), &sz);
-		return static_cast<double>(sz.cx) / FONT_UPSCALE + glyphs.size() * this->spacing;
-	}
 	double Font::text_width(const std::string& text){
 		return this->text_width(Utf8::to_utf16(text));
 	}
@@ -229,7 +166,27 @@ namespace GUtils{
 		GetTextExtentPoint32W(this->dc, text.data(), text.length(), &sz);
 		return static_cast<double>(sz.cx) / FONT_UPSCALE + text.length() * this->spacing;
 	}
-	inline std::vector<PathSegment> Font::extract_path()  throw(FontException){
+	std::vector<PathSegment> Font::text_path(const std::string& text) throw(FontException){
+		return this->text_path(Utf8::to_utf16(text));
+	}
+	std::vector<PathSegment> Font::text_path(const std::wstring& text) throw(FontException){
+		// Check valid text length
+		if(text.length() > 8192)	// See ExtTextOut limitation
+			throw FontException("Text length exceeds 8192");
+		// Get characters width
+		std::vector<int> distance_x;
+		if(this->spacing != 0){
+			distance_x.reserve(text.length());
+			INT width;
+			const int spacing_upscaled = this->spacing * FONT_UPSCALE;
+			for(auto c : text)
+				GetCharWidth32W(this->dc, c, c, &width),
+				distance_x.push_back(width + spacing_upscaled);
+		}
+		// Add text path to context
+		BeginPath(this->dc);
+		ExtTextOutW(this->dc, 0, 0, 0x0, NULL, text.data(), text.length(), distance_x.empty() ? NULL : distance_x.data());
+		EndPath(this->dc);
 		// Collect path points
 		std::vector<PathSegment> path;
 		const int points_n = GetPath(this->dc, NULL, NULL, 0);
@@ -263,49 +220,5 @@ namespace GUtils{
 		AbortPath(this->dc);
 		// ...and return collected points
 		return path;
-	}
-	std::vector<PathSegment> Font::text_path(const std::vector<Glyph_t>& glyphs) throw(FontException){
-		// Check valid glyphs number
-		if(glyphs.size() > 8192)	// See ExtTextOut limitation
-			throw FontException("Glyphs number exceeds 8192");
-		// Get glyphs width
-		std::vector<int> distance_x;
-		if(this->spacing != 0){
-			distance_x.resize(glyphs.size()),
-			GetCharWidthI(this->dc, 0, glyphs.size(), const_cast<LPWORD>(glyphs.data()), distance_x.data());
-			const int spacing_upscaled = this->spacing * FONT_UPSCALE;
-			for(auto& x : distance_x)
-				x += spacing_upscaled;
-		}
-		// Add glyphs path to context
-		BeginPath(this->dc);
-		ExtTextOutW(this->dc, 0, 0, ETO_GLYPH_INDEX, NULL, reinterpret_cast<LPCWSTR>(glyphs.data()), glyphs.size(), distance_x.empty() ? NULL : distance_x.data());
-		EndPath(this->dc);
-		// Extract & return path
-		return this->extract_path();
-	}
-	std::vector<PathSegment> Font::text_path(const std::string& text) throw(FontException){
-		return this->text_path(Utf8::to_utf16(text));
-	}
-	std::vector<PathSegment> Font::text_path(const std::wstring& text) throw(FontException){
-		// Check valid text length
-		if(text.length() > 8192)	// See ExtTextOut limitation
-			throw FontException("Text length exceeds 8192");
-		// Get characters width
-		std::vector<int> distance_x;
-		if(this->spacing != 0){
-			distance_x.reserve(text.length());
-			INT width;
-			const int spacing_upscaled = this->spacing * FONT_UPSCALE;
-			for(auto c : text)
-				GetCharWidth32W(this->dc, c, c, &width),
-				distance_x.push_back(width + spacing_upscaled);
-		}
-		// Add text path to context
-		BeginPath(this->dc);
-		ExtTextOutW(this->dc, 0, 0, 0x0, NULL, text.data(), text.length(), distance_x.empty() ? NULL : distance_x.data());
-		EndPath(this->dc);
-		// Extract & return path
-		return this->extract_path();
 	}
 }

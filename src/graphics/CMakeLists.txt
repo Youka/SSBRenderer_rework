@@ -23,7 +23,7 @@ target_include_directories(ssbgraphics PUBLIC ${CMAKE_CURRENT_BINARY_DIR} ${DEPE
 
 # Add library links
 if(WIN32)
-	target_link_libraries(ssbgraphics usp10)
+	target_link_libraries(ssbgraphics gdi32)
 else()
 	target_link_libraries(ssbgraphics cairo pango-1.0 pangocairo-1.0)
 endif()

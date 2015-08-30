@@ -37,13 +37,5 @@ int main(){
 		<< std::endl;
 	if(font.text_path(text).empty())
 		throw std::logic_error("Couldn't generate the text path");
-	std::vector<GUtils::GlyphRun> glyph_runs = font.text_glyphs(text);
-	if(glyph_runs.empty())
-		throw std::logic_error("Couldn't get text glyphs");
-        for(auto& run : glyph_runs){
-		std::cout << "Glyph run (" << (run.dir == GUtils::GlyphDir::LTR ? "LTR" : "RTL") << ')' << std::endl;
-                for(auto glyph : run.glyphs)
-			std::cout << glyph << std::endl;
-	}
 	return 0;
 }
