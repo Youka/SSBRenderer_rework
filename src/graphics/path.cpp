@@ -12,7 +12,33 @@ Permission is granted to anyone to use this software for any purpose, including 
     3. This notice may not be removed or altered from any source distribution.
 */
 
+#define _USE_MATH_DEFINES
+#include <cmath>
 #include "gutils.hpp"
+
+static void rotate(double& x, double& y, double angle){
+	double temp_x = x;
+        x = ::cos(angle) * x - ::sin(angle) * y,
+        y = ::sin(angle) * temp_x + ::cos(angle) * y;
+}
+static void rotate90(double& x, double& y, bool neg = false){
+	double temp_x = x;
+	if(neg)
+		x = y,
+		y = -temp_x;
+	else
+		x = -y,
+		y = temp_x;
+}
+static void rotate45(double& x, double& y, bool neg = false){
+	double temp_x = x;
+	if(neg)
+		x = M_SQRT1_2 * x + M_SQRT1_2 * y,
+		y = -M_SQRT1_2 * temp_x + M_SQRT1_2 * y;
+	else
+		x = M_SQRT1_2 * x - M_SQRT1_2 * y,
+		y = M_SQRT1_2 * temp_x + M_SQRT1_2 * y;
+}
 
 namespace GUtils{
 	bool path_extents(const std::vector<PathSegment>& path, double* x0, double* y0, double* x1, double* y1){
@@ -72,10 +98,66 @@ namespace GUtils{
 		path = std::move(new_path);
 	}
 	std::vector<PathSegment> path_by_arc(double x, double y, double cx, double cy, double angle){
+		// Result buffer
 		std::vector<PathSegment> curve_segments;
-
-		// TODO
-
+		// Anything to do?
+		if(angle != 0.0 && (x != cx || y != cy)){
+			// Constant for curve point offset
+			static constexpr const double kappa = 4 * (::sqrt(2) - 1) / 3;
+			// Angle direction
+			const bool neg_angle = angle < 0;
+			// Process 90 degree chunks
+			double rx0 = x - cx,
+				ry0 = y - cy,
+				angle_passed = 0;
+			const double abs_angle = ::abs(angle);
+			do{
+				// Get curve end point
+				const double cur_angle = std::min(abs_angle - angle_passed, M_PI_2);
+				double rx3 = rx0,
+					ry3 = ry0;
+				if(cur_angle == M_PI_2)
+					rotate90(rx3, ry3, neg_angle);
+				else if(cur_angle == M_PI_4)
+					rotate45(rx3, ry3, neg_angle);
+				else
+					rotate(rx3, ry3, neg_angle ? -cur_angle : cur_angle);
+				// Get curve start-to-end vector
+				double rx03 = rx3 - rx0,
+					ry03 = ry3 - ry0;
+				// Scale vector to control point length
+				const double len = ::hypot(rx03, ry03),
+					scale = ::sqrt((len*len) / 2) * kappa / len;
+				rx03 *= scale,
+				ry03 *= scale;
+				// Get curve control points
+				double rx1 = rx03,
+					ry1 = ry03,
+					rx2 = -rx03,
+					ry2 = -ry03;
+				if(cur_angle == M_PI_2)
+					rotate45(rx1, ry1, !neg_angle),
+					rotate45(rx2, ry2, neg_angle);
+				else{
+					const double cur_angle_2 = cur_angle / 2;
+					rotate(rx1, ry1, !neg_angle ? -cur_angle_2 : cur_angle_2),
+					rotate(rx2, ry2, neg_angle ? -cur_angle_2 : cur_angle_2);
+				}
+                                rx1 += rx0,
+                                ry1 += ry0,
+                                rx2 += rx3,
+                                ry2 += ry3;
+                                // Insert curve to result
+                                curve_segments.push_back({PathSegment::Type::CURVE, cx+rx1, cy+ry1}),
+                                curve_segments.push_back({PathSegment::Type::CURVE, cx+rx2, cy+ry2}),
+                                curve_segments.push_back({PathSegment::Type::CURVE, cx+rx3, cy+ry3});
+				// Update current curve start point & passed angle of previous
+				rx0 = rx3,
+				ry0 = ry3,
+				angle_passed += M_PI_2;
+			}while(angle_passed < abs_angle);
+		}
+		// Return constructed result
 		return curve_segments;
 	}
 }
