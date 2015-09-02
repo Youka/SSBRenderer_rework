@@ -82,21 +82,21 @@ Renderer::~Renderer(){
 
 }
 
-unsigned width(){
+unsigned Renderer::width(){
 
 	// TODO
 
 	return 0;
 }
 
-unsigned height(){
+unsigned Renderer::height(){
 
 	// TODO
 
 	return 0;
 }
 
-void copy_image(unsigned char* image, unsigned padding){
+void Renderer::copy_image(unsigned char* image, unsigned padding){
 
 	// TODO
 

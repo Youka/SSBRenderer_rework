@@ -958,7 +958,7 @@ namespace SSB{
 				}
 			THROW_WEAK_ERROR("Invalid tag \"" + tags_token + '\"');
 			TAG_FOUND:
-				continue;	// Statement expected after label
+			continue;	// Statement expected after label
 		}
 	}
 

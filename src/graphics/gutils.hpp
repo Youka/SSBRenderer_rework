@@ -27,6 +27,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 #include <algorithm>
 
 namespace GUtils{
+	// 4x4 double-precision floating point matrix for transformations
 	class Matrix4x4d{
 		private:
 			// Raw matrix data
@@ -139,11 +140,15 @@ namespace GUtils{
 	void blur(unsigned char* data, const unsigned width, const unsigned height, const unsigned stride, const ColorDepth depth,
 		const float strength_h, const float strength_v);
 
-	// Path data
+	// Path processing
 	struct PathSegment{
 		enum class Type{MOVE, LINE, CURVE/*Cubic bezier*/, CLOSE} type;
 		double x, y;
 	};
+	bool path_extents(const std::vector<PathSegment>& path, double* x0, double* y0, double* x1, double* y1);
+	void path_close(std::vector<PathSegment>& path);
+	void path_flatten(std::vector<PathSegment>& path);
+	std::vector<PathSegment> path_by_arc(double x, double y, double cx, double cy, double angle);
 
 	// Exception for font problems (see Font class below)
 	class FontException : public std::exception{
