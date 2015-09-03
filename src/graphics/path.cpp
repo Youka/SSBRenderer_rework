@@ -15,6 +15,8 @@ Permission is granted to anyone to use this software for any purpose, including 
 #define _USE_MATH_DEFINES
 #include <cmath>
 #include "gutils.hpp"
+#include <array>
+#include "simd.h"
 
 static void rotate(double& x, double& y, double angle){
 	double temp_x = x;
@@ -38,6 +40,107 @@ static void rotate45(double& x, double& y, bool neg = false){
 	else
 		x = M_SQRT1_2 * x - M_SQRT1_2 * y,
 		y = M_SQRT1_2 * temp_x + M_SQRT1_2 * y;
+}
+static std::array<double,16> curve_split(double x0, double y0, double x1, double y1, double x2, double y2, double x3, double y3){
+#ifdef __SSE2__
+	__m128d split_operand = _mm_set1_pd(0.5),
+		xy0 = _mm_set_pd(y0, x0),
+		xy1 = _mm_set_pd(y1, x1),
+		xy2 = _mm_set_pd(y2, x2),
+		xy3 = _mm_set_pd(y3, x3);
+#ifdef __AVX__
+	__m256d split_operand256 = _mm256_set1_pd(0.5),
+		xy01_12 = _mm256_mul_pd(
+			_mm256_add_pd(
+				_mm256_set_m128d(xy1, xy0),
+				_mm256_set_m128d(xy2, xy1)
+			),
+			split_operand256
+		);
+	__m128d xy01 = _mm256_extractf128_pd(xy01_12, 0x0),
+		xy12 = _mm256_extractf128_pd(xy01_12, 0x1),
+#else
+	__m128d xy01 = _mm_mul_pd(
+			_mm_add_pd(
+				xy0,
+				xy1
+			),
+			split_operand
+		),
+		xy12 = _mm_mul_pd(
+			_mm_add_pd(
+				xy1,
+				xy2
+			),
+			split_operand
+		),
+#endif
+		xy23 = _mm_mul_pd(
+			_mm_add_pd(
+				xy2,
+				xy3
+			),
+			split_operand
+		);
+#ifdef __AVX__
+	__m256d xy012_123 = _mm256_mul_pd(
+		_mm256_add_pd(
+			xy01_12,
+			_mm256_set_m128d(xy23, xy12)
+),		),
+		split_operand256
+	);
+	__m128d xy012 = _mm256_extractf128_pd(xy012_123, 0x0),
+		xy123 = _mm256_extractf128_pd(xy012_123, 0x1),
+#else
+	__m128d xy012 = _mm_mul_pd(
+			_mm_add_pd(
+				xy01,
+				xy12
+			),
+			split_operand
+		),
+		xy123 = _mm_mul_pd(
+			_mm_add_pd(
+				xy12,
+				xy23
+			),
+			split_operand
+		),
+#endif
+		xy0123 = _mm_mul_pd(
+			_mm_add_pd(
+				xy012,
+				xy123
+			),
+			split_operand
+		);
+	std::array<double,16> result;
+	_mm_storeu_pd(&result[0], xy0),
+	_mm_storeu_pd(&result[2], xy01),
+	_mm_storeu_pd(&result[4], xy012),
+	_mm_storeu_pd(&result[6], xy0123),
+	_mm_storeu_pd(&result[8], xy0123),
+	_mm_storeu_pd(&result[10], xy123),
+	_mm_storeu_pd(&result[12], xy23),
+	_mm_storeu_pd(&result[14], xy3);
+	return result;
+#else
+	double x01 = (x0+x1) / 2,
+		y01 = (y0+y1) / 2,
+		x12 = (x1+x2) / 2,
+		y12 = (y1+y2) / 2,
+		x23 = (x2+x3) / 2,
+		y23 = (y2+y3) / 2,
+		x012 = (x01+x12) / 2,
+		y012 = (y01+y12) / 2,
+		x123 = (x12+x23) / 2,
+		y123 = (y12+y23) / 2,
+		x0123 = (x012+x123) / 2,
+		y0123 = (y012+y123) / 2;
+	return {x0, y0, x01, y01, x012, y012, x0123, y0123,
+		x0123, y0123, x123, y123, x23, y23, x3, y3};
+#endif
 }
 
 namespace GUtils{
