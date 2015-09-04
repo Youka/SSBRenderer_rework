@@ -18,6 +18,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 #include <array>
 #include "simd.h"
 
+// Rotation helpers
 static void rotate(double& x, double& y, double angle){
 	const double temp_x = x;
         x = ::cos(angle) * x - ::sin(angle) * y,
@@ -41,6 +42,18 @@ static void rotate45(double& x, double& y, bool neg = false){
 		x = M_SQRT1_2 * x - M_SQRT1_2 * y,
 		y = M_SQRT1_2 * temp_x + M_SQRT1_2 * y;
 }
+// Vector helpers
+static inline bool vec_zero_length(double vx, double vy){
+	return !(vx || vy);
+}
+static double angle_vec_x_vec(double v0x, double v0y, double v1x, double v1y){
+	// Check for zero-length vectors
+	if(vec_zero_length(v0x, v0y) || vec_zero_length(v1x, v1y))
+		return 0;
+	// Calculate angle between vectors
+	return ::acos((v0x * v1x + v0y * v1y) / (::hypot(v0x, v0y) * ::hypot(v1x, v1y)));
+}
+// Curve helpers
 static std::array<double,16> curve_split(double x0, double y0, double x1, double y1, double x2, double y2, double x3, double y3){
 #ifdef __SSE2__
 	__m128d split_operand = _mm_set1_pd(0.5),
@@ -142,16 +155,6 @@ static std::array<double,16> curve_split(double x0, double y0, double x1, double
 		x0123, y0123, x123, y123, x23, y23, x3, y3};
 #endif
 }
-static inline bool vec_zero_length(double vx, double vy){
-	return !(vx || vy);
-}
-static double angle_vec_x_vec(double v0x, double v0y, double v1x, double v1y){
-	// Check for zero-length vectors
-	if(vec_zero_length(v0x, v0y) || vec_zero_length(v1x, v1y))
-		return 0;
-	// Calculate angle between vectors
-	return ::acos((v0x * v1x + v0y * v1y) / (::hypot(v0x, v0y) * ::hypot(v1x, v1y)));
-}
 static bool curve_is_flat(double x0, double y0, double x1, double y1, double x2, double y2, double x3, double y3, double tolerance_angle){
 	// Vectors between curve points
 	const double v0x = x1 - x0,
@@ -177,6 +180,22 @@ static bool curve_is_flat(double x0, double y0, double x1, double y1, double x2,
 		if(angle_vec_x_vec(*(iter-2), *(iter-1), *iter, *(iter+1)) > tolerance_angle)
 			return false;
 	return true;
+}
+static std::vector<double> curve_to_lines(double x0, double y0, double x1, double y1, double x2, double y2, double x3, double y3, double tolerance_angle){
+	std::vector<double> lines{x0, y0};
+	std::function<void(double,double,double,double,double,double,double,double)> generator =
+	[&lines,&generator,&tolerance_angle](double x0, double y0, double x1, double y1, double x2, double y2, double x3, double y3){
+		if(curve_is_flat(x0, y0, x1, y1, x2, y2, x3, y3, tolerance_angle))
+			lines.push_back(x3),
+			lines.push_back(y3);
+		else{
+			auto curves = curve_split(x0, y0, x1, y1, x2, y2, x3, y3);
+			generator(curves[0], curves[1], curves[2], curves[3], curves[4], curves[5], curves[6], curves[7]),
+			generator(curves[8], curves[9], curves[10], curves[11], curves[12], curves[13], curves[14], curves[15]);
+		}
+	};
+	generator(x0, y0, x1, y1, x2, y2, x3, y3);
+	return lines;
 }
 
 namespace GUtils{
