@@ -240,18 +240,33 @@ namespace GUtils{
 		if(!path.empty() && path.back().type != PathSegment::Type::CLOSE)
 			path.push_back({PathSegment::Type::CLOSE});
 	}
-	void path_flatten(std::vector<PathSegment>& path){
+	void path_flatten(std::vector<PathSegment>& path, double tolerance){
 		// Buffer for new path
 		std::vector<PathSegment> new_path;
 		new_path.reserve(path.size());
 		// Go through path segments
-		for(auto iter = path.begin(); iter != path.end(); ++iter)
-			if(iter->type == PathSegment::Type::CURVE && iter+2 < path.end() && (iter+1)->type == PathSegment::Type::CURVE && (iter+2)->type == PathSegment::Type::CURVE){
-
-				// TODO
-
+		for(auto seg_iter = path.begin(); seg_iter != path.end(); ++seg_iter)
+			// Sort curves out
+			if(seg_iter->type == PathSegment::Type::CURVE){
+				// Enough segments for curve flattening?
+				if(seg_iter != path.begin() &&
+					(seg_iter-1)->type != PathSegment::Type::CLOSE &&
+					seg_iter+2 < path.end() &&
+					(seg_iter+1)->type == PathSegment::Type::CURVE &&
+					(seg_iter+2)->type == PathSegment::Type::CURVE
+				){
+					// Convert curve to lines and add to new path
+					PathSegment& s0 = *(seg_iter-1),
+						&s1 = *seg_iter,
+						&s2 = *(seg_iter+1),
+						&s3 = *(seg_iter+2);
+					auto lines = curve_to_lines(s0.x, s0.y, s1.x, s1.y, s2.x, s2.y, s3.x, s3.y, tolerance);
+					for(auto lines_iter = lines.begin()+2; lines_iter < lines.end(); lines_iter+=2)
+						new_path.push_back({PathSegment::Type::LINE, *lines_iter, *(lines_iter)});
+				}
+			// Non-curves just get copied
 			}else
-				new_path.push_back(*iter);
+				new_path.push_back(*seg_iter);
 		// Transfer new path data to old path
 		path = std::move(new_path);
 	}
