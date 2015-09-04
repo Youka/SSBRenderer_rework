@@ -19,12 +19,12 @@ Permission is granted to anyone to use this software for any purpose, including 
 #include "simd.h"
 
 static void rotate(double& x, double& y, double angle){
-	double temp_x = x;
+	const double temp_x = x;
         x = ::cos(angle) * x - ::sin(angle) * y,
         y = ::sin(angle) * temp_x + ::cos(angle) * y;
 }
 static void rotate90(double& x, double& y, bool neg = false){
-	double temp_x = x;
+	const double temp_x = x;
 	if(neg)
 		x = y,
 		y = -temp_x;
@@ -33,7 +33,7 @@ static void rotate90(double& x, double& y, bool neg = false){
 		y = temp_x;
 }
 static void rotate45(double& x, double& y, bool neg = false){
-	double temp_x = x;
+	const double temp_x = x;
 	if(neg)
 		x = M_SQRT1_2 * x + M_SQRT1_2 * y,
 		y = -M_SQRT1_2 * temp_x + M_SQRT1_2 * y;
@@ -126,7 +126,7 @@ static std::array<double,16> curve_split(double x0, double y0, double x1, double
 	_mm_storeu_pd(&result[14], xy3);
 	return result;
 #else
-	double x01 = (x0+x1) / 2,
+	const double x01 = (x0+x1) / 2,
 		y01 = (y0+y1) / 2,
 		x12 = (x1+x2) / 2,
 		y12 = (y1+y2) / 2,
@@ -141,6 +141,42 @@ static std::array<double,16> curve_split(double x0, double y0, double x1, double
 	return {x0, y0, x01, y01, x012, y012, x0123, y0123,
 		x0123, y0123, x123, y123, x23, y23, x3, y3};
 #endif
+}
+static inline bool vec_zero_length(double vx, double vy){
+	return !(vx || vy);
+}
+static double angle_vec_x_vec(double v0x, double v0y, double v1x, double v1y){
+	// Check for zero-length vectors
+	if(vec_zero_length(v0x, v0y) || vec_zero_length(v1x, v1y))
+		return 0;
+	// Calculate angle between vectors
+	return ::acos((v0x * v1x + v0y * v1y) / (::hypot(v0x, v0y) * ::hypot(v1x, v1y)));
+}
+static bool curve_is_flat(double x0, double y0, double x1, double y1, double x2, double y2, double x3, double y3, double tolerance_angle){
+	// Vectors between curve points
+	const double v0x = x1 - x0,
+		v0y = y1 - y0,
+		v1x = x2 - x1,
+		v1y = y2 - y1,
+		v2x = x3 - x2,
+		v2y = y3 - y2;
+	// Sort out zero-length vectors
+	std::vector<double> vecs;
+	vecs.reserve(6);
+	if(!vec_zero_length(v0x, v0y))
+		vecs.push_back(v0x),
+		vecs.push_back(v0y);
+	if(!vec_zero_length(v1x, v1y))
+		vecs.push_back(v1x),
+		vecs.push_back(v1y);
+	if(!vec_zero_length(v2x, v2y))
+		vecs.push_back(v2x),
+		vecs.push_back(v2y);
+	// Check vectors angles against given tolerance
+        for(auto iter = vecs.begin()+2; iter < vecs.end(); iter+=2)
+		if(angle_vec_x_vec(*(iter-2), *(iter-1), *iter, *(iter+1)) > tolerance_angle)
+			return false;
+	return true;
 }
 
 namespace GUtils{
