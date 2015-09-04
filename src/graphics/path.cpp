@@ -266,7 +266,9 @@ namespace GUtils{
 						&s3 = *(seg_iter+2);
 					auto lines = curve_to_lines(s0.x, s0.y, s1.x, s1.y, s2.x, s2.y, s3.x, s3.y, tolerance);
 					for(auto lines_iter = lines.begin()+2; lines_iter < lines.end(); lines_iter+=2)
-						new_path.push_back({PathSegment::Type::LINE, *lines_iter, *(lines_iter)});
+						new_path.push_back({PathSegment::Type::LINE, *lines_iter, *(lines_iter+1)});
+					// Discard used curve segments
+					seg_iter += 2;
 				}
 			// Non-curves just get copied
 			}else
@@ -288,7 +290,7 @@ namespace GUtils{
 			double rx0 = x - cx,
 				ry0 = y - cy,
 				angle_passed = 0;
-			const double abs_angle = ::abs(angle);
+			const double abs_angle = std::abs(angle);
 			do{
 				// Get curve end point
 				const double cur_angle = std::min(abs_angle - angle_passed, M_PI_2);
