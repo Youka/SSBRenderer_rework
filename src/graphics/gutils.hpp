@@ -141,10 +141,12 @@ namespace GUtils{
 		const float strength_h, const float strength_v);
 
 	// Path processing
+#pragma pack(push,1)	// Ensure coordinates are aligned (for passing them as continuous memory) and memory usage is low
 	struct PathSegment{
 		enum class Type{MOVE, LINE, CURVE/*Cubic bezier*/, CLOSE} type;
 		double x, y;
 	};
+#pragma pack(pop)
 	bool path_extents(const std::vector<PathSegment>& path, double* x0, double* y0, double* x1, double* y1);
 	std::vector<PathSegment>& path_close(std::vector<PathSegment>& path);
 	std::vector<PathSegment>& path_flatten(std::vector<PathSegment>& path, double tolerance);

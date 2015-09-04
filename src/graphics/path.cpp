@@ -166,22 +166,24 @@ static bool curve_is_flat(double x0, double y0, double x1, double y1, double x2,
 		v1y = y2 - y1,
 		v2x = x3 - x2,
 		v2y = y3 - y2;
-	// Sort out zero-length vectors
-	std::vector<double> vecs;
-	vecs.reserve(6);
-	if(!vec_zero_length(v0x, v0y))
-		vecs.push_back(v0x),
-		vecs.push_back(v0y);
-	if(!vec_zero_length(v1x, v1y))
-		vecs.push_back(v1x),
-		vecs.push_back(v1y);
-	if(!vec_zero_length(v2x, v2y))
-		vecs.push_back(v2x),
-		vecs.push_back(v2y);
-	// Check vectors angles against given tolerance
-        for(auto iter = vecs.begin()+2; iter < vecs.end(); iter+=2)
-		if(angle_vec_x_vec(*(iter-2), *(iter-1), *iter, *(iter+1)) > tolerance_angle)
+	// Check zero-length vectors
+	const bool v0_zero = vec_zero_length(v0x, v0y),
+		v1_zero = vec_zero_length(v1x, v1y),
+		v2_zero = vec_zero_length(v2x, v2y);
+	// Check non-zero-length vectors angles against given tolerance
+	if(!v0_zero && !v1_zero && !v2_zero){
+		if(angle_vec_x_vec(v0x, v0y, v1x, v1y) > tolerance_angle || angle_vec_x_vec(v1x, v1y, v2x, v2y) > tolerance_angle)
 			return false;
+	}else if(!v0_zero && !v1_zero){
+		if(angle_vec_x_vec(v0x, v0y, v1x, v1y) > tolerance_angle)
+			return false;
+	}else if(!v1_zero && !v2_zero){
+		if(angle_vec_x_vec(v1x, v1y, v2x, v2y) > tolerance_angle)
+			return false;
+	}else if(!v0_zero && !v2_zero){
+		if(angle_vec_x_vec(v0x, v0y, v2x, v2y) > tolerance_angle)
+			return false;
+	}
 	return true;
 }
 static std::vector<double> curve_to_lines(double x0, double y0, double x1, double y1, double x2, double y2, double x3, double y3, double tolerance_angle){
