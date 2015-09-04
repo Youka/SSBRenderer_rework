@@ -46,4 +46,8 @@ if(${TEST_GRAPHICS})
 	add_executable(ssbgraphics_text tests/text.cpp)
 	target_link_libraries(ssbgraphics_text ssbgraphics)
 	add_test(ssbgraphics_text_test ssbgraphics_text)
+	# Create path test
+	add_executable(ssbgraphics_path tests/path.cpp)
+	target_link_libraries(ssbgraphics_path ssbgraphics)
+	add_test(ssbgraphics_path_test ssbgraphics_path)
 endif()
