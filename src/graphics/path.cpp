@@ -20,9 +20,11 @@ Permission is granted to anyone to use this software for any purpose, including 
 
 // Rotation helpers
 static void rotate(double& x, double& y, double angle){
-	const double temp_x = x;
-        x = ::cos(angle) * x - ::sin(angle) * y,
-        y = ::sin(angle) * temp_x + ::cos(angle) * y;
+	const double temp_x = x,
+		sin_angle = ::sin(angle),
+		cos_angle = ::cos(angle);
+        x = cos_angle * x - sin_angle * y,
+        y = sin_angle * temp_x + cos_angle * y;
 }
 static void rotate90(double& x, double& y, bool neg = false){
 	const double temp_x = x;
@@ -34,13 +36,14 @@ static void rotate90(double& x, double& y, bool neg = false){
 		y = temp_x;
 }
 static void rotate45(double& x, double& y, bool neg = false){
-	const double temp_x = x;
+	const double xx = M_SQRT1_2 * x,
+		yy = M_SQRT1_2 * y;
 	if(neg)
-		x = M_SQRT1_2 * x + M_SQRT1_2 * y,
-		y = -M_SQRT1_2 * temp_x + M_SQRT1_2 * y;
+		x = xx + yy,
+		y = -xx + yy;
 	else
-		x = M_SQRT1_2 * x - M_SQRT1_2 * y,
-		y = M_SQRT1_2 * temp_x + M_SQRT1_2 * y;
+		x = xx - yy,
+		y = xx + yy;
 }
 // Vector helpers
 static inline bool vec_zero_length(double vx, double vy){
@@ -232,15 +235,16 @@ namespace GUtils{
 		// Output (may) has changed
 		return true;
 	}
-	void path_close(std::vector<PathSegment>& path){
+	std::vector<PathSegment>& path_close(std::vector<PathSegment>& path){
 		for(size_t i = 1; i < path.size(); ++i)
 			if(path[i].type == PathSegment::Type::MOVE && path[i-1].type != PathSegment::Type::CLOSE)
 				path.insert(path.begin()+i, {PathSegment::Type::CLOSE}),
 				++i;
 		if(!path.empty() && path.back().type != PathSegment::Type::CLOSE)
 			path.push_back({PathSegment::Type::CLOSE});
+		return path;
 	}
-	void path_flatten(std::vector<PathSegment>& path, double tolerance){
+	std::vector<PathSegment>& path_flatten(std::vector<PathSegment>& path, double tolerance){
 		// Buffer for new path
 		std::vector<PathSegment> new_path;
 		new_path.reserve(path.size());
@@ -269,6 +273,7 @@ namespace GUtils{
 				new_path.push_back(*seg_iter);
 		// Transfer new path data to old path
 		path = std::move(new_path);
+		return path;
 	}
 	std::vector<PathSegment> path_by_arc(double x, double y, double cx, double cy, double angle){
 		// Result buffer

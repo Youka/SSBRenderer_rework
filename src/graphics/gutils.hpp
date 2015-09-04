@@ -146,8 +146,8 @@ namespace GUtils{
 		double x, y;
 	};
 	bool path_extents(const std::vector<PathSegment>& path, double* x0, double* y0, double* x1, double* y1);
-	void path_close(std::vector<PathSegment>& path);
-	void path_flatten(std::vector<PathSegment>& path, double tolerance);
+	std::vector<PathSegment>& path_close(std::vector<PathSegment>& path);
+	std::vector<PathSegment>& path_flatten(std::vector<PathSegment>& path, double tolerance);
 	std::vector<PathSegment> path_by_arc(double x, double y, double cx, double cy, double angle);
 
 	// Exception for font problems (see Font class below)
