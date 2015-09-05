@@ -279,6 +279,12 @@ namespace GUtils{
 		path = std::move(new_path);
 		return path;
 	}
+	std::vector<PathSegment>& path_transform(std::vector<PathSegment>& path, Matrix4x4d& mat){
+		for(auto& segment : path)
+			if(segment.type != PathSegment::Type::CLOSE)
+				mat.transform2d(&segment.x);
+		return path;
+	}
 	std::vector<PathSegment> path_by_arc(double x, double y, double cx, double cy, double angle){
 		// Result buffer
 		std::vector<PathSegment> curve_segments;

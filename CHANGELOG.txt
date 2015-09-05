@@ -1,4 +1,10 @@
 TODO:
+- Matrix x Vector (FIX)
 - Renderer internal buffers
 - Image caches: Loaded PNGs, font-bound glyphs
 - Renderer backends (Hardware: OpenGL+???; Software: Cairo)
+
+FUTURE:
+- Hardware renderer
+- Embedded fonts & textures
+- Complex scripts support

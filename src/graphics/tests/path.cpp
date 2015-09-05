@@ -43,7 +43,9 @@ int main(){
 	path_close(path);
 	if(path.back().type != PType::CLOSE)
 		throw std::logic_error("Path closing didn't happen");
-        print_path(path_flatten(path, 0.035));
+        Matrix4x4d mat;
+        print_path(path_transform(path, mat.translate(5, 7.2, -3))),
+        print_path(path_flatten(path, 0.035)),
 	print_path(path_by_arc(0, 30, 30, 30, 3.2));
 	return 0;
 }
