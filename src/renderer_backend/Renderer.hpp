@@ -36,6 +36,7 @@ class Renderer{
 		unsigned height();
 		void copy_image(unsigned char* image, unsigned padding);
 		// Processing
+		void clear_stencil();
 
 		// TODO
 

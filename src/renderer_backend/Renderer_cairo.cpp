@@ -73,3 +73,10 @@ void Renderer::copy_image(unsigned char* image, unsigned padding){
 	for(const unsigned char* const src_data_end = src_data + height * stride; src_data != src_data_end; src_data += stride)
 		image = std::copy(src_data, src_data+rowsize, image) + padding;
 }
+
+void Renderer::clear_stencil(){
+	cairo_t* stencil_context = reinterpret_cast<InstanceData*>(this->data)->stencil->context;
+	cairo_set_operator(stencil_context, CAIRO_OPERATOR_SOURCE),
+	cairo_set_source_rgba(stencil_context, 0, 0, 0, 0),
+	cairo_paint(stencil_context);
+}

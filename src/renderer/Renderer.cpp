@@ -65,9 +65,23 @@ namespace SSB{
 				else{
 					// Event overlays collection
 					std::vector<Overlay> overlays;
+					// Get scale for script->frame
+					double frame_scale_x, frame_scale_y;
+					if(this->script_data.frame.width > 0 && this->script_data.frame.height > 0)
+						frame_scale_x = static_cast<double>(this->width) / this->script_data.frame.width,
+						frame_scale_y = static_cast<double>(this->height) / this->script_data.frame.height;
+					else
+						frame_scale_x = frame_scale_y = 0;
+					// Collect render sizes
 
-					// TODO: all rendering stuff
+					// TODO
 
+					// Draw!
+
+					// TODO
+
+					// Clear stencil
+					this->renderer.clear_stencil();
 					// Save event overlays to cache
 					if(!overlays.empty())
 						this->event_cache.add(&event, std::move(overlays));
