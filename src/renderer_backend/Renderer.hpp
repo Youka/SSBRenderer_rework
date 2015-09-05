@@ -14,30 +14,32 @@ Permission is granted to anyone to use this software for any purpose, including 
 
 #pragma once
 
-// RGBA renderer on CPU or GPU (holding own image)
-class Renderer{
-	private:
-		// Resources by implementation
-		void* data;
-	public:
-		// Setters
-		Renderer();
-		Renderer(unsigned width, unsigned height);
-		void set_size(unsigned width, unsigned height);
-		// Free resources
-		~Renderer();
-		// No copy&move (-> resources limitation)
-		Renderer(const Renderer&) = delete;
-		Renderer(Renderer&&) = delete;
-		Renderer& operator=(const Renderer&) = delete;
-		Renderer& operator=(Renderer&&) = delete;
-		// Getter
-		unsigned width();
-		unsigned height();
-		void copy_image(unsigned char* image, unsigned padding);
-		// Processing
-		void clear_stencil();
+namespace Backend{
+	// RGBA renderer on CPU or GPU (holding own image)
+	class Renderer{
+		private:
+			// Resources by implementation
+			void* data;
+		public:
+			// Setters
+			Renderer();
+			Renderer(unsigned width, unsigned height);
+			void set_size(unsigned width, unsigned height);
+			// Free resources
+			~Renderer();
+			// No copy&move (-> resources limitation)
+			Renderer(const Renderer&) = delete;
+			Renderer(Renderer&&) = delete;
+			Renderer& operator=(const Renderer&) = delete;
+			Renderer& operator=(Renderer&&) = delete;
+			// Getter
+			unsigned width();
+			unsigned height();
+			void copy_image(unsigned char* image, unsigned padding);
+			// Processing
+			void clear_stencil();
 
-		// TODO
+			// TODO
 
-};
+	};
+}

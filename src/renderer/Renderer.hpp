@@ -27,7 +27,7 @@ namespace SSB{
 			int width, height;
 			Colorspace format;
 			// Backend renderer
-			::Renderer renderer;
+			Backend::Renderer renderer;
 			// Script data
 			Data script_data;
 			const std::string script_directory;
