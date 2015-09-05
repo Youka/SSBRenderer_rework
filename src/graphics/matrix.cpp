@@ -250,56 +250,14 @@ namespace GUtils{
 		__m128d m_vec = _mm_loadu_pd(vec);
 		_mm_storeu_pd(
 			vec,
-			_mm_hadd_pd(
-				_mm_mul_pd(_mm_load_pd(this->matrix), m_vec),
-				_mm_mul_pd(_mm_load_pd(this->matrix+4), m_vec)
-			)
-		);
-#elif defined __SSE2__
-		__m128d m_vec = _mm_loadu_pd(vec),
-		m_temp1 = _mm_mul_pd(_mm_load_pd(this->matrix), m_vec),
-		m_temp2 = _mm_mul_pd(_mm_load_pd(this->matrix+4), m_vec);
-		_mm_storeu_pd(
-			vec,
-			_mm_add_pd(
-				_mm_unpacklo_pd(m_temp1, m_temp2),
-				_mm_unpackhi_pd(m_temp1, m_temp2)
-			)
-		);
-#else
-		vec[0] = this->matrix[0] * vec[0] + this->matrix[1] * vec[1],
-		vec[1] = this->matrix[4] * vec[0] + this->matrix[5] * vec[1];
-#endif
-		return vec;
-	}
-	double* Matrix4x4d::transform3d(double* vec){
-#ifdef __AVX__
-		__m256d m_vec = _mm256_set_pd(0, vec[2], vec[1], vec[0]),
-		m_temp = _mm256_hadd_pd(
-			_mm256_mul_pd(_mm256_load_pd(this->matrix), m_vec),
-			_mm256_mul_pd(_mm256_load_pd(this->matrix+4), m_vec)
-		);
-		vec[0] = *reinterpret_cast<double*>(&m_temp) + reinterpret_cast<double*>(&m_temp)[2],
-		vec[1] = reinterpret_cast<double*>(&m_temp)[1] + reinterpret_cast<double*>(&m_temp)[3],
-		m_temp = _mm256_mul_pd(_mm256_load_pd(this->matrix+8), m_vec),
-		vec[3] = *reinterpret_cast<double*>(&m_temp) + reinterpret_cast<double*>(&m_temp)[1] + reinterpret_cast<double*>(&m_temp)[2];
-#elif defined __SSE3__
-		__m128d m_vec = _mm_loadu_pd(vec);
-		_mm_storeu_pd(
-			vec,
 			_mm_add_pd(
 				_mm_hadd_pd(
 					_mm_mul_pd(_mm_load_pd(this->matrix), m_vec),
 					_mm_mul_pd(_mm_load_pd(this->matrix+4), m_vec)
 				),
-				_mm_mul_pd(
-					_mm_set_pd(this->matrix[6], this->matrix[2]),
-					_mm_set1_pd(vec[2])
-				)
+				_mm_set_pd(this->matrix[7], this->matrix[3])
 			)
 		);
-		__m128d m_temp = _mm_mul_pd(_mm_load_pd(this->matrix+8), m_vec);
-		vec[2] = *reinterpret_cast<double*>(&m_temp) + reinterpret_cast<double*>(&m_temp)[1] + this->matrix[10] * vec[2];
 #elif defined __SSE2__
 		__m128d m_vec = _mm_loadu_pd(vec),
 		m_temp1 = _mm_mul_pd(_mm_load_pd(this->matrix), m_vec),
@@ -311,18 +269,87 @@ namespace GUtils{
 					_mm_unpacklo_pd(m_temp1, m_temp2),
 					_mm_unpackhi_pd(m_temp1, m_temp2)
 				),
-				_mm_mul_pd(
-					_mm_set_pd(this->matrix[6], this->matrix[2]),
-					_mm_set1_pd(vec[2])
-				)
+				_mm_set_pd(this->matrix[7], this->matrix[3])
 			)
 		);
-		m_temp1 = _mm_mul_pd(_mm_load_pd(this->matrix+8), m_vec);
-		vec[2] = *reinterpret_cast<double*>(&m_temp1) + reinterpret_cast<double*>(&m_temp1)[1] + this->matrix[10] * vec[2];
 #else
-		vec[0] = this->matrix[0] * vec[0] + this->matrix[1] * vec[1] + this->matrix[2] * vec[2],
-		vec[1] = this->matrix[4] * vec[0] + this->matrix[5] * vec[1] + this->matrix[6] * vec[2],
-		vec[2] = this->matrix[8] * vec[0] + this->matrix[9] * vec[1] + this->matrix[10] * vec[2];
+		vec[0] = this->matrix[0] * vec[0] + this->matrix[1] * vec[1] + this->matrix[3],
+		vec[1] = this->matrix[4] * vec[0] + this->matrix[5] * vec[1] + this->matrix[7];
+#endif
+		return vec;
+	}
+	double* Matrix4x4d::transform3d(double* vec){
+#ifdef __AVX__
+		__m256d m_vec = _mm256_set_pd(1, vec[2], vec[1], vec[0]),
+		m_temp = _mm256_hadd_pd(
+			_mm256_mul_pd(_mm256_load_pd(this->matrix), m_vec),
+			_mm256_mul_pd(_mm256_load_pd(this->matrix+4), m_vec)
+		);
+		_mm_storeu_pd(
+			vec,
+			_mm_add_pd(
+				_mm256_extractf128_pd(m_temp, 0x0),
+				_mm256_extractf128_pd(m_temp, 0x1)
+			)
+		),
+		m_temp = _mm256_mul_pd(_mm256_load_pd(this->matrix+8), m_vec);
+		__m128d m_temp2 = _mm_add_pd(
+			_mm256_extractf128_pd(m_temp, 0x0),
+			_mm256_extractf128_pd(m_temp, 0x1)
+		),
+		vec[3] = *reinterpret_cast<double*>(&m_temp2) + reinterpret_cast<double*>(&m_temp2)[1]
+#elif defined __SSE3__
+		__m128d m_vec = _mm_loadu_pd(vec);
+		_mm_storeu_pd(
+			vec,
+			_mm_add_pd(
+				_mm_add_pd(
+					_mm_hadd_pd(
+						_mm_mul_pd(_mm_load_pd(this->matrix), m_vec),
+						_mm_mul_pd(_mm_load_pd(this->matrix+4), m_vec)
+					),
+					_mm_mul_pd(
+						_mm_set_pd(this->matrix[6], this->matrix[2]),
+						_mm_set1_pd(vec[2])
+					)
+				),
+				_mm_set_pd(this->matrix[7], this->matrix[3])
+			)
+		);
+		__m128d m_temp = _mm_add_pd(
+			_mm_mul_pd(_mm_load_pd(this->matrix+8), m_vec),
+			_mm_set_pd(this->matrix[11], this->matrix[10] * vec[2])
+		);
+		vec[2] = *reinterpret_cast<double*>(&m_temp) + reinterpret_cast<double*>(&m_temp)[1];
+#elif defined __SSE2__
+		__m128d m_vec = _mm_loadu_pd(vec),
+		m_temp1 = _mm_mul_pd(_mm_load_pd(this->matrix), m_vec),
+		m_temp2 = _mm_mul_pd(_mm_load_pd(this->matrix+4), m_vec);
+		_mm_storeu_pd(
+			vec,
+			_mm_add_pd(
+				_mm_add_pd(
+					_mm_add_pd(
+						_mm_unpacklo_pd(m_temp1, m_temp2),
+						_mm_unpackhi_pd(m_temp1, m_temp2)
+					),
+					_mm_mul_pd(
+						_mm_set_pd(this->matrix[6], this->matrix[2]),
+						_mm_set1_pd(vec[2])
+					)
+				),
+				_mm_set_pd(this->matrix[7], this->matrix[3])
+			)
+		),
+		m_temp1 = _mm_add_pd(
+			_mm_mul_pd(_mm_load_pd(this->matrix+8), m_vec),
+			_mm_set_pd(this->matrix[11], this->matrix[10] * vec[2])
+		),
+		vec[2] = *reinterpret_cast<double*>(&m_temp1) + reinterpret_cast<double*>(&m_temp1)[1];
+#else
+		vec[0] = this->matrix[0] * vec[0] + this->matrix[1] * vec[1] + this->matrix[2] * vec[2] + this->matrix[3],
+		vec[1] = this->matrix[4] * vec[0] + this->matrix[5] * vec[1] + this->matrix[6] * vec[2] + this->matrix[7],
+		vec[2] = this->matrix[8] * vec[0] + this->matrix[9] * vec[1] + this->matrix[10] * vec[2] + this->matrix[11];
 #endif
 		return vec;
 	}
