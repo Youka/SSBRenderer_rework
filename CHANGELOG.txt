@@ -1,5 +1,6 @@
 TODO:
-- Path conversion & Positioning
+- Path deforming by formula
+- Positioning
 - Image caches: Loaded PNGs, font-bound glyphs
 - Renderer backends (Hardware: OpenGL+???; Software: Cairo)
 
