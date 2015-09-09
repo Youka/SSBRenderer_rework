@@ -30,7 +30,7 @@ namespace SSB{
 	enum class Colorspace{BGR, BGRX, BGRA};
 
 	// Fades overlay and blends on target
-	inline void blend_overlay(Time start_ms, Time end_ms, Time cur_ms,
+	static inline void blend_overlay(Time start_ms, Time end_ms, Time cur_ms,
 				Overlay& overlay,
 				unsigned char* data, unsigned width, unsigned height, unsigned stride, Colorspace format){
 		// Calculate fade factor

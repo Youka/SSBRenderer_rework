@@ -18,7 +18,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 #include <cmath>
 #include <cstdint>
 
-inline bool write_tga(const std::string filename, const int width, const int height, const unsigned stride, const bool has_alpha, const unsigned char* data){
+static inline bool write_tga(const std::string filename, const int width, const int height, const unsigned stride, const bool has_alpha, const unsigned char* data){
 	// Open & check target file
 	std::ofstream file(filename, std::ios::binary);
 	if(!file)

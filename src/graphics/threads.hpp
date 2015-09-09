@@ -23,7 +23,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 #endif
 
 namespace stdex{
-	inline unsigned hardware_concurrency(){
+	static inline unsigned hardware_concurrency(){
                 unsigned n = std::thread::hardware_concurrency();
                 if(!n)	// std::thread::hardware_concurrency is just a hint, means, no or bad implementations
 #ifdef _WIN32
