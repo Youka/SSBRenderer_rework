@@ -49,6 +49,11 @@ endif()
 add_compile_options(${COMPILE_WARNINGS})
 message(STATUS "Compile warnings: ${COMPILE_WARNINGS}")
 
+# Add feature definitions
+set(COMPILE_DEFINITIONS -D_USE_MATH_DEFINES)
+add_definitions(${COMPILE_DEFINITIONS})
+message(STATUS "Additional compile definitions: ${COMPILE_DEFINITIONS}")
+
 # Add compiler features (C++, vectorization)
 if(CMAKE_COMPILER_IS_GNUCC)
 	set(COMPILE_FEATURES -std=c++11)
