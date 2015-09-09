@@ -13,6 +13,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 */
 
 #include "Geometry.hpp"
+#include <muParser.h>
 
 #define DEG_TO_RAD(x) (x * M_PI / 180.0)
 

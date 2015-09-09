@@ -1,6 +1,8 @@
 # Request build options from user
 option(BUILD_AEGISUB_CSRI "Should the CRSI interface convert ASS data input to SSB?" OFF)
 set(BUILD_CACHE_SIZE 64 CACHE STRING "Maximal number of cached objects.")
+set(DEPEND_MUPARSER_INC "" CACHE PATH "muParser include directory.")
+set(DEPEND_MUPARSER_LIB "" CACHE FILEPATH "muParser library filepath.")
 option(TEST_RENDERER "Build renderer tests?" OFF)
 
 # Generate configuration header
@@ -14,7 +16,7 @@ file(GLOB RENDERER_SOURCES *.cpp *.hpp *.h *.rc)
 add_library(ssbrenderer SHARED ${RENDERER_SOURCES} $<TARGET_OBJECTS:ssbplugins>)
 
 # Add library include directories
-target_include_directories(ssbrenderer PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+target_include_directories(ssbrenderer PUBLIC ${CMAKE_CURRENT_BINARY_DIR} ${DEPEND_MUPARSER_INC})
 
 # Add library definitions
 if(BUILD_AEGISUB_CSRI)
@@ -22,7 +24,7 @@ if(BUILD_AEGISUB_CSRI)
 endif()
 
 # Add library links
-set(RENDERER_LINKS ssbparser ssbrenderer_backend ssbgraphics)
+set(RENDERER_LINKS ssbparser ssbrenderer_backend ssbgraphics ${DEPEND_MUPARSER_LIB})
 if(WIN32)
 	set(RENDERER_LINKS ${RENDERER_LINKS} mfuuid mfplat)
 endif()
