@@ -15,6 +15,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 #include "Renderer.hpp"
 #include "../parser/SSBParser.hpp"
 #include "../utils/io.hpp"
+#include "Geometry.hpp"
 
 namespace SSB{
 	void Renderer::init(int width, int height, Colorspace format, std::istream& data, bool warnings) throw(Exception){
@@ -67,11 +68,7 @@ namespace SSB{
 					std::vector<Overlay> overlays;
 					// Get scale for script->frame
 					double frame_scale_x, frame_scale_y;
-					if(this->script_data.frame.width > 0 && this->script_data.frame.height > 0)
-						frame_scale_x = static_cast<double>(this->width) / this->script_data.frame.width,
-						frame_scale_y = static_cast<double>(this->height) / this->script_data.frame.height;
-					else
-						frame_scale_x = frame_scale_y = 0;
+					get_2d_scale(::abs(this->width), ::abs(this->height), this->script_data.frame.width, this->script_data.frame.height, frame_scale_x, frame_scale_y);
 					// Collect render sizes
 
 					// TODO
