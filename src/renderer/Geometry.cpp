@@ -14,6 +14,8 @@ Permission is granted to anyone to use this software for any purpose, including 
 
 #include "Geometry.hpp"
 #include <muParser.h>
+#include "../utils/memory.hpp"
+#include <config.h>
 #include <mutex>
 
 #define DEG_TO_RAD(x) (x * M_PI / 180.0)
@@ -114,36 +116,41 @@ namespace SSB{
 
         void path_deform(std::vector<GUtils::PathSegment>& path, const std::string& x_formula, const std::string& y_formula, double progress){
         	// Static resources
-        	static mu::Parser x_parser, y_parser;	// Math parsers
-        	static double x, y, t;	// Parser variables storages
-        	static std::mutex mut;	// Lock object for thread-safe usage of previous
-        	static std::once_flag flag;	// Lock flag for thread-safe initialization as follows
-		// Initialize parsers
-		std::call_once(flag, [](){
-			// Set parsers variables references
-			x_parser.DefineVar("x", &x),
-                        x_parser.DefineVar("y", &y),
-			x_parser.DefineVar("t", &t),
-			y_parser.DefineVar("x", &x),
-                        y_parser.DefineVar("y", &y),
-			y_parser.DefineVar("t", &t);
-		});
-		// Make following instructions thread-safe
+        	struct ParserPack{	// Parsers + variables to reference
+			mu::Parser x_parser, y_parser;
+			double x, y, t;
+        	};
+		static stdex::Cache<std::pair<std::string,std::string>, std::shared_ptr<ParserPack>, MAX_CACHE> parsers_cache;	// Cache for reusable parsers
+		static std::mutex mut;	// Lock object for thread-safe usage of parsers
+		// Make parsers usage thread-safe
 		std::unique_lock<std::mutex> lock(mut);
-        	// Updata parsers behaviour (setting expression -> forces rebuild of bytecode -> expensive)
-        	if(x_parser.GetExpr() != x_formula)
-			x_parser.SetExpr(x_formula);
-		if(y_parser.GetExpr() != y_formula)
-			y_parser.SetExpr(y_formula);
+		// Pick parser(s)
+		std::shared_ptr<ParserPack> parser;
+		std::pair<std::string,std::string> key(x_formula, y_formula);
+		if(parsers_cache.contains(key))
+			parser = parsers_cache.get(key);
+		else{
+			std::shared_ptr<ParserPack> new_parser(new ParserPack);
+			new_parser->x_parser.DefineVar("x", &parser->x),
+			new_parser->x_parser.DefineVar("y", &parser->y),
+			new_parser->x_parser.DefineVar("t", &parser->t),
+			new_parser->x_parser.SetExpr(x_formula),
+			new_parser->y_parser.DefineVar("x", &parser->x),
+			new_parser->y_parser.DefineVar("y", &parser->y),
+			new_parser->y_parser.DefineVar("t", &parser->t),
+			new_parser->y_parser.SetExpr(y_formula),
+			parsers_cache.add(key, new_parser),
+			parser = new_parser;
+		}
 		// Apply parsers to path points
-		t = progress;
+		parser->t = progress;
 		for(GUtils::PathSegment& segment : path)
 			if(segment.type != GUtils::PathSegment::Type::CLOSE){
-				x = segment.x,
-				y = segment.y;
+				parser->x = segment.x,
+				parser->y = segment.y;
 				try{
-					segment.x = x_parser.Eval(),
-					segment.y = y_parser.Eval();
+					segment.x = parser->x_parser.Eval(),
+					segment.y = parser->y_parser.Eval();
 				}catch(...){}
 			}
         }
