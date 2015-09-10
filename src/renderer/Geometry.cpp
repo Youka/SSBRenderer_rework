@@ -14,6 +14,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 
 #include "Geometry.hpp"
 #include <muParser.h>
+#include <mutex>
 
 #define DEG_TO_RAD(x) (x * M_PI / 180.0)
 
@@ -112,9 +113,39 @@ namespace SSB{
         }
 
         void path_deform(std::vector<GUtils::PathSegment>& path, const std::string& x_formula, const std::string& y_formula, double progress){
-
-		// TODO
-
+        	// Static resources
+        	static mu::Parser x_parser, y_parser;	// Math parsers
+        	static double x, y, t;	// Parser variables storages
+        	static std::mutex mut;	// Lock object for thread-safe usage of previous
+        	static std::once_flag flag;	// Lock flag for thread-safe initialization as follows
+		// Initialize parsers
+		std::call_once(flag, [](){
+			// Set parsers variables references
+			x_parser.DefineVar("x", &x),
+                        x_parser.DefineVar("y", &y),
+			x_parser.DefineVar("t", &t),
+			y_parser.DefineVar("x", &x),
+                        y_parser.DefineVar("y", &y),
+			y_parser.DefineVar("t", &t);
+		});
+		// Make following instructions thread-safe
+		std::unique_lock<std::mutex> lock(mut);
+        	// Updata parsers behaviour (setting expression -> forces rebuild of bytecode -> expensive)
+        	if(x_parser.GetExpr() != x_formula)
+			x_parser.SetExpr(x_formula);
+		if(y_parser.GetExpr() != y_formula)
+			y_parser.SetExpr(y_formula);
+		// Apply parsers to path points
+		t = progress;
+		for(GUtils::PathSegment& segment : path)
+			if(segment.type != GUtils::PathSegment::Type::CLOSE){
+				x = segment.x,
+				y = segment.y;
+				try{
+					segment.x = x_parser.Eval(),
+					segment.y = y_parser.Eval();
+				}catch(...){}
+			}
         }
 
 	// TODO
