@@ -74,6 +74,47 @@ namespace SSB{
 		return result;
 	}
 
+	void path_deform(std::vector<GUtils::PathSegment>& path, const std::string& x_formula, const std::string& y_formula, double progress){
+        	// Static resources
+        	struct ParserPack{	// Parsers + variables to reference
+			mu::Parser x_parser, y_parser;
+			double x, y, t;
+        	};
+		static stdex::Cache<std::pair<std::string,std::string>, std::shared_ptr<ParserPack>, MAX_CACHE> parsers_cache;	// Cache for reusable parsers
+		static std::mutex mut;	// Lock object for thread-safe usage of parsers
+		// Make parsers usage thread-safe
+		std::unique_lock<std::mutex> lock(mut);
+		// Pick parser(s)
+		std::shared_ptr<ParserPack> parser;
+		std::pair<std::string,std::string> formula(x_formula, y_formula);
+		if(parsers_cache.contains(formula))
+			parser = parsers_cache.get(formula);
+		else{
+			std::shared_ptr<ParserPack> new_parser(new ParserPack);
+			new_parser->x_parser.DefineVar("x", &parser->x),
+			new_parser->x_parser.DefineVar("y", &parser->y),
+			new_parser->x_parser.DefineVar("t", &parser->t),
+			new_parser->x_parser.SetExpr(x_formula),
+			new_parser->y_parser.DefineVar("x", &parser->x),
+			new_parser->y_parser.DefineVar("y", &parser->y),
+			new_parser->y_parser.DefineVar("t", &parser->t),
+			new_parser->y_parser.SetExpr(y_formula),
+			parsers_cache.add(formula, new_parser),
+			parser = new_parser;
+		}
+		// Apply parsers to path points
+		parser->t = progress;
+		for(GUtils::PathSegment& segment : path)
+			if(segment.type != GUtils::PathSegment::Type::CLOSE){
+				parser->x = segment.x,
+				parser->y = segment.y;
+				try{
+					segment.x = parser->x_parser.Eval(),
+					segment.y = parser->y_parser.Eval();
+				}catch(...){}
+			}
+        }
+
 	void get_2d_scale(unsigned src_width, unsigned src_height, unsigned dst_width, unsigned dst_height, double& scale_x, double& scale_y){
 		if(dst_width > 0 && dst_height > 0)
 			scale_x = static_cast<double>(src_width) / dst_width,
@@ -114,47 +155,90 @@ namespace SSB{
 			}
         }
 
-        void path_deform(std::vector<GUtils::PathSegment>& path, const std::string& x_formula, const std::string& y_formula, double progress){
-        	// Static resources
-        	struct ParserPack{	// Parsers + variables to reference
-			mu::Parser x_parser, y_parser;
-			double x, y, t;
-        	};
-		static stdex::Cache<std::pair<std::string,std::string>, std::shared_ptr<ParserPack>, MAX_CACHE> parsers_cache;	// Cache for reusable parsers
-		static std::mutex mut;	// Lock object for thread-safe usage of parsers
-		// Make parsers usage thread-safe
-		std::unique_lock<std::mutex> lock(mut);
-		// Pick parser(s)
-		std::shared_ptr<ParserPack> parser;
-		std::pair<std::string,std::string> key(x_formula, y_formula);
-		if(parsers_cache.contains(key))
-			parser = parsers_cache.get(key);
-		else{
-			std::shared_ptr<ParserPack> new_parser(new ParserPack);
-			new_parser->x_parser.DefineVar("x", &parser->x),
-			new_parser->x_parser.DefineVar("y", &parser->y),
-			new_parser->x_parser.DefineVar("t", &parser->t),
-			new_parser->x_parser.SetExpr(x_formula),
-			new_parser->y_parser.DefineVar("x", &parser->x),
-			new_parser->y_parser.DefineVar("y", &parser->y),
-			new_parser->y_parser.DefineVar("t", &parser->t),
-			new_parser->y_parser.SetExpr(y_formula),
-			parsers_cache.add(key, new_parser),
-			parser = new_parser;
+        Point get_line_offset(Align::Position align, Direction::Mode direction,
+			const GeometriesBlock& geometries, unsigned line_i){
+		// Output storage
+		Point offset;
+		// By geometries flow
+		switch(direction){
+			case Direction::Mode::LTR:
+				// Set horizontal offset
+				switch(align){
+					case Align::Position::LEFT_BOTTOM:
+					case Align::Position::LEFT_MIDDLE:
+					case Align::Position::LEFT_TOP:
+						offset.x = 0;
+						break;
+					case Align::Position::CENTER_BOTTOM:
+					case Align::Position::CENTER_MIDDLE:
+					case Align::Position::CENTER_TOP:
+						offset.x = -geometries.lines[line_i].width / 2;
+						break;
+					case Align::Position::RIGHT_BOTTOM:
+					case Align::Position::RIGHT_MIDDLE:
+					case Align::Position::RIGHT_TOP:
+						offset.x = -geometries.lines[line_i].width;
+						break;
+				}
+				// Set vertical offset
+				switch(align){
+					case Align::Position::LEFT_BOTTOM:
+					case Align::Position::CENTER_BOTTOM:
+					case Align::Position::RIGHT_BOTTOM:
+						offset.y = -geometries.height;
+						break;
+					case Align::Position::LEFT_MIDDLE:
+					case Align::Position::CENTER_MIDDLE:
+					case Align::Position::RIGHT_MIDDLE:
+						offset.y = -geometries.height / 2;
+						break;
+					case Align::Position::LEFT_TOP:
+					case Align::Position::CENTER_TOP:
+					case Align::Position::RIGHT_TOP:
+						offset.y = 0;
+						break;
+				}
+				break;
+			case Direction::Mode::TTB:
+				// Set horizontal offset
+				switch(align){
+					case Align::Position::LEFT_BOTTOM:
+					case Align::Position::LEFT_MIDDLE:
+					case Align::Position::LEFT_TOP:
+						offset.x = 0;
+						break;
+					case Align::Position::CENTER_BOTTOM:
+					case Align::Position::CENTER_MIDDLE:
+					case Align::Position::CENTER_TOP:
+						offset.x = -geometries.width / 2;
+						break;
+					case Align::Position::RIGHT_BOTTOM:
+					case Align::Position::RIGHT_MIDDLE:
+					case Align::Position::RIGHT_TOP:
+						offset.x = -geometries.width;
+						break;
+				}
+				// Set vertical offset
+				switch(align){
+					case Align::Position::LEFT_BOTTOM:
+					case Align::Position::CENTER_BOTTOM:
+					case Align::Position::RIGHT_BOTTOM:
+						offset.y = -geometries.lines[line_i].height;
+						break;
+					case Align::Position::LEFT_MIDDLE:
+					case Align::Position::CENTER_MIDDLE:
+					case Align::Position::RIGHT_MIDDLE:
+						offset.y = -geometries.lines[line_i].height / 2;
+						break;
+					case Align::Position::LEFT_TOP:
+					case Align::Position::CENTER_TOP:
+					case Align::Position::RIGHT_TOP:
+						offset.y = 0;
+						break;
+				}
+				break;
 		}
-		// Apply parsers to path points
-		parser->t = progress;
-		for(GUtils::PathSegment& segment : path)
-			if(segment.type != GUtils::PathSegment::Type::CLOSE){
-				parser->x = segment.x,
-				parser->y = segment.y;
-				try{
-					segment.x = parser->x_parser.Eval(),
-					segment.y = parser->y_parser.Eval();
-				}catch(...){}
-			}
-        }
-
-	// TODO
-
+		// Return whatever was set
+		return offset;
+	}
 }

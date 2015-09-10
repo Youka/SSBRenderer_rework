@@ -22,17 +22,28 @@ namespace SSB{
 	std::vector<GUtils::PathSegment> points_to_path(const Points* points, double size);
 	// Convert SSB path to general path
 	std::vector<GUtils::PathSegment> path_to_path(const Path* path);
-        // Calculate 2-dimensional scale by source & target
+	// Deform path by formula (with progress variable)
+	void path_deform(std::vector<GUtils::PathSegment>& path, const std::string& x_formula, const std::string& y_formula, double progress);
+	// Calculate 2-dimensional scale by source & target
 	void get_2d_scale(unsigned src_width, unsigned src_height, unsigned dst_width, unsigned dst_height, double& scale_x, double& scale_y);
-        // Calculate auto position (by alignment, frame+scale and margins)
-        Point get_auto_pos(Align::Position align,
+	// Calculate auto position (by alignment, frame+scale and margins)
+	Point get_auto_pos(Align::Position align,
 			Coord margin_h, Coord margin_v,
 			unsigned frame_width, unsigned frame_height,
 			double scale_x, double scale_y);
-	// Deform path by formula (with progress variable)
-	void path_deform(std::vector<GUtils::PathSegment>& path, const std::string& x_formula, const std::string& y_formula, double progress);
-        // Calculate geometries sizes & positions as whole and in lines
-
-	// TODO
-
+	// Geometries sizes & offsets as whole, lines and singles
+	struct GeometrySize{
+		double width, height, off_x, off_y;
+	};
+	struct GeometriesLine{
+		double width, height, space;
+		std::vector<GeometrySize> geometries;
+	};
+	struct GeometriesBlock{
+		double width, height;
+		std::vector<GeometriesLine> lines;
+	};
+	// Calculate line offset to block origin by alignment
+	Point get_line_offset(Align::Position align, Direction::Mode mode,
+			const GeometriesBlock& geometries, unsigned line_i);
 }
