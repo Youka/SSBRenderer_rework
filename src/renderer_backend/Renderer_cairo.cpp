@@ -34,9 +34,18 @@ struct InstanceData{
 	// Buffers
 	cairo_image_safe_ptr image, stencil;
 	// State
-
-	// TODO
-
+	GUtils::Font font;
+	bool vertical;
+	std::string deform_x, deform_y;
+        double deform_progress;
+        GUtils::Matrix4x4d matrix;
+        enum class Mode{FILL, WIRE, BOXED} mode;
+        double fill_color[4][4], line_color[4][4];	// 4-corners, RGBA
+	std::string texture_filename;
+	double texture_x, texture_y;
+	cairo_extend_t texture_wrap;
+	bool anti_aliasing;
+	// Rest in cairo context or extern
 };
 
 namespace Backend{
@@ -83,9 +92,32 @@ namespace Backend{
 	}
 
 	void Renderer::reset(){
-
-		// TODO
-
+		// Get instance data
+		InstanceData* data = reinterpret_cast<InstanceData*>(this->data);
+		// Reset local state
+		data->font = GUtils::Font("Arial"),
+		data->vertical = false,
+                data->deform_x.clear(),
+		data->deform_y.clear(),
+		data->deform_progress = 0,
+		data->matrix.identity(),
+		data->mode = InstanceData::Mode::FILL,
+		std::fill(&data->fill_color[0][0], &data->fill_color[3][3], 1),
+		std::fill(&data->line_color[0][0], &data->line_color[3][3], 0),
+		data->line_color[0][3] = data->line_color[1][3] = data->line_color[2][3] = data->line_color[3][3] = 1,
+		data->texture_filename.clear(),
+		data->texture_x = data->texture_y = 0,
+		data->texture_wrap = CAIRO_EXTEND_NONE,
+		data->anti_aliasing = true;
+		// Get cairo contexts
+		cairo_t* image_ctx = data->image->context,
+			*stencil_ctx = data->stencil->context;
+		// Reset cairo state
+		cairo_set_line_width(image_ctx, 4), cairo_set_line_width(stencil_ctx, 4),
+		cairo_set_line_join(image_ctx, CAIRO_LINE_JOIN_ROUND), cairo_set_line_join(stencil_ctx, CAIRO_LINE_JOIN_ROUND),
+		cairo_set_line_cap(image_ctx, CAIRO_LINE_CAP_ROUND), cairo_set_line_cap(stencil_ctx, CAIRO_LINE_CAP_ROUND),
+		cairo_set_dash(image_ctx, nullptr, 0, 0), cairo_set_dash(stencil_ctx, nullptr, 0, 0),
+		cairo_set_antialias(image_ctx, CAIRO_ANTIALIAS_BEST), cairo_set_antialias(stencil_ctx, CAIRO_ANTIALIAS_BEST);
 	}
 
 	void Renderer::clear_stencil(){
