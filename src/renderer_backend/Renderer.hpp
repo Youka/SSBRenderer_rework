@@ -32,10 +32,15 @@ namespace Backend{
 			Renderer(Renderer&&) = delete;
 			Renderer& operator=(const Renderer&) = delete;
 			Renderer& operator=(Renderer&&) = delete;
-			// Getter
+			// Getters
 			unsigned width();
 			unsigned height();
 			void copy_image(unsigned char* image, unsigned padding);
+			// State
+			void reset();
+
+			// TODO
+
 			// Processing
 			void clear_stencil();
 

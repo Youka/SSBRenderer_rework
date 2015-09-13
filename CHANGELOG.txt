@@ -1,4 +1,5 @@
 TODO:
+- Render state
 - Positioning
 - Image caches: Loaded PNGs, font-bound glyphs
 - Renderer backends (Hardware: OpenGL+???; Software: Cairo)

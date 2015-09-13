@@ -15,7 +15,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 #include "Renderer.hpp"
 #include <cairo.h>
 #include <memory>
-#include <algorithm>
+#include "../graphics/gutils.hpp"
 
 // Cairo surface+context bounding
 struct cairo_image_t{
@@ -31,25 +31,32 @@ auto cairo_image_destroyer = [](cairo_image_t* img){
 // Renderer private data
 using cairo_image_safe_ptr = std::unique_ptr<cairo_image_t, std::function<void(cairo_image_t*)>>;
 struct InstanceData{
+	// Buffers
 	cairo_image_safe_ptr image, stencil;
+	// State
+
+	// TODO
+
 };
 
 namespace Backend{
 	Renderer::Renderer() : Renderer::Renderer(1, 1){}
 
 	Renderer::Renderer(unsigned width, unsigned height){
-		this->data = nullptr,
-		this->set_size(width, height);
+		this->data = new InstanceData{
+			cairo_image_safe_ptr(nullptr, cairo_image_destroyer),
+			cairo_image_safe_ptr(nullptr, cairo_image_destroyer)
+		},
+		this->set_size(width, height),
+		this->reset();
 	}
 
 	void Renderer::set_size(unsigned width, unsigned height){
-		delete reinterpret_cast<InstanceData*>(this->data);
+		InstanceData* data = reinterpret_cast<InstanceData*>(this->data);
 		cairo_surface_t* image = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height),
 			*stencil = cairo_image_surface_create(CAIRO_FORMAT_A8, width, height);
-		this->data = new InstanceData{
-			cairo_image_safe_ptr(new cairo_image_t{image, cairo_create(image)}, cairo_image_destroyer),
-			cairo_image_safe_ptr(new cairo_image_t{stencil, cairo_create(stencil)}, cairo_image_destroyer)
-		};
+		data->image.reset(new cairo_image_t{image, cairo_create(image)}),
+		data->stencil.reset(new cairo_image_t{stencil, cairo_create(stencil)});
 	}
 
 	Renderer::~Renderer(){
@@ -73,6 +80,12 @@ namespace Backend{
 		// Copy source rows to destination
 		for(const unsigned char* const src_data_end = src_data + height * stride; src_data != src_data_end; src_data += stride)
 			image = std::copy(src_data, src_data+rowsize, image) + padding;
+	}
+
+	void Renderer::reset(){
+
+		// TODO
+
 	}
 
 	void Renderer::clear_stencil(){
