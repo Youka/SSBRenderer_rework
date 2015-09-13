@@ -17,22 +17,18 @@ Permission is granted to anyone to use this software for any purpose, including 
 #include <memory>
 #include "../graphics/gutils.hpp"
 
-// Cairo surface+context bounding
-struct cairo_image_t{
-	cairo_surface_t* surface;
-	cairo_t* context;
-};
-auto cairo_image_destroyer = [](cairo_image_t* img){
-	cairo_destroy(img->context),
-	cairo_surface_destroy(img->surface),
-	delete img;
+// Cairo surface+context destroyer
+auto cairo_destroyer = [](cairo_t* ctx){
+	cairo_surface_t* surface = cairo_get_target(ctx);
+	cairo_destroy(ctx),
+	cairo_surface_destroy(surface);
 };
 
 // Renderer private data
-using cairo_image_safe_ptr = std::unique_ptr<cairo_image_t, std::function<void(cairo_image_t*)>>;
+using cairo_t_safe = std::unique_ptr<cairo_t, std::function<void(cairo_t*)>>;
 struct InstanceData{
 	// Buffers
-	cairo_image_safe_ptr image, stencil;
+	cairo_t_safe image, stencil;
 	// State
 	GUtils::Font font;
 	bool vertical;
@@ -53,8 +49,8 @@ namespace Backend{
 
 	Renderer::Renderer(unsigned width, unsigned height){
 		this->data = new InstanceData{
-			cairo_image_safe_ptr(nullptr, cairo_image_destroyer),
-			cairo_image_safe_ptr(nullptr, cairo_image_destroyer)
+			cairo_t_safe(nullptr, cairo_destroyer),
+			cairo_t_safe(nullptr, cairo_destroyer)
 		},
 		this->set_size(width, height),
 		this->reset();
@@ -62,10 +58,8 @@ namespace Backend{
 
 	void Renderer::set_size(unsigned width, unsigned height){
 		InstanceData* data = reinterpret_cast<InstanceData*>(this->data);
-		cairo_surface_t* image = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height),
-			*stencil = cairo_image_surface_create(CAIRO_FORMAT_A8, width, height);
-		data->image.reset(new cairo_image_t{image, cairo_create(image)}),
-		data->stencil.reset(new cairo_image_t{stencil, cairo_create(stencil)});
+		data->image.reset(cairo_create(cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height))),
+		data->stencil.reset(cairo_create(cairo_image_surface_create(CAIRO_FORMAT_A8, width, height)));
 	}
 
 	Renderer::~Renderer(){
@@ -73,16 +67,16 @@ namespace Backend{
 	}
 
 	unsigned Renderer::width(){
-		return cairo_image_surface_get_width(reinterpret_cast<InstanceData*>(this->data)->image->surface);
+		return cairo_image_surface_get_width(cairo_get_target(reinterpret_cast<InstanceData*>(this->data)->image.get()));
 	}
 
 	unsigned Renderer::height(){
-		return cairo_image_surface_get_height(reinterpret_cast<InstanceData*>(this->data)->image->surface);
+		return cairo_image_surface_get_height(cairo_get_target(reinterpret_cast<InstanceData*>(this->data)->image.get()));
 	}
 
 	void Renderer::copy_image(unsigned char* image, unsigned padding){
 		// Get source data
-		cairo_surface_t* image_surface = reinterpret_cast<InstanceData*>(this->data)->image->surface;
+		cairo_surface_t* image_surface = cairo_get_target(reinterpret_cast<InstanceData*>(this->data)->image.get());
 		int rowsize = cairo_image_surface_get_width(image_surface) << 2, stride = cairo_image_surface_get_stride(image_surface), height = cairo_image_surface_get_height(image_surface);
 		cairo_surface_flush(image_surface);
 		unsigned char* src_data = cairo_image_surface_get_data(image_surface);
@@ -110,8 +104,8 @@ namespace Backend{
 		data->texture_wrap = CAIRO_EXTEND_NONE,
 		data->anti_aliasing = true;
 		// Get cairo contexts
-		cairo_t* image_ctx = data->image->context,
-			*stencil_ctx = data->stencil->context;
+		cairo_t* image_ctx = data->image.get(),
+			*stencil_ctx = data->stencil.get();
 		// Reset cairo state
 		cairo_set_line_width(image_ctx, 4), cairo_set_line_width(stencil_ctx, 4),
 		cairo_set_line_join(image_ctx, CAIRO_LINE_JOIN_ROUND), cairo_set_line_join(stencil_ctx, CAIRO_LINE_JOIN_ROUND),
@@ -121,7 +115,7 @@ namespace Backend{
 	}
 
 	void Renderer::clear_stencil(){
-		cairo_t* stencil_context = reinterpret_cast<InstanceData*>(this->data)->stencil->context;
+		cairo_t* stencil_context = reinterpret_cast<InstanceData*>(this->data)->stencil.get();
 		cairo_set_operator(stencil_context, CAIRO_OPERATOR_SOURCE),
 		cairo_set_source_rgba(stencil_context, 0, 0, 0, 0),
 		cairo_paint(stencil_context);
