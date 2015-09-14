@@ -110,8 +110,110 @@ namespace Backend{
 		INST_DATA->font = GUtils::Font(family, size, bold, italic, underline, strikeout, spacing);
 	}
 
+	void Renderer::set_deform(const std::string& x_formula, const std::string& y_formula, double progress){
+		INST_DATA->deform_x = x_formula,
+		INST_DATA->deform_y = y_formula,
+		INST_DATA->deform_progress = progress;
+	}
+
+	void Renderer::set_matrix(const GUtils::Matrix4x4d& matrix){
+		INST_DATA->matrix = matrix;
+	}
+
+	void Renderer::set_mode(Renderer::Mode mode){
+		INST_DATA->mode = mode;
+	}
+
+	void Renderer::set_fill_color(unsigned char r, unsigned char g, unsigned char b, unsigned char a){
+		INST_DATA->fill_color = {r/255.0, g/255.0, b/255.0, a/255.0};
+	}
+
+	void Renderer::set_fill_color(unsigned char r0, unsigned char g0, unsigned char b0, unsigned char a0,
+			unsigned char r1, unsigned char g1, unsigned char b1, unsigned char a1,
+			unsigned char r2, unsigned char g2, unsigned char b2, unsigned char a2,
+			unsigned char r3, unsigned char g3, unsigned char b3, unsigned char a3){
+		INST_DATA->fill_color = {r0/255.0, g0/255.0, b0/255.0, a0/255.0, r1/255.0, g1/255.0, b1/255.0, a1/255.0, r2/255.0, g2/255.0, b2/255.0, a2/255.0, r3/255.0, g3/255.0, b3/255.0, a3/255.0};
+	}
+
+	void Renderer::set_line_color(unsigned char r, unsigned char g, unsigned char b, unsigned char a){
+		INST_DATA->fill_color = {r/255.0, g/255.0, b/255.0, a/255.0};
+	}
+
+	void Renderer::set_line_color(unsigned char r0, unsigned char g0, unsigned char b0, unsigned char a0,
+			unsigned char r1, unsigned char g1, unsigned char b1, unsigned char a1,
+			unsigned char r2, unsigned char g2, unsigned char b2, unsigned char a2,
+			unsigned char r3, unsigned char g3, unsigned char b3, unsigned char a3){
+		INST_DATA->line_color = {r0/255.0, g0/255.0, b0/255.0, a0/255.0, r1/255.0, g1/255.0, b1/255.0, a1/255.0, r2/255.0, g2/255.0, b2/255.0, a2/255.0, r3/255.0, g3/255.0, b3/255.0, a3/255.0};
+	}
+
+	void Renderer::set_texture(const std::string& filename){
+		INST_DATA->texture_filename = filename;
+	}
+
+	void Renderer::set_texture_offset(double x, double y){
+		INST_DATA->texture_x = x,
+		INST_DATA->texture_y = y;
+	}
+
+	void Renderer::set_texture_wrap(Renderer::TexWrap wrap){
+		switch(wrap){
+			case Renderer::TexWrap::CLAMP: INST_DATA->texture_wrap = CAIRO_EXTEND_NONE; break;
+			case Renderer::TexWrap::REPEAT: INST_DATA->texture_wrap = CAIRO_EXTEND_REPEAT; break;
+			case Renderer::TexWrap::MIRROR: INST_DATA->texture_wrap = CAIRO_EXTEND_REFLECT; break;
+			case Renderer::TexWrap::FLOW: INST_DATA->texture_wrap = CAIRO_EXTEND_PAD; break;
+		}
+	}
+
 	void Renderer::set_line_width(double width){
 		cairo_set_line_width(INST_DATA->image.get(), width), cairo_set_line_width(INST_DATA->stencil.get(), width);
+	}
+
+	void Renderer::set_line_join(Renderer::LineJoin join){
+		switch(join){
+			case Renderer::LineJoin::MITER:
+				cairo_set_line_join(INST_DATA->image.get(), CAIRO_LINE_JOIN_MITER),
+				cairo_set_line_join(INST_DATA->stencil.get(), CAIRO_LINE_JOIN_MITER);
+				break;
+			case Renderer::LineJoin::ROUND:
+				cairo_set_line_join(INST_DATA->image.get(), CAIRO_LINE_JOIN_ROUND),
+				cairo_set_line_join(INST_DATA->stencil.get(), CAIRO_LINE_JOIN_ROUND);
+				break;
+			case Renderer::LineJoin::BEVEL:
+				cairo_set_line_join(INST_DATA->image.get(), CAIRO_LINE_JOIN_BEVEL),
+				cairo_set_line_join(INST_DATA->stencil.get(), CAIRO_LINE_JOIN_BEVEL);
+				break;
+		}
+	}
+
+	void Renderer::set_line_cap(Renderer::LineCap cap){
+		switch(cap){
+			case Renderer::LineCap::FLAT:
+				cairo_set_line_cap(INST_DATA->image.get(), CAIRO_LINE_CAP_BUTT),
+				cairo_set_line_cap(INST_DATA->stencil.get(), CAIRO_LINE_CAP_BUTT);
+				break;
+			case Renderer::LineCap::ROUND:
+				cairo_set_line_cap(INST_DATA->image.get(), CAIRO_LINE_CAP_ROUND),
+				cairo_set_line_cap(INST_DATA->stencil.get(), CAIRO_LINE_CAP_ROUND);
+				break;
+			case Renderer::LineCap::SQUARE:
+				cairo_set_line_cap(INST_DATA->image.get(), CAIRO_LINE_CAP_SQUARE),
+				cairo_set_line_cap(INST_DATA->stencil.get(), CAIRO_LINE_CAP_SQUARE);
+				break;
+		}
+	}
+
+	void Renderer::set_line_dash(double offset, std::vector<double> dashes){
+		cairo_set_dash(INST_DATA->image.get(), dashes.data(), dashes.size(), offset),
+		cairo_set_dash(INST_DATA->stencil.get(), dashes.data(), dashes.size(), offset);
+	}
+
+	void Renderer::set_antialiasing(unsigned level){
+		if(level)
+			cairo_set_antialias(INST_DATA->image.get(), CAIRO_ANTIALIAS_BEST),
+			cairo_set_antialias(INST_DATA->stencil.get(), CAIRO_ANTIALIAS_BEST);
+		else
+			cairo_set_antialias(INST_DATA->image.get(), CAIRO_ANTIALIAS_NONE),
+			cairo_set_antialias(INST_DATA->stencil.get(), CAIRO_ANTIALIAS_NONE);
 	}
 
 	std::string Renderer::get_font_family(){
@@ -188,6 +290,7 @@ namespace Backend{
 			case CAIRO_EXTEND_REPEAT: return Renderer::TexWrap::REPEAT;
 			case CAIRO_EXTEND_REFLECT: return Renderer::TexWrap::MIRROR;
 			case CAIRO_EXTEND_PAD: return Renderer::TexWrap::FLOW;
+			default: return Renderer::TexWrap::CLAMP;
 		}
 	}
 
@@ -200,6 +303,7 @@ namespace Backend{
 			case CAIRO_LINE_JOIN_MITER: return Renderer::LineJoin::MITER;
 			case CAIRO_LINE_JOIN_ROUND: return Renderer::LineJoin::ROUND;
 			case CAIRO_LINE_JOIN_BEVEL: return Renderer::LineJoin::BEVEL;
+			default: return Renderer::LineJoin::ROUND;
 		}
 	}
 
@@ -208,6 +312,7 @@ namespace Backend{
 			case CAIRO_LINE_CAP_BUTT: return Renderer::LineCap::FLAT;
 			case CAIRO_LINE_CAP_ROUND: return Renderer::LineCap::ROUND;
 			case CAIRO_LINE_CAP_SQUARE: return Renderer::LineCap::SQUARE;
+			default: return Renderer::LineCap::ROUND;
 		}
 	}
 

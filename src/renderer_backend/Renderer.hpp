@@ -43,7 +43,7 @@ namespace Backend{
 
 			void set_font(const std::string& family, float size, bool bold, bool italic, bool underline, bool strikeout, double spacing);
 			void set_deform(const std::string& x_formula, const std::string& y_formula, double progress);
-			void set_matrix(const GUtils::Matrix4x4d&);
+			void set_matrix(const GUtils::Matrix4x4d& matrix);
 			enum class Mode{FILL, WIRE, BOXED};
 			void set_mode(Mode mode);
 			void set_fill_color(unsigned char r, unsigned char g, unsigned char b, unsigned char a);
