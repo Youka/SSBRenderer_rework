@@ -332,6 +332,24 @@ namespace Backend{
 		return cairo_get_antialias(INST_DATA->image.get()) == CAIRO_ANTIALIAS_BEST ? 8 : 0;
 	}
 
+	GUtils::Font::Metrics Renderer::font_metrics(){
+		return INST_DATA->font.metrics();
+	}
+
+	double Renderer::text_width(const std::string& text){
+		return INST_DATA->font.text_width(text);
+	}
+	std::vector<GUtils::PathSegment> Renderer::text_path(const std::string& text){
+		return INST_DATA->font.text_path(text);
+	}
+
+	void Renderer::clear_image(){
+		cairo_t* image_context = INST_DATA->image.get();
+		cairo_set_operator(image_context, CAIRO_OPERATOR_SOURCE),
+		cairo_set_source_rgba(image_context, 0, 0, 0, 0),
+		cairo_paint(image_context);
+	}
+
 	void Renderer::clear_stencil(){
 		cairo_t* stencil_context = INST_DATA->stencil.get();
 		cairo_set_operator(stencil_context, CAIRO_OPERATOR_SOURCE),

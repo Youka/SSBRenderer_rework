@@ -92,10 +92,12 @@ namespace Backend{
 			double get_line_dash_offset();
 			std::vector<double> get_line_dash();
 			unsigned get_antialiasing();
+			// Font/text analyzation
+			GUtils::Font::Metrics font_metrics();
+			double text_width(const std::string& text);
+			std::vector<GUtils::PathSegment> text_path(const std::string& text);
 			// Processing
+			void clear_image();
 			void clear_stencil();
-
-			// TODO
-
 	};
 }
