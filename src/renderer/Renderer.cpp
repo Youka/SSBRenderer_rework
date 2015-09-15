@@ -16,6 +16,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 #include "../parser/SSBParser.hpp"
 #include "../utils/io.hpp"
 #include "Geometry.hpp"
+#include "RenderState.hpp"
 
 namespace SSB{
 	void Renderer::init(int width, int height, Colorspace format, std::istream& data, bool warnings) throw(Exception){
