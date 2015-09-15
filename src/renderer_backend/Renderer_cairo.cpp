@@ -34,7 +34,8 @@ struct InstanceData{
 	double deform_progress;
 	GUtils::Matrix4x4d matrix;
 	Backend::Renderer::Mode mode;
-	std::vector<double> fill_color, line_color;	// RGBA, solid or 4 corners
+	std::vector<std::array<double,4>> fill_color;	// RGBA, solid or 4 corners
+	std::array<double,4> line_color;	// RGBA
 	std::string texture_filename;
 	double texture_x, texture_y;
 	cairo_extend_t texture_wrap;
@@ -90,7 +91,7 @@ namespace Backend{
 		INST_DATA->deform_progress = 0,
 		INST_DATA->matrix.identity(),
 		INST_DATA->mode = Renderer::Mode::FILL,
-		INST_DATA->fill_color = {1, 1, 1, 1},
+		INST_DATA->fill_color = {{1, 1, 1, 1}},
 		INST_DATA->line_color = {0, 0, 0, 1},
 		INST_DATA->texture_filename.clear(),
 		INST_DATA->texture_x = INST_DATA->texture_y = 0,
@@ -124,26 +125,19 @@ namespace Backend{
 		INST_DATA->mode = mode;
 	}
 
-	void Renderer::set_fill_color(unsigned char r, unsigned char g, unsigned char b, unsigned char a){
-		INST_DATA->fill_color = {r/255.0, g/255.0, b/255.0, a/255.0};
+	void Renderer::set_fill_color(double r, double g, double b, double a){
+		INST_DATA->fill_color = {{r, g, b, a}};
 	}
 
-	void Renderer::set_fill_color(unsigned char r0, unsigned char g0, unsigned char b0, unsigned char a0,
-			unsigned char r1, unsigned char g1, unsigned char b1, unsigned char a1,
-			unsigned char r2, unsigned char g2, unsigned char b2, unsigned char a2,
-			unsigned char r3, unsigned char g3, unsigned char b3, unsigned char a3){
-		INST_DATA->fill_color = {r0/255.0, g0/255.0, b0/255.0, a0/255.0, r1/255.0, g1/255.0, b1/255.0, a1/255.0, r2/255.0, g2/255.0, b2/255.0, a2/255.0, r3/255.0, g3/255.0, b3/255.0, a3/255.0};
+	void Renderer::set_fill_color(double r0, double g0, double b0, double a0,
+			double r1, double g1, double b1, double a1,
+			double r2, double g2, double b2, double a2,
+			double r3, double g3, double b3, double a3){
+		INST_DATA->fill_color = {{r0, g0, b0, a0}, {r1, g1, b1, a1}, {r2, g2, b2, a2}, {r3, g3, b3, a3}};
 	}
 
-	void Renderer::set_line_color(unsigned char r, unsigned char g, unsigned char b, unsigned char a){
-		INST_DATA->fill_color = {r/255.0, g/255.0, b/255.0, a/255.0};
-	}
-
-	void Renderer::set_line_color(unsigned char r0, unsigned char g0, unsigned char b0, unsigned char a0,
-			unsigned char r1, unsigned char g1, unsigned char b1, unsigned char a1,
-			unsigned char r2, unsigned char g2, unsigned char b2, unsigned char a2,
-			unsigned char r3, unsigned char g3, unsigned char b3, unsigned char a3){
-		INST_DATA->line_color = {r0/255.0, g0/255.0, b0/255.0, a0/255.0, r1/255.0, g1/255.0, b1/255.0, a1/255.0, r2/255.0, g2/255.0, b2/255.0, a2/255.0, r3/255.0, g3/255.0, b3/255.0, a3/255.0};
+	void Renderer::set_line_color(double r, double g, double b, double a){
+		INST_DATA->line_color = {r, g, b, a};
 	}
 
 	void Renderer::set_texture(const std::string& filename){
@@ -264,11 +258,11 @@ namespace Backend{
 		return INST_DATA->mode;
 	}
 
-	std::vector<double> Renderer::get_fill_color(){
+	std::vector<std::array<double,4>> Renderer::get_fill_color(){
 		return INST_DATA->fill_color;
 	}
 
-	std::vector<double> Renderer::get_line_color(){
+	std::array<double,4> Renderer::get_line_color(){
 		return INST_DATA->line_color;
 	}
 

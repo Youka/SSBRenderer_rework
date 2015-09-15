@@ -15,6 +15,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 #pragma once
 
 #include "../graphics/gutils.hpp"
+#include <array>
 
 namespace Backend{
 	// RGBA renderer on CPU or GPU (holding own image)
@@ -46,17 +47,13 @@ namespace Backend{
 			void set_matrix(const GUtils::Matrix4x4d& matrix);
 			enum class Mode{FILL, WIRE, BOXED};
 			void set_mode(Mode mode);
-			void set_fill_color(unsigned char r, unsigned char g, unsigned char b, unsigned char a);
-			void set_fill_color(unsigned char r0, unsigned char g0, unsigned char b0, unsigned char a0,
-					unsigned char r1, unsigned char g1, unsigned char b1, unsigned char a1,
-					unsigned char r2, unsigned char g2, unsigned char b2, unsigned char a2,
-					unsigned char r3, unsigned char g3, unsigned char b3, unsigned char a3);
-			void set_line_color(unsigned char r, unsigned char g, unsigned char b, unsigned char a);
-			void set_line_color(unsigned char r0, unsigned char g0, unsigned char b0, unsigned char a0,
-					unsigned char r1, unsigned char g1, unsigned char b1, unsigned char a1,
-					unsigned char r2, unsigned char g2, unsigned char b2, unsigned char a2,
-					unsigned char r3, unsigned char g3, unsigned char b3, unsigned char a3);
-                        void set_texture(const std::string& filename);
+			void set_fill_color(double r, double g, double b, double a);
+			void set_fill_color(double r0, double g0, double b0, double a0,
+					double r1, double g1, double b1, double a1,
+					double r2, double g2, double b2, double a2,
+					double r3, double g3, double b3, double a3);
+			void set_line_color(double r, double g, double b, double a);
+			void set_texture(const std::string& filename);
 			void set_texture_offset(double x, double y);
 			enum class TexWrap{CLAMP, REPEAT, MIRROR, FLOW};
 			void set_texture_wrap(TexWrap wrap);
@@ -80,12 +77,12 @@ namespace Backend{
 			double get_deform_progress();
 			GUtils::Matrix4x4d get_matrix();
 			Mode get_mode();
-                        std::vector<double> get_fill_color();
-                        std::vector<double> get_line_color();
+			std::vector<std::array<double,4>> get_fill_color();
+			std::array<double,4> get_line_color();
 			std::string get_texture();
 			double get_texture_offset_x();
 			double get_texture_offset_y();
-                        TexWrap get_texture_wrap();
+			TexWrap get_texture_wrap();
 			double get_line_width();
 			LineJoin get_line_join();
 			LineCap get_line_cap();
