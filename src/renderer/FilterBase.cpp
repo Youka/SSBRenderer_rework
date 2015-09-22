@@ -335,7 +335,7 @@ namespace FilterBase{
 			std::unique_ptr<SSB::Renderer> renderer;
 		};
 		void init(IFilterConfig* config) throw(std::string){
-			*config->LockData() = new Userdata{"", true, nullptr};
+			*config->LockData() = new Userdata{"", true, nullptr},
 			config->UnlockData();
 		}
 		void start(VideoInfo vinfo, IFilterConfig* config) throw(std::string){
@@ -357,10 +357,11 @@ namespace FilterBase{
 			config->UnlockData();
 		}
 		void filter_frame(unsigned char* image_data, int stride, unsigned long start_ms, unsigned long, IFilterConfig* config){
-			reinterpret_cast<Userdata*>(*config->LockData())->renderer->render(image_data, stride, start_ms);
+			reinterpret_cast<Userdata*>(*config->LockData())->renderer->render(image_data, stride, start_ms),
+			config->UnlockData();
 		}
 		void end(IFilterConfig* config){
-			reinterpret_cast<Userdata*>(*config->LockData())->renderer.reset();
+			reinterpret_cast<Userdata*>(*config->LockData())->renderer.reset(),
 			config->UnlockData();
 		}
 		void deinit(IFilterConfig* config){
