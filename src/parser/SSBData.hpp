@@ -44,10 +44,10 @@ namespace SSB{
 	// RGB structure for colors
 	struct RGB{
 		Depth r, g, b;
-		RGB operator-(const RGB& value){
+		RGB operator-(const RGB& value) const{
 			return {this->r - value.r, this->g - value.g, this->b - value.b};
 		}
-		RGB operator*(const Depth value){
+		RGB operator*(const Depth value) const{
 			return {this->r * value, this->g * value, this->b * value};
 		}
 		RGB& operator+=(const RGB& value){
@@ -56,7 +56,7 @@ namespace SSB{
 			this->b += value.b;
 			return *this;
 		}
-		bool operator==(const RGB& value){
+		bool operator==(const RGB& value) const{
 			return this->r == value.r && this->g == value.g && this->b == value.b;
 		}
 	};
