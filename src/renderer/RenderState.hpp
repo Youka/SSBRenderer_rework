@@ -24,44 +24,44 @@ namespace SSB{
 	// Current state/properties for rendering operations (+ initial values)
 	struct RenderState{
 		// Font
-                std::string font_family = "Arial";
-                bool bold = false, italic = false, underline = false, strikeout = false;
-                float font_size = 30;
-                double font_space_h = 0, font_space_v = 0;
-                // Line
-                double line_width = 4;
+		std::string font_family = "Arial";
+		bool bold = false, italic = false, underline = false, strikeout = false;
+		float font_size = 30;
+		double font_space_h = 0, font_space_v = 0;
+		// Line
+		double line_width = 4;
 		Backend::Renderer::LineJoin line_join = Backend::Renderer::LineJoin::ROUND;
 		Backend::Renderer::LineCap line_cap = Backend::Renderer::LineCap::ROUND;
 		double dash_offset = 0;
 		std::vector<double> dashes;
 		// Geometry
 		Backend::Renderer::Mode mode = Backend::Renderer::Mode::FILL;
-                std::string deform_x, deform_y;
-                double deform_progress = 0;
-                // Position
-                double pos_x = DBL_MAX, pos_y = DBL_MAX;	// Maximal position = unset
+		std::string deform_x, deform_y;
+		double deform_progress = 0;
+		// Position
+		double pos_x = DBL_MAX, pos_y = DBL_MAX;	// Maximal position = unset
 		Align::Position align = Align::Position::CENTER_BOTTOM;
-                double margin_h = 0, margin_v = 0;
+		double margin_h = 0, margin_v = 0;
 		bool vertical = false;
 		// Transformation
 		GUtils::Matrix4x4d matrix;
 		// Color
-		std::vector<std::array<double,4>> fill_color = {{1,1,1,1}};
+		std::array<std::array<double,4>,4> fill_color = {{{{1,1,1,1}}, {{1,1,1,1}}, {{1,1,1,1}}, {{1,1,1,1}}}};
 		std::array<double,4> line_color = {{0,0,0,1}};
-                std::string texture_filename;
+		std::string texture_filename;
 		double texture_x = 0, texture_y = 0;
 		Backend::Renderer::TexWrap texture_wrap = Backend::Renderer::TexWrap::CLAMP;
 		// Rastering
 		Blend::Mode blend_mode = Blend::Mode::OVER;
 		double blur_h = 0, blur_v = 0;
-                Stencil::Mode stencil_mode = Stencil::Mode::OFF;
-                bool anti_aliasing = true;
-                // Fade
-                double fade_in = 0, fade_out = 0;
-                // Karaoke
-                unsigned long karaoke_start = ULONG_MAX, karaoke_duration = 0;
-                std::array<double,3> karaoke_color = {{1,0,0}};
-                KaraokeMode::Mode karaoke_mode = KaraokeMode::Mode::FILL;
+		Stencil::Mode stencil_mode = Stencil::Mode::OFF;
+		bool anti_aliasing = true;
+		// Fade
+		unsigned long fade_in = 0, fade_out = 0;
+		// Karaoke
+		unsigned long karaoke_start = ULONG_MAX, karaoke_duration = 0;
+		std::array<double,3> karaoke_color = {{1,0,0}};
+		KaraokeMode::Mode karaoke_mode = KaraokeMode::Mode::FILL;
 	};
 
 	// Tag to state
@@ -109,7 +109,7 @@ namespace SSB{
 					switch(style->join){
 						case LineStyle::Join::BEVEL:
 							state.line_join = Backend::Renderer::LineJoin::BEVEL;
-                                                        break;
+							break;
 						case LineStyle::Join::ROUND:
 							state.line_join = Backend::Renderer::LineJoin::ROUND;
 							break;
@@ -125,11 +125,11 @@ namespace SSB{
 				}
 				break;
 			case Tag::Type::LINE_DASH:
-                                {
+				{
 					const LineDash* dash = dynamic_cast<const LineDash*>(tag);
 					state.dash_offset = dash->offset,
-                                        state.dashes = dash->dashes;
-                                }
+					state.dashes = dash->dashes;
+				}
 				break;
 			case Tag::Type::MODE:
 				switch(dynamic_cast<const Mode*>(tag)->method){
@@ -180,7 +180,7 @@ namespace SSB{
 				}
 				break;
 			case Tag::Type::DIRECTION:
-                                state.vertical = dynamic_cast<const Direction*>(tag)->mode == Direction::Mode::TTB;
+				state.vertical = dynamic_cast<const Direction*>(tag)->mode == Direction::Mode::TTB;
 				break;
 			case Tag::Type::IDENTITY:
 				state.matrix.identity();
@@ -239,26 +239,26 @@ namespace SSB{
 					switch(shear->type){
 						case Shear::Type::HORIZONTAL:
 							state.matrix.multiply({
-                                                                1, shear->x, 0, 0,
-                                                                0, 1, 0, 0,
-                                                                0, 0, 1, 0,
-                                                                0, 0, 0, 1
+								1, shear->x, 0, 0,
+								0, 1, 0, 0,
+								0, 0, 1, 0,
+								0, 0, 0, 1
 							});
 							break;
 						case Shear::Type::VERTICAL:
 							state.matrix.multiply({
-                                                                1, 0, 0, 0,
-                                                                shear->y, 1, 0, 0,
-                                                                0, 0, 1, 0,
-                                                                0, 0, 0, 1
+								1, 0, 0, 0,
+								shear->y, 1, 0, 0,
+								0, 0, 1, 0,
+								0, 0, 0, 1
 							});
 							break;
 						case Shear::Type::BOTH:
 							state.matrix.multiply({
-                                                                1, shear->x, 0, 0,
-                                                                shear->y, 1, 0, 0,
-                                                                0, 0, 1, 0,
-                                                                0, 0, 0, 1
+								1, shear->x, 0, 0,
+								shear->y, 1, 0, 0,
+								0, 0, 1, 0,
+								0, 0, 0, 1
 							});
 							break;
 					}
@@ -279,40 +279,104 @@ namespace SSB{
 			case Tag::Type::COLOR:
 				{
 					const Color* color = dynamic_cast<const Color*>(tag);
-
-                                        // TODO
-
+					state.fill_color[0][0] = color->colors[0].r,
+					state.fill_color[0][1] = color->colors[0].g,
+					state.fill_color[0][2] = color->colors[0].b,
+					state.fill_color[1][0] = color->colors[1].r,
+					state.fill_color[1][1] = color->colors[1].g,
+					state.fill_color[1][2] = color->colors[1].b,
+					state.fill_color[2][0] = color->colors[2].r,
+					state.fill_color[2][1] = color->colors[2].g,
+					state.fill_color[2][2] = color->colors[2].b,
+					state.fill_color[3][0] = color->colors[3].r,
+					state.fill_color[3][1] = color->colors[3].g,
+					state.fill_color[3][2] = color->colors[3].b;
 				}
 				break;
 			case Tag::Type::LINE_COLOR:
-				// TODO
+				{
+					const LineColor* lcolor = dynamic_cast<const LineColor*>(tag);
+					state.line_color = {lcolor->color.r, lcolor->color.g, lcolor->color.b, state.line_color[3]};
+				}
 				break;
 			case Tag::Type::ALPHA:
-				// TODO
+				{
+					const Alpha* alpha = dynamic_cast<const Alpha*>(tag);
+					state.fill_color[0][3] = alpha->alphas[0],
+					state.fill_color[1][3] = alpha->alphas[1],
+					state.fill_color[2][3] = alpha->alphas[2],
+					state.fill_color[3][3] = alpha->alphas[3];
+				}
 				break;
 			case Tag::Type::LINE_ALPHA:
-				// TODO
+				state.line_color[3] = dynamic_cast<const LineAlpha*>(tag)->alpha;
 				break;
 			case Tag::Type::TEXTURE:
-				// TODO
+				state.texture_filename = dynamic_cast<const Texture*>(tag)->filename;
 				break;
 			case Tag::Type::TEXFILL:
-				// TODO
+				{
+					const TexFill* texfill = dynamic_cast<const TexFill*>(tag);
+					state.texture_x = texfill->x,
+					state.texture_y = texfill->y;
+					switch(texfill->wrap){
+						case TexFill::WrapStyle::CLAMP:
+							state.texture_wrap = Backend::Renderer::TexWrap::CLAMP;
+							break;
+						case TexFill::WrapStyle::REPEAT:
+							state.texture_wrap = Backend::Renderer::TexWrap::REPEAT;
+							break;
+						case TexFill::WrapStyle::MIRROR:
+							state.texture_wrap = Backend::Renderer::TexWrap::MIRROR;
+							break;
+						case TexFill::WrapStyle::FLOW:
+							state.texture_wrap = Backend::Renderer::TexWrap::FLOW;
+							break;
+					}
+				}
 				break;
 			case Tag::Type::BLEND:
-				// TODO
+				state.blend_mode = dynamic_cast<const Blend*>(tag)->mode;
 				break;
 			case Tag::Type::BLUR:
-				// TODO
+				{
+					const Blur* blur = dynamic_cast<const Blur*>(tag);
+					switch(blur->type){
+						case Blur::Type::HORIZONTAL:
+							state.blur_h = blur->x;
+							break;
+						case Blur::Type::VERTICAL:
+							state.blur_v = blur->y;
+							break;
+						case Blur::Type::BOTH:
+							state.blur_h = blur->x,
+							state.blur_v = blur->y;
+							break;
+					}
+				}
 				break;
 			case Tag::Type::STENCIL:
-				// TODO
+				state.stencil_mode = dynamic_cast<const Stencil*>(tag)->mode;
 				break;
 			case Tag::Type::ANTI_ALIASING:
-				// TODO
+				state.anti_aliasing = dynamic_cast<const AntiAliasing*>(tag)->status;
 				break;
 			case Tag::Type::FADE:
-				// TODO
+				{
+					const Fade* fade = dynamic_cast<const Fade*>(tag);
+					switch(fade->type){
+						case Fade::Type::INFADE:
+							state.fade_in = fade->in;
+							break;
+						case Fade::Type::OUTFADE:
+							state.fade_out = fade->out;
+							break;
+						case Fade::Type::BOTH:
+							state.fade_in = fade->in,
+							state.fade_out = fade->out;
+							break;
+					}
+				}
 				break;
 			case Tag::Type::ANIMATE:
 				// TODO
